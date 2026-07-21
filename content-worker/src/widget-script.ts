@@ -99,12 +99,21 @@ positionMarginPin(c.id);
 
 // ─── popover (composer / thread) ───────────────────────────────────────────
 var popover=null;
-function closePop(){if(popover&&popover.parentNode)popover.parentNode.removeChild(popover);popover=null;}
+// Hover-to-open state for pins. pinnedOpen=true means a click pinned the popover
+// so it must NOT auto-close on mouseleave. hoverC tracks which comment's thread is
+// currently shown so we don't rebuild (flicker) while the pointer jitters on it.
+var hoverOpenT=null,hoverCloseT=null,hoverC=null,pinnedOpen=false;
+function cancelHoverTimers(){if(hoverOpenT){clearTimeout(hoverOpenT);hoverOpenT=null;}if(hoverCloseT){clearTimeout(hoverCloseT);hoverCloseT=null;}}
+function scheduleHoverClose(){cancelHoverTimers();if(pinnedOpen)return;hoverCloseT=setTimeout(function(){hoverCloseT=null;if(!pinnedOpen&&hoverC)closePop();},220);}
+function closePop(){if(popover&&popover.parentNode)popover.parentNode.removeChild(popover);popover=null;pinnedOpen=false;hoverC=null;cancelHoverTimers();}
 function popAtDoc(dl,dt){
 closePop();
 var pv=mk("div",TOK+"position:absolute;z-index:2147483001;width:300px;max-width:88vw;background:var(--canvas);border:1px solid var(--hairline);border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.2);padding:.85rem;font-family:"+SANS+";color:var(--ink);pointer-events:auto;");
 var left=dl+16;if(left+300>docW())left=Math.max(8,dl-316);if(left<8)left=8;
 pv.style.left=left+"px";pv.style.top=dt+"px";
+// Entering the popover cancels a pending hover-close so the user can read/reply;
+// leaving it re-arms the grace timer (a no-op unless a hover thread is active).
+pv.addEventListener("mouseenter",cancelHoverTimers);pv.addEventListener("mouseleave",scheduleHoverClose);
 layer.appendChild(pv);popover=pv;return pv;
 }
 function appendComment(parent,c,isReply){
@@ -137,6 +146,10 @@ appendComment(pv,c,false);
 allComments.filter(function(r){return r.parent_id===c.id;}).forEach(function(r){appendComment(pv,r,true);});
 pv.appendChild(replyForm(c.id,function(){closePop();load();}));
 }
+// openThread()->popAtDoc()->closePop() resets pinnedOpen/hoverC, so the flags are
+// set AFTER the build. Pinned = click (stays open); hover = auto-closes on leave.
+function openThreadPinned(c){cancelHoverTimers();openThread(c);pinnedOpen=true;hoverC=c;}
+function openThreadHover(c){cancelHoverTimers();openThread(c);pinnedOpen=false;hoverC=c;}
 // Composer for a new anchored comment. anchor is the full anchor object; dl/dt
 // override the popover position (used for text selection, where the anchor has
 // no x/y). All three anchor kinds submit through here.
@@ -179,9 +192,13 @@ pin.style.cssText="position:absolute;pointer-events:auto;min-width:24px;height:2
 pin.textContent=count>1?(n+" · "+count):String(n);
 pin.style.left=px+"px";pin.style.top=py+"px";
 (function(c,box){
-pin.addEventListener("click",function(e){e.stopPropagation();openThread(c);});
-pin.addEventListener("mouseenter",function(){if(box)box.style.background="rgba(59,91,219,.22)";});
-pin.addEventListener("mouseleave",function(){if(box)box.style.background="rgba(59,91,219,.08)";});
+// Click pins the thread open (or toggles it shut if this pin's thread is pinned).
+pin.addEventListener("click",function(e){e.stopPropagation();cancelHoverTimers();if(popover&&hoverC===c&&pinnedOpen){closePop();}else{openThreadPinned(c);}});
+// Hover: brighten a region box, then open the thread after a short delay. Skip in
+// pin-placement mode, and don't rebuild if this pin's thread is already showing.
+pin.addEventListener("mouseenter",function(){if(box)box.style.background="rgba(59,91,219,.22)";if(pinMode)return;cancelHoverTimers();if(popover&&hoverC===c)return;hoverOpenT=setTimeout(function(){hoverOpenT=null;if(pinMode)return;openThreadHover(c);},180);});
+// Leaving the pin arms the grace timer; moving onto the popover cancels it.
+pin.addEventListener("mouseleave",function(){if(box)box.style.background="rgba(59,91,219,.08)";scheduleHoverClose();});
 })(c,box);
 layer.appendChild(pin);
 });

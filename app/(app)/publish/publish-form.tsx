@@ -89,6 +89,7 @@ export function PublishForm() {
 
   const [showSlug, setShowSlug] = useState(false);
   const [slug, setSlug] = useState("");
+  const [showOptions, setShowOptions] = useState(false);
 
   const [dragging, setDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -106,20 +107,31 @@ export function PublishForm() {
 
   const loadFile = useCallback(async (file: File) => {
     const name = file.name.toLowerCase();
-    const ok = /\.(md|markdown|html?|txt)$/.test(name);
-    if (!ok) {
-      setError("That file type isn't supported. Use a .md or .html file.");
+    const isImage =
+      /^image\//.test(file.type) || /\.(png|jpe?g|gif|webp|svg)$/.test(name);
+    const isText =
+      /\.(md|markdown|html?|txt|json|csv|tsv|log|ya?ml|xml)$/.test(name);
+    if (!isImage && !isText && file.type && !file.type.startsWith("text/")) {
+      setError(
+        "That file type isn't previewed yet. Markdown, HTML, JSON, CSV, plain text, and images work.",
+      );
       return;
     }
     if (file.size > 2_000_000) {
       setError("That file is over 2 MB. Trim it down or paste the part you want to share.");
       return;
     }
-    const text = await file.text();
     setError(null);
     setFileName(file.name);
-    setContent(text);
     setSourceLocked(false); // let detection re-run on the new content
+    if (isImage) {
+      // Inline the image as a data URL; the server renders it as <img>.
+      const reader = new FileReader();
+      reader.onload = () => setContent(String(reader.result || ""));
+      reader.readAsDataURL(file);
+    } else {
+      setContent(await file.text());
+    }
   }, []);
 
   const onDrop = useCallback(
@@ -165,7 +177,9 @@ export function PublishForm() {
       return;
     }
 
-    const title = deriveTitle(content, source);
+    const title = content.startsWith("data:image/")
+      ? (fileName?.replace(/\.[^.]+$/, "") || "Image")
+      : deriveTitle(content, source);
 
     setSubmitting(true);
     try {
@@ -240,6 +254,7 @@ export function PublishForm() {
     setExpiresAt("");
     setShowSlug(false);
     setSlug("");
+    setShowOptions(false);
     setError(null);
     setTurnstileToken("");
   }
@@ -249,7 +264,7 @@ export function PublishForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-12 space-y-12">
+    <form onSubmit={onSubmit} className="mt-12 space-y-8">
       {/* Composer ─────────────────────────────────────────── */}
       <section className="space-y-3">
         <label htmlFor="doc" className="block text-sm font-medium text-ink">
@@ -287,7 +302,7 @@ export function PublishForm() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".md,.markdown,.html,.htm,.txt,text/markdown,text/html"
+            accept=".md,.markdown,.html,.htm,.txt,.json,.csv,.tsv,.log,.yaml,.yml,.xml,.png,.jpg,.jpeg,.gif,.webp,.svg,text/*,image/*"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -318,8 +333,53 @@ export function PublishForm() {
             )}
           </span>
         </div>
+
+        {/* One-line hint: any format works, nothing to pick. */}
+        <p className="text-sm text-ink-faint">
+          ilolink renders whatever your AI emits — Markdown, HTML, JSON, CSV, code,
+          and images. Auto-detected, no need to choose a format.
+        </p>
       </section>
 
+      {/* Primary action ───────────────────────────────────── */}
+      {/* Publish sits directly under the composer so it's never hunted for; */}
+      {/* everything optional collapses behind the Options disclosure. */}
+      <div className="space-y-4">
+        {error && (
+          <p role="alert" className="text-sm text-ink">
+            {error}
+          </p>
+        )}
+        <Turnstile onToken={onTurnstileToken} />
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="inline-flex w-full items-center justify-center rounded-md bg-accent px-8 py-3 text-sm font-medium text-canvas transition-opacity duration-150 hover:opacity-90 disabled:opacity-40 sm:w-auto"
+          >
+            {submitting ? "Publishing…" : "Publish"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowOptions((v) => !v)}
+            aria-expanded={showOptions}
+            className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"
+          >
+            {showOptions ? "Hide options" : "Options"}
+          </button>
+        </div>
+        <p className="text-sm text-ink-faint">
+          Publishing as{" "}
+          <span className="text-ink-soft">
+            {VISIBILITY.find((v) => v.value === visibility)?.label}
+          </span>
+          {showSlug && slug.trim() ? ` at /${slug.trim()}` : ""}.
+        </p>
+      </div>
+
+      {/* Options (collapsed by default) ───────────────────── */}
+      {showOptions && (
+      <div className="space-y-10 border-t border-hairline pt-8">
       {/* Visibility ───────────────────────────────────────── */}
       <section className="space-y-3">
         <span className="block text-sm font-medium text-ink">Who can see it</span>
@@ -423,23 +483,8 @@ export function PublishForm() {
           </button>
         )}
       </section>
-
-      {/* Submit ───────────────────────────────────────────── */}
-      <div className="space-y-4 border-t border-hairline pt-8">
-        {error && (
-          <p role="alert" className="text-sm text-ink">
-            {error}
-          </p>
-        )}
-        <Turnstile onToken={onTurnstileToken} />
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="inline-flex items-center rounded-md bg-accent px-6 py-2.5 text-sm font-medium text-canvas transition-opacity duration-150 hover:opacity-90 disabled:opacity-40"
-        >
-          {submitting ? "Publishing…" : "Publish"}
-        </button>
       </div>
+      )}
     </form>
   );
 }
@@ -719,7 +764,7 @@ function Preview({ slug, token }: { slug: string; token: string }) {
 // copyable URL. Ported from Nayuki's public-domain QR generator, trimmed.
 // ─────────────────────────────────────────────────────────────────────────
 
-function QrCode({ text }: { text: string }) {
+export function QrCode({ text }: { text: string }) {
   const matrix = useMemo(() => qrBuildMatrix(text), [text]);
   if (!matrix) return null;
 

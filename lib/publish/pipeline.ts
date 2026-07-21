@@ -2,10 +2,9 @@
 // append a version → point the document at it. Documents are immutable, so each
 // has exactly one version; the pipeline still routes through the sanitize boundary.
 
-import { renderMarkdown } from "@/lib/sanitize/markdown";
-import { sanitizeDocument } from "@/lib/sanitize/html";
 import { putBody } from "@/lib/r2/store";
 import { createVersion, setCurrentVersion } from "@/lib/db/documents";
+import { renderContent } from "@/lib/publish/formats";
 import type { DocumentVersion, SourceType, Visibility } from "@/lib/types";
 
 // Upload ceiling for both raw bodies and file uploads.
@@ -42,13 +41,11 @@ export interface RenderResult {
   title: string | null;
 }
 
-// md → HTML via markdown-it then sanitize; html → sanitize directly. Every path
-// ends at sanitizeDocument(), the single security boundary. Never store `raw`
-// rendered directly — only the returned `html` is safe to serve.
+// Auto-detect the format (markdown / html / JSON / CSV / image) from the content
+// and render it to sanitized HTML. Every path ends at sanitizeDocument(), the
+// single security boundary. Never store `raw` rendered directly.
 export function renderAndSanitize(raw: string, sourceType: SourceType): RenderResult {
-  const dirty = sourceType === "md" ? renderMarkdown(raw) : raw;
-  const { html, title } = sanitizeDocument(dirty);
-  return { html, title };
+  return renderContent(raw, sourceType);
 }
 
 const rawContentType = (t: SourceType): string =>

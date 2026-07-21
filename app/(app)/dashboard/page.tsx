@@ -4,12 +4,13 @@
 // ownership lives only in this browser. We render getHistory() from
 // localStorage: what you published here, with the link and a way into stats.
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getHistory,
   removeFromHistory,
   type HistoryEntry,
 } from "@/lib/history";
+import { QrCode } from "@/app/(app)/publish/publish-form";
 
 const VISIBILITY_LABEL: Record<string, string> = {
   public: "Public",
@@ -35,6 +36,42 @@ function VisibilityBadge({ visibility }: { visibility: string }) {
   );
 }
 
+interface Counts {
+  views: number;
+  comments: number;
+}
+
+// Quiet per-doc counts, token-gated via /api/counts. Silent on failure — the
+// card stays useful even if the tally can't be fetched.
+function CountsLine({ entry }: { entry: HistoryEntry }) {
+  const [counts, setCounts] = useState<Counts | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(
+      `/api/counts?slug=${encodeURIComponent(entry.slug)}&token=${encodeURIComponent(entry.manageToken)}`,
+    )
+      .then((r) => (r.ok ? (r.json() as Promise<Counts>) : null))
+      .then((data) => {
+        if (alive && data) setCounts(data);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [entry.slug, entry.manageToken]);
+
+  if (!counts) {
+    return <span className="text-ink-faint tabular-nums">·</span>;
+  }
+  return (
+    <span className="text-ink-soft tabular-nums">
+      {counts.views.toLocaleString()} views ·{" "}
+      {counts.comments.toLocaleString()} comments
+    </span>
+  );
+}
+
 function DocCard({
   entry,
   onDeleted,
@@ -47,6 +84,10 @@ function DocCard({
   const [armed, setArmed] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(false);
+
+  const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+  const qrRef = useRef<HTMLDivElement>(null);
 
   async function del() {
     setDeleting(true);
@@ -68,6 +109,35 @@ function DocCard({
     }
   }
 
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(entry.url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — the Open link still works */
+    }
+  }
+
+  // Serialize the rendered QR <svg> to a standalone file and download it.
+  function downloadQr() {
+    const svg = qrRef.current?.querySelector("svg");
+    if (!svg) return;
+    const source = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([source], { type: "image/svg+xml" });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `ilolink-${entry.slug}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  }
+
+  const actionClass =
+    "text-ink-soft transition-colors duration-150 hover:text-accent";
+
   return (
     <li className="group border-b border-hairline py-6 last:border-b-0">
       <div className="flex items-start justify-between gap-4">
@@ -84,19 +154,32 @@ function DocCard({
         </div>
         <VisibilityBadge visibility={entry.visibility} />
       </div>
+
+      <p className="mt-3 text-sm">
+        <CountsLine entry={entry} />
+      </p>
+
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+        <button type="button" onClick={copyLink} className={actionClass}>
+          {copied ? "Copied" : "Copy link"}
+        </button>
         <a
           href={entry.url}
-          className="text-ink-soft transition-colors duration-150 hover:text-accent"
+          className={actionClass}
           target="_blank"
           rel="noopener noreferrer"
         >
-          View
+          Open
         </a>
-        <Link
-          href={`/dashboard/${entry.slug}`}
-          className="text-ink-soft transition-colors duration-150 hover:text-accent"
+        <button
+          type="button"
+          onClick={() => setShowQr((v) => !v)}
+          aria-expanded={showQr}
+          className={actionClass}
         >
+          QR
+        </button>
+        <Link href={`/dashboard/${entry.slug}`} className={actionClass}>
           Stats &amp; comments
         </Link>
 
@@ -130,6 +213,22 @@ function DocCard({
           </span>
         )}
       </div>
+
+      {showQr ? (
+        <div className="mt-4 flex items-center gap-4">
+          <div ref={qrRef} className="w-24 [&_svg]:h-24 [&_svg]:w-24">
+            <QrCode text={entry.url} />
+          </div>
+          <button
+            type="button"
+            onClick={downloadQr}
+            className={actionClass}
+          >
+            Download
+          </button>
+        </div>
+      ) : null}
+
       {error ? (
         <p className="mt-2 text-sm text-[#b3261e] dark:text-[#f2827a]">
           Couldn’t delete this document. Please try again.
