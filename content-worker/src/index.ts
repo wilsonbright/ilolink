@@ -184,14 +184,14 @@ ${robots}
   color-scheme: light;
   --canvas: #fafaf8; --surface: #ffffff;
   --ink: #1a1a17; --ink-soft: #56564f; --ink-faint: #8a8a80;
-  --hairline: #eae8e1; --accent: #3b5bdb;
+  --hairline: #eae8e1; --accent: #3b5bdb; --accent-soft: #dfe5fb;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
     --canvas: #17171a; --surface: #1f1f23;
     --ink: #edece7; --ink-soft: #a8a79f; --ink-faint: #6f6e67;
-    --hairline: #2c2c31; --accent: #7c93f0;
+    --hairline: #2c2c31; --accent: #7c93f0; --accent-soft: #262a40;
   }
 }
 * { box-sizing: border-box; }
@@ -465,10 +465,61 @@ async function postFeedback(request: Request, env: Env): Promise<Response> {
   return jsonResponse({ ok: true });
 }
 
+// A resolved anchor: character offsets into the ".doc" container's textContent
+// plus display context. Docs are immutable, so offsets are stable resolvers.
+interface CommentAnchor {
+  quote: string;
+  prefix: string;
+  suffix: string;
+  start: number;
+  end: number;
+}
+
+// Validate an untrusted anchor against the ANCHOR CONTRACT (shape + caps).
+// Returns a clean anchor object on success, or null on any violation — callers
+// store null so a malformed anchor degrades to a general comment.
+function validateAnchor(input: unknown): CommentAnchor | null {
+  if (!input || typeof input !== "object") return null;
+  const a = input as Record<string, unknown>;
+  if (
+    typeof a.quote !== "string" ||
+    typeof a.prefix !== "string" ||
+    typeof a.suffix !== "string"
+  ) {
+    return null;
+  }
+  const start = a.start;
+  const end = a.end;
+  if (typeof start !== "number" || typeof end !== "number") return null;
+  if (!Number.isInteger(start) || !Number.isInteger(end)) return null;
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  if (start < 0 || end < 0 || end <= start) return null;
+  if (a.quote.length < 1 || a.quote.length > 400) return null;
+  if (a.prefix.length > 48 || a.suffix.length > 48) return null;
+  return {
+    quote: a.quote,
+    prefix: a.prefix,
+    suffix: a.suffix,
+    start,
+    end,
+  };
+}
+
+// Parse a stored anchor JSON column back into a validated anchor (or null).
+function parseStoredAnchor(raw: string | null): CommentAnchor | null {
+  if (!raw) return null;
+  try {
+    return validateAnchor(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
 // GET /_comments?doc= -> visible comments (flat; the client nests one level).
+// Each comment carries its parsed `anchor` (or null for a general comment).
 async function commentsList(env: Env, docId: string): Promise<Response> {
   const rows = await env.DB.prepare(
-    "SELECT id, parent_id, author_name, body, created_at FROM comments WHERE document_id = ? AND status = 'visible' ORDER BY created_at ASC LIMIT 500",
+    "SELECT id, parent_id, author_name, body, anchor, created_at FROM comments WHERE document_id = ? AND status = 'visible' ORDER BY created_at ASC LIMIT 500",
   )
     .bind(docId)
     .all<{
@@ -476,14 +527,25 @@ async function commentsList(env: Env, docId: string): Promise<Response> {
       parent_id: string | null;
       author_name: string | null;
       body: string;
+      anchor: string | null;
       created_at: number;
     }>();
-  return jsonResponse({ comments: rows.results });
+  const comments = rows.results.map((c) => ({
+    id: c.id,
+    parent_id: c.parent_id,
+    author_name: c.author_name,
+    body: c.body,
+    created_at: c.created_at,
+    anchor: parseStoredAnchor(c.anchor),
+  }));
+  return jsonResponse({ comments });
 }
 
 // POST /_comments — add a visible comment. Honeypot + IP rate-limit + 4 KB body
 // cap. One reply level only: a reply's parent must exist, belong to this doc, and
-// itself be top-level (reject a parent that already has a parent).
+// itself be top-level (reject a parent that already has a parent). An optional
+// selection `anchor` (ANCHOR CONTRACT) may be attached to TOP-LEVEL comments only
+// — replies inherit their parent's anchor, so an anchor on a reply is rejected.
 async function postComment(request: Request, env: Env): Promise<Response> {
   let data: Record<string, unknown>;
   try {
@@ -504,6 +566,13 @@ async function postComment(request: Request, env: Env): Promise<Response> {
     typeof data.parentId === "string" && data.parentId ? data.parentId : null;
   if (!docId || !body) return jsonResponse({ error: "missing fields" }, 400);
   if (body.length > 4000) return jsonResponse({ error: "too long" }, 400);
+
+  // Optional selection anchor. Anchored comments are top-level only — a reply
+  // inherits its parent's anchor, so reject any anchor carried on a reply.
+  if (parentId && data.anchor != null) {
+    return jsonResponse({ error: "anchor on reply" }, 400);
+  }
+  const anchor = parentId ? null : validateAnchor(data.anchor);
 
   const ip = clientIp(request);
   if (!(await rateLimitKV(env, `cm:${ip}`, 15, 60))) {
@@ -526,9 +595,17 @@ async function postComment(request: Request, env: Env): Promise<Response> {
   }
 
   await env.DB.prepare(
-    "INSERT INTO comments (id, document_id, parent_id, author_name, body, status, created_at) VALUES (?, ?, ?, ?, ?, 'visible', ?)",
+    "INSERT INTO comments (id, document_id, parent_id, author_name, anchor, body, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'visible', ?)",
   )
-    .bind(crypto.randomUUID(), docId, parentId, name || null, body, Date.now())
+    .bind(
+      crypto.randomUUID(),
+      docId,
+      parentId,
+      name || null,
+      anchor ? JSON.stringify(anchor) : null,
+      body,
+      Date.now(),
+    )
     .run();
   return jsonResponse({ ok: true });
 }

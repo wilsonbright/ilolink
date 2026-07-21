@@ -138,6 +138,19 @@ export async function updateVisibility(
   );
 }
 
+// Hard-delete a document and everything hanging off it (comments, feedback,
+// versions, then the row). Callers also purge the KV slug record and R2 bodies.
+// Batched into a single D1 round-trip so the row teardown is atomic.
+export async function deleteDocumentCascade(docId: string): Promise<void> {
+  const db = env().DB;
+  await db.batch([
+    db.prepare("DELETE FROM comments WHERE document_id = ?").bind(docId),
+    db.prepare("DELETE FROM feedback WHERE document_id = ?").bind(docId),
+    db.prepare("DELETE FROM document_versions WHERE document_id = ?").bind(docId),
+    db.prepare("DELETE FROM documents WHERE id = ?").bind(docId),
+  ]);
+}
+
 // --- KV slug lookup (hot content-origin path) ---
 
 // Write the slug -> doc lookup record at key `slug:<slug>`.

@@ -5,7 +5,11 @@
 // localStorage: what you published here, with the link and a way into stats.
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getHistory, type HistoryEntry } from "@/lib/history";
+import {
+  getHistory,
+  removeFromHistory,
+  type HistoryEntry,
+} from "@/lib/history";
 
 const VISIBILITY_LABEL: Record<string, string> = {
   public: "Public",
@@ -31,9 +35,41 @@ function VisibilityBadge({ visibility }: { visibility: string }) {
   );
 }
 
-function DocCard({ entry }: { entry: HistoryEntry }) {
+function DocCard({
+  entry,
+  onDeleted,
+}: {
+  entry: HistoryEntry;
+  onDeleted: (slug: string) => void;
+}) {
+  // Two-step confirm, kept subtle: a hover-revealed muted link that expands
+  // into an inline confirm so no single click can unpublish.
+  const [armed, setArmed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState(false);
+
+  async function del() {
+    setDeleting(true);
+    setError(false);
+    try {
+      const res = await fetch(
+        `/api/documents?slug=${encodeURIComponent(entry.slug)}`,
+        {
+          method: "DELETE",
+          headers: { authorization: `Bearer ${entry.manageToken}` },
+        },
+      );
+      if (!res.ok) throw new Error();
+      removeFromHistory(entry.slug);
+      onDeleted(entry.slug);
+    } catch {
+      setDeleting(false);
+      setError(true);
+    }
+  }
+
   return (
-    <li className="border-b border-hairline py-6 last:border-b-0">
+    <li className="group border-b border-hairline py-6 last:border-b-0">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <Link
@@ -48,7 +84,7 @@ function DocCard({ entry }: { entry: HistoryEntry }) {
         </div>
         <VisibilityBadge visibility={entry.visibility} />
       </div>
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
         <a
           href={entry.url}
           className="text-ink-soft transition-colors duration-150 hover:text-accent"
@@ -63,7 +99,42 @@ function DocCard({ entry }: { entry: HistoryEntry }) {
         >
           Stats &amp; comments
         </Link>
+
+        {!armed ? (
+          <button
+            type="button"
+            onClick={() => setArmed(true)}
+            className="text-ink-faint opacity-0 transition-opacity duration-150 hover:text-[#b3261e] focus-visible:opacity-100 group-hover:opacity-100 dark:hover:text-[#f2827a]"
+          >
+            Delete
+          </button>
+        ) : (
+          <span className="flex items-center gap-3">
+            <span className="text-ink-soft">Really delete?</span>
+            <button
+              type="button"
+              onClick={del}
+              disabled={deleting}
+              className="font-medium text-[#b3261e] transition-colors duration-150 hover:text-[#8f1d18] disabled:opacity-50 dark:text-[#f2827a] dark:hover:text-[#f6a49e]"
+            >
+              {deleting ? "Deleting…" : "Confirm"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setArmed(false)}
+              disabled={deleting}
+              className="text-ink-faint transition-colors duration-150 hover:text-ink disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </span>
+        )}
       </div>
+      {error ? (
+        <p className="mt-2 text-sm text-[#b3261e] dark:text-[#f2827a]">
+          Couldn’t delete this document. Please try again.
+        </p>
+      ) : null}
     </li>
   );
 }
@@ -75,6 +146,12 @@ export default function DashboardPage() {
   useEffect(() => {
     setEntries(getHistory());
   }, []);
+
+  function handleDeleted(slug: string) {
+    // removeFromHistory already ran in the card; mirror it in state so the row
+    // drops out without a reload.
+    setEntries((prev) => (prev ? prev.filter((e) => e.slug !== slug) : prev));
+  }
 
   return (
     <section>
@@ -110,7 +187,7 @@ export default function DashboardPage() {
       ) : (
         <ul className="mt-6">
           {entries.map((entry) => (
-            <DocCard key={entry.slug} entry={entry} />
+            <DocCard key={entry.slug} entry={entry} onDeleted={handleDeleted} />
           ))}
         </ul>
       )}

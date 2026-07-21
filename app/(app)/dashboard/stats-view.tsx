@@ -35,6 +35,9 @@ interface CommentRow {
   author_name: string | null;
   body: string;
   created_at: number;
+  // Present only when the comment was anchored to a selection; the quoted text
+  // gives moderation context. May be absent from the payload entirely.
+  anchor?: { quote?: string } | null;
 }
 
 type Load<T> =
@@ -499,6 +502,11 @@ function Moderation({
                     {formatDate(c.created_at)}
                   </span>
                 </div>
+                {c.anchor?.quote ? (
+                  <p className="mt-1.5 border-l-2 border-hairline pl-2.5 text-xs italic text-ink-faint">
+                    “{c.anchor.quote}”
+                  </p>
+                ) : null}
                 <p className="mt-1.5 text-sm text-ink-soft">{c.body}</p>
                 <div className="mt-2.5 flex items-center gap-4">
                   {action ? (
