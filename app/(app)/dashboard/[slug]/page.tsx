@@ -8,6 +8,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getEntry, type HistoryEntry } from "@/lib/history";
 import { StatsView } from "@/app/(app)/dashboard/stats-view";
+import { HeatmapView } from "@/app/(app)/dashboard/heatmap-view";
 
 export default function DocumentDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -63,6 +64,10 @@ export default function DocumentDetailPage() {
 
           <div className="mt-10">
             <StatsView slug={entry.slug} token={entry.manageToken} />
+          </div>
+
+          <div className="mt-16 border-t border-hairline pt-10">
+            <HeatmapView slug={entry.slug} token={entry.manageToken} />
           </div>
         </>
       )}

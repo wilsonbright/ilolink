@@ -570,19 +570,39 @@ export default {
       const vh = await visitorHash(ip, ua, docId, saltSecret(env));
       const cf = request.cf as { country?: string } | undefined;
       const country = typeof cf?.country === "string" ? cf.country : "";
+      // Event type must be one of the known kinds — an arbitrary blob2 would let a
+      // caller poison a doc's stream / write junk analytics. Drop anything else.
+      const ALLOWED_TYPES = new Set(["pageview", "scroll", "time", "click"]);
       const type = typeof data.type === "string" ? data.type : "pageview";
+      if (!ALLOWED_TYPES.has(type)) return new Response(null, { status: 202 });
       const w = Number(data.w) || 0;
       const h = Number(data.h) || 0;
-      const path = typeof data.path === "string" ? data.path : "";
-      const ref = typeof data.ref === "string" ? data.ref : "";
+      // Cap free-text blobs so a huge payload can't exceed AE's per-row budget.
+      const path = (typeof data.path === "string" ? data.path : "").slice(0, 256);
+      const ref = (typeof data.ref === "string" ? data.ref : "").slice(0, 256);
       const scrollPct = Number(data.scrollPct) || 0;
       const timeS = Number(data.timeS) || 0;
+      // Click heatmap: fractional coords clamped to [0,1]; 0 for non-click events.
+      const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
+      const clickX =
+        type === "click" && Number.isFinite(Number(data.x))
+          ? clamp01(Number(data.x))
+          : 0;
+      const clickY =
+        type === "click" && Number.isFinite(Number(data.y))
+          ? clamp01(Number(data.y))
+          : 0;
 
-      env.EVENTS.writeDataPoint({
-        blobs: [docId, type, refHost(ref), country, deviceClass(w), path, vh],
-        doubles: [scrollPct, timeS, w, h],
-        indexes: [docId],
-      });
+      // Best-effort: never let a write error surface (fire-and-forget beacon).
+      try {
+        env.EVENTS.writeDataPoint({
+          blobs: [docId, type, refHost(ref), country, deviceClass(w), path, vh],
+          doubles: [scrollPct, timeS, w, h, clickX, clickY],
+          indexes: [docId],
+        });
+      } catch {
+        // swallow — analytics is best-effort
+      }
       return new Response(null, { status: 202 });
     }
 

@@ -45,5 +45,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     doc.id,
   );
 
-  return NextResponse.json({ reactions, notes });
+  return NextResponse.json(
+    { reactions, notes },
+    { headers: { "cache-control": "private, no-store" } },
+  );
 }

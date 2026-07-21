@@ -47,6 +47,16 @@ export const TRACKER_JS = `(function(){
         beacon({type:"time",timeS:Math.round(totalMs/1000)});
       }
       window.addEventListener("pagehide",flushTime);
+      document.addEventListener("click",function(ev){
+        var d=document.documentElement;
+        var sw=d.scrollWidth||0,sh=d.scrollHeight||0;
+        if(!sw||!sh)return;
+        var sx=window.pageXOffset||d.scrollLeft||0;
+        var sy=window.pageYOffset||d.scrollTop||0;
+        var x=(ev.clientX+sx)/sw,y=(ev.clientY+sy)/sh;
+        x=x<0?0:x>1?1:x;y=y<0?0:y>1?1:y;
+        beacon({type:"click",x:x,y:y,w:window.innerWidth||0});
+      },true);
     }catch(e){}
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);

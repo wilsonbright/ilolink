@@ -38,5 +38,8 @@ export async function GET(req: Request): Promise<NextResponse> {
   // public in the served page's <meta name="ilo:doc">) lets the client reach the
   // view-origin /_feedback and /_comments endpoints, which key by doc id. Only
   // slug + token are known client-side, so this route is the slug→id bridge.
-  return NextResponse.json({ ...stats, doc: doc.id });
+  return NextResponse.json(
+    { ...stats, doc: doc.id },
+    { headers: { "cache-control": "private, no-store" } },
+  );
 }
