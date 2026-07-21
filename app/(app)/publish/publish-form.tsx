@@ -40,6 +40,7 @@ declare global {
 interface PublishResult {
   slug: string;
   url: string;
+  manageToken: string;
 }
 
 const VISIBILITY: { value: Visibility; label: string; hint: string }[] = [
@@ -219,7 +220,7 @@ export function PublishForm() {
         manageToken,
       });
 
-      setResult({ slug: outSlug, url: outUrl });
+      setResult({ slug: outSlug, url: outUrl, manageToken });
     } catch {
       setTurnstileToken("");
       window.turnstile?.reset();
@@ -546,6 +547,14 @@ function ShareCard({
               className="w-full min-w-0 bg-transparent px-3.5 py-2.5 text-sm text-ink focus:outline-none"
               aria-label="Share link"
             />
+            <a
+              href={result.url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex shrink-0 items-center border-l border-hairline px-4 text-sm font-medium text-ink-soft transition-colors duration-150 hover:bg-accent-soft hover:text-ink"
+            >
+              Open
+            </a>
             <button
               type="button"
               onClick={copy}
@@ -556,14 +565,6 @@ function ShareCard({
           </div>
 
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <a
-              href={result.url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-accent transition-colors duration-150 hover:text-ink"
-            >
-              Open it
-            </a>
             <button
               type="button"
               onClick={onAnother}
@@ -579,6 +580,54 @@ function ShareCard({
           <p className="mt-2 text-center text-xs text-ink-faint">Scan to open</p>
         </div>
       </div>
+
+      <Preview slug={result.slug} token={result.manageToken} />
+    </div>
+  );
+}
+
+// A small live preview of the published page — the sanitized doc HTML in a
+// sandboxed, script-free iframe (same pattern as the heatmap overlay). Fetched
+// token-gated from our own origin so it never depends on framing the isolated
+// content origin (which forbids being framed).
+function Preview({ slug, token }: { slug: string; token: string }) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const q = new URLSearchParams({ slug, token }).toString();
+    fetch(`/api/doc-html?${q}`)
+      .then((r) => (r.ok ? r.text() : Promise.reject()))
+      .then((t) => alive && setHtml(t))
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [slug, token]);
+
+  if (failed) return null;
+
+  return (
+    <div className="mt-10">
+      <p className="mb-2 text-sm font-medium text-ink-faint">Preview</p>
+      <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
+        {html == null ? (
+          <div className="flex h-72 items-center justify-center text-sm text-ink-faint">
+            Loading preview…
+          </div>
+        ) : (
+          <iframe
+            title="Published page preview"
+            sandbox="allow-same-origin"
+            srcDoc={html}
+            className="h-[560px] w-full border-0 bg-white"
+          />
+        )}
+      </div>
+      <p className="mt-2 text-xs text-ink-faint">
+        A quick look at the published page. Open the link for the full experience.
+      </p>
     </div>
   );
 }

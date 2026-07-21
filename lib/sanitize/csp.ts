@@ -27,12 +27,13 @@ export function buildDocCsp(opts?: { trackerSrc?: string }): DocCspResult {
 
   const directives = [
     "default-src 'none'",
-    // Inline styles are allowed for document formatting; no external stylesheets.
-    "style-src 'unsafe-inline'",
+    // Inline styles for document formatting + Google Fonts stylesheets
+    // (@import from fonts.googleapis.com). No other external stylesheets.
+    "style-src 'unsafe-inline' https://fonts.googleapis.com",
     // http(s) + data: images only (matches the sanitizer's image scheme allowlist).
     "img-src https: data:",
-    // Fonts may be self-hosted or data URIs; no third parties.
-    "font-src 'self' data:",
+    // Self / data fonts + Google Fonts files (fonts.gstatic.com). No other hosts.
+    "font-src 'self' data: https://fonts.gstatic.com",
     // Links may point anywhere, but nothing is fetched from them.
     "connect-src 'self'",
     // Only the nonce'd first-party tracker script may run.

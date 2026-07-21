@@ -160,7 +160,11 @@ positionPin(c.id);
 }
 
 // ─── reaction bar ──────────────────────────────────────────────────────────
-var root=mk("section","max-width:68ch;margin:4rem auto 6rem;padding:2rem 1.5rem 0;border-top:1px solid var(--hairline);font-family:"+SANS+";color:var(--ink);");
+// Scope the widget's own light, always-readable tokens locally so the doc's
+// :root overrides (and the reader shell's dark mode) can't produce dark-on-dark
+// inputs. --accent is intentionally left to inherit so buttons match the doc.
+var WTOKENS="--surface:#ffffff;--ink:#1a1a17;--ink-soft:#56564f;--ink-faint:#8a8a80;--hairline:#e2ddd3;--accent-soft:#f2ede7;";
+var root=mk("section",WTOKENS+"max-width:68ch;margin:4rem auto 6rem;padding:2rem 1.5rem 0;border-top:1px solid var(--hairline);font-family:"+SANS+";color:var(--ink);");
 var EMOJI=["👍","🤔","👀"],counts={};
 var rrow=mk("div","display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;");
 EMOJI.forEach(function(em){

@@ -17,7 +17,7 @@ export const runtime = "nodejs";
 // images limited to https/data. frame-ancestors keeps it embeddable solely by
 // our own dashboard origin.
 const DOC_CSP =
-  "default-src 'none'; style-src 'unsafe-inline'; img-src https: data:; script-src 'none'; frame-ancestors 'self' https://ilolink.com";
+  "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src https: data:; script-src 'none'; frame-ancestors 'self' https://ilolink.com";
 
 function text(body: string, status: number): Response {
   return new Response(body, {

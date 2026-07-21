@@ -11,8 +11,11 @@ import type { DocumentVersion, SourceType, Visibility } from "@/lib/types";
 // Upload ceiling for both raw bodies and file uploads.
 export const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
 
-// Public content origin (isolated) where published docs are served.
+// Isolated content origin where the untrusted doc HTML is actually rendered.
 export const VIEW_ORIGIN = "https://view.ilolink.com";
+// Branded share origin. ilolink.com/<slug> 302-redirects to VIEW_ORIGIN/<slug>
+// (app/[slug]/route.ts) so links look clean while rendering stays isolated.
+export const SHARE_ORIGIN = "https://ilolink.com";
 
 const VISIBILITIES: ReadonlySet<Visibility> = new Set<Visibility>([
   "public",
@@ -66,4 +69,5 @@ export async function storeVersion(
   return version;
 }
 
-export const viewUrl = (slug: string): string => `${VIEW_ORIGIN}/${slug}`;
+// The shareable link is on the branded apex; it redirects to the render origin.
+export const viewUrl = (slug: string): string => `${SHARE_ORIGIN}/${slug}`;

@@ -22,6 +22,23 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — UX fixes: fonts, publish preview, readable comments, branded URL
+- **Asked (4):** relax CSP for Google Fonts; publish page preview + Open-in-new-tab before Copy;
+  fix dark-on-dark comment/note inputs; share URL on ilolink.com not view.ilolink.com.
+- **Did:** (Fonts) doc CSP + doc-html CSP now allow style-src fonts.googleapis.com + font-src
+  fonts.gstatic.com only. (Publish) share card: added an "Open" (new tab) button before Copy in the
+  link row + a live Preview (sanitized doc in a sandboxed no-scripts srcdoc iframe via token-gated
+  /api/doc-html). (Comments) widget scopes its own light readable tokens (--surface/--ink/…) locally
+  so the doc's :root overrides + reader dark-mode can't produce dark-on-dark inputs; --accent still
+  inherits so buttons match the doc. (URL) publish returns ilolink.com/<slug>; new app/[slug]/route.ts
+  302-redirects to view.ilolink.com/<slug> — branded link, rendering stays on the isolated origin
+  (serving untrusted HTML on the apex would break origin isolation).
+- **VERIFIED LIVE:** ilolink.com/<slug> → 302 → view.ilolink.com/<slug>; served doc CSP has the
+  Google Fonts hosts; /widget.js carries the readable tokens; publish screenshot shows the
+  ilolink.com URL + Open button + a rendered landing-page Preview. 28 tests green; both deployed.
+
+---
+
 ## 2026-07-21 — Fix: render styled HTML docs (landing mockups)
 - **Reported:** an uploaded HTML landing mockup rendered wrong (view.ilolink.com/8sjbae).
 - **Root cause:** sanitization runs at PUBLISH time. The sanitizer stripped the doc's `<style>`
