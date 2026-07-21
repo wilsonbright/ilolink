@@ -13,7 +13,7 @@ export const COMPOSE_URL = "/";
 // (Next would otherwise stamp `new Date()` at build time, churning the diff).
 export const SITE_UPDATED = "2026-07-21";
 
-export type PageGroup = "pillar" | "guide" | "legal";
+export type PageGroup = "pillar" | "guide" | "compare" | "persona" | "legal";
 
 export interface SitePage {
   /** Path relative to the origin, no trailing slash (except "/"). */
@@ -120,6 +120,58 @@ export const PAIN_POINTS = {
   },
 } as const satisfies Record<string, SitePage>;
 
+// ── Comparison / alternative (Group B5) ──────────────────────────────────
+// Commercial-investigation intent. Lean on the P2 pillar; lead with ilolink's
+// analytics/heatmap/feedback wedge, hedge competitor specifics (they change).
+export const COMPARISONS = {
+  vsTiiny: {
+    path: "/vs/tiiny-host",
+    title: "ilolink vs tiiny.host",
+    blurb:
+      "An honest comparison for sharing AI HTML — link permanence, safety, and the analytics a pure host doesn't give you.",
+    group: "compare",
+    priority: 0.6,
+  },
+  altTiiny: {
+    path: "/alternatives/tiiny-host",
+    title: "A tiiny.host alternative with analytics",
+    blurb:
+      "Looking for a host that also shows who read your page? What to weigh, and where ilolink fits.",
+    group: "compare",
+    priority: 0.6,
+  },
+} as const satisfies Record<string, SitePage>;
+
+// ── Persona landing pages (Group B4) ──────────────────────────────────────
+// Role-specific use cases tied to real features (heatmaps for PMs, anchored
+// comments for designers, password + logs for consultants).
+export const PERSONAS = {
+  pm: {
+    path: "/for/product-managers",
+    title: "ilolink for product managers",
+    blurb:
+      "Share specs and PRDs as a link, then see whether stakeholders actually read them.",
+    group: "persona",
+    priority: 0.6,
+  },
+  designer: {
+    path: "/for/designers",
+    title: "ilolink for designers",
+    blurb:
+      "Share prototypes and mockups and collect anchored comments on the exact spot.",
+    group: "persona",
+    priority: 0.6,
+  },
+  consultant: {
+    path: "/for/consultants",
+    title: "ilolink for consultants",
+    blurb:
+      "Send client deliverables with password protection and see how they were read.",
+    group: "persona",
+    priority: 0.6,
+  },
+} as const satisfies Record<string, SitePage>;
+
 // ── Legal / operational ──────────────────────────────────────────────────
 export const LEGAL = {
   privacy: {
@@ -165,6 +217,8 @@ export const ALL_PAGES: SitePage[] = [
   ...Object.values(PILLARS),
   ...Object.values(HOW_TOS),
   ...Object.values(PAIN_POINTS),
+  ...Object.values(COMPARISONS),
+  ...Object.values(PERSONAS),
   ...Object.values(LEGAL),
 ];
 

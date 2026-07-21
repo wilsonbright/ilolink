@@ -5,6 +5,25 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — Homepage publish discoverability + comparison/persona pages
+- **Asked (1):** publish button hidden below the fold — a user couldn't find how to publish; refactor.
+- **Fixed (`app/page.tsx`):** sticky top bar with an always-visible filled **Publish** button (jumps
+  to `#compose`); tightened hero (mt-16/20 → mt-10/14); added a "Start publishing" CTA + "First time?
+  See how it works →" link (to P1 guide) above the fold; wrapped composer in `#compose` w/ scroll-mt.
+  VERIFIED in a real browser (Playwright, 1366×768): three publish affordances above the fold; clicking
+  Publish scrolls the composer + its submit button into view. Console errors were only Turnstile 110200
+  (invalid-domain on localhost — expected), none from the change.
+- **Asked (2):** continue the content plan. Built comparison (B5) + persona (B4) pages.
+- **Built (5 pages, workflow — 10 agents, draft→anti-slop/honesty pipeline):**
+  - Compare: `/vs/tiiny-host` (table + SoftwareApplication), `/alternatives/tiiny-host`.
+  - Personas: `/for/product-managers`, `/for/designers`, `/for/consultants`.
+  - Competitor claims hedged (no invented caps/prices; "verify current terms"); personas explicitly
+    keep analytics AGGREGATE + APPROXIMATE, never per-person identity (FAQ "Can I see WHO read it?" → No).
+- **Registry:** added `COMPARISONS` + `PERSONAS` (new groups) to `lib/seo/site.ts` → auto into sitemap;
+  `/guides` index gained "Compare with other tools" + "By role" sections.
+- **VERIFIED:** tsc 0; `next build` 38/38 static; slop grep clean on all 5; no identity overclaim.
+- **Deferred still:** format pages (wait for viewers), glossary, use-cases, real legal copy.
+
 ## 2026-07-22 — SEO content plan: source how-tos + pain-point pages
 - **Asked:** What's next → build the low-competition money pages. Chose source how-tos + pain-points.
 - **Built (7 pages, dynamic workflow — 14 agents, draft→anti-slop-edit pipeline, HowTo schema):**

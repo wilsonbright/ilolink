@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PILLARS, HOW_TOS, PAIN_POINTS, type SitePage } from "@/lib/seo/site";
+import {
+  PILLARS,
+  HOW_TOS,
+  PAIN_POINTS,
+  COMPARISONS,
+  PERSONAS,
+  type SitePage,
+} from "@/lib/seo/site";
 import { Article, Breadcrumbs, PageHeader } from "../_components/content";
 
 export const metadata: Metadata = {
@@ -73,6 +80,12 @@ export default function GuidesIndex() {
         pages={Object.values(PAIN_POINTS)}
         size="sm"
       />
+      <Section
+        heading="Compare with other tools"
+        pages={Object.values(COMPARISONS)}
+        size="sm"
+      />
+      <Section heading="By role" pages={Object.values(PERSONAS)} size="sm" />
     </Article>
   );
 }
