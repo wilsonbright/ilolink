@@ -246,6 +246,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     rendered_r2_key: version.rendered_r2_key,
     password_hash: passwordHash,
     expires_at: expiresAt,
+    source_type: input.sourceType,
   });
 
   return NextResponse.json(

@@ -163,29 +163,8 @@ function titleFromBody(html: string): string {
   return text ? `${text.slice(0, 120)} — ilolink` : "Document — ilolink";
 }
 
-// Zen reading shell. Tokens are inlined (this origin has no app CSS) and kept in
-// step with app/globals.css: warm off-white canvas, near-black ink, one accent,
-// ~68ch measure, optional reading serif, light + dark.
-function readerShell(opts: {
-  title: string;
-  body: string;
-  nonce: string;
-  noindex: boolean;
-  docId: string;
-}): string {
-  const robots = opts.noindex
-    ? '<meta name="robots" content="noindex" />'
-    : "";
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-${robots}
-<meta name="ilo:doc" content="${escapeHtml(opts.docId)}" />
-<title>${escapeHtml(opts.title)}</title>
-<style>
-:root {
+// Design tokens shared by both shells (and the injected feedback/comments widget).
+const SHELL_TOKENS = `:root {
   color-scheme: light;
   --canvas: #fafaf8; --surface: #ffffff;
   --ink: #1a1a17; --ink-soft: #56564f; --ink-faint: #8a8a80;
@@ -200,8 +179,11 @@ ${robots}
   }
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body {
+html { -webkit-text-size-adjust: 100%; }`;
+
+// The zen reading shell — for Markdown docs, which carry no styling of their own:
+// warm canvas, ~68ch measure, reading serif. Content wraps in <main class="doc">.
+const READING_CSS = `body {
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
@@ -211,16 +193,10 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-.doc {
-  max-width: 68ch;
-  margin: 0 auto;
-  padding: 5rem 1.5rem 8rem;
-}
+.doc { max-width: 68ch; margin: 0 auto; padding: 5rem 1.5rem 8rem; }
 .doc h1, .doc h2, .doc h3, .doc h4 {
   font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  line-height: 1.25;
-  margin: 2.25em 0 0.6em;
-  font-weight: 620;
+  line-height: 1.25; margin: 2.25em 0 0.6em; font-weight: 620;
 }
 .doc h1 { font-size: 2rem; margin-top: 0; }
 .doc h2 { font-size: 1.45rem; }
@@ -228,39 +204,55 @@ body {
 .doc p, .doc ul, .doc ol, .doc blockquote, .doc pre, .doc table { margin: 1.15em 0; }
 .doc a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .doc img { max-width: 100%; height: auto; border-radius: 4px; }
-.doc blockquote {
-  margin-left: 0; padding-left: 1.1em;
-  border-left: 2px solid var(--hairline); color: var(--ink-soft);
-}
-.doc pre {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: 6px;
-  padding: 1em 1.1em;
-  overflow-x: auto;
-  font-size: 0.9em;
-}
-.doc code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.9em;
-}
-.doc :not(pre) > code {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: 4px;
-  padding: 0.1em 0.35em;
-}
+.doc blockquote { margin-left: 0; padding-left: 1.1em; border-left: 2px solid var(--hairline); color: var(--ink-soft); }
+.doc pre { background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 1em 1.1em; overflow-x: auto; font-size: 0.9em; }
+.doc code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
+.doc :not(pre) > code { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; padding: 0.1em 0.35em; }
 .doc hr { border: none; border-top: 1px solid var(--hairline); margin: 2.5em 0; }
 .doc table { border-collapse: collapse; width: 100%; font-size: 0.95em; }
 .doc th, .doc td { border: 1px solid var(--hairline); padding: 0.5em 0.7em; text-align: left; }
 .doc figure { margin: 1.5em 0; }
-.doc figcaption { color: var(--ink-faint); font-size: 0.9em; margin-top: 0.5em; }
+.doc figcaption { color: var(--ink-faint); font-size: 0.9em; margin-top: 0.5em; }`;
+
+// Full-bleed shell — for HTML docs (landing mockups etc.), which bring their own
+// complete CSS. We only reset the body and define the tokens (so the injected
+// widget still looks right); the author's own <style> controls everything else.
+const FULLBLEED_CSS = `body { margin: 0; background: var(--canvas); color: var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+img { max-width: 100%; }`;
+
+// Zen reading shell (md) or full-bleed shell (html). Tokens are inlined (this
+// origin has no app CSS). Both inject the same nonce'd first-party scripts.
+function readerShell(opts: {
+  title: string;
+  body: string;
+  nonce: string;
+  noindex: boolean;
+  docId: string;
+  html?: boolean; // true => full-bleed (author controls styling)
+}): string {
+  const robots = opts.noindex
+    ? '<meta name="robots" content="noindex" />'
+    : "";
+  const css = opts.html ? FULLBLEED_CSS : READING_CSS;
+  // md wraps in the reading column; html renders the author's markup full-bleed.
+  const bodyInner = opts.html
+    ? opts.body
+    : `<main class="doc">\n${opts.body}\n</main>`;
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+${robots}
+<meta name="ilo:doc" content="${escapeHtml(opts.docId)}" />
+<title>${escapeHtml(opts.title)}</title>
+<style>
+${SHELL_TOKENS}
+${css}
 </style>
 </head>
 <body>
-<main class="doc">
-${opts.body}
-</main>
+${bodyInner}
 <!-- First-party, same-origin interaction scripts; admitted only by this nonce. -->
 <script nonce="${opts.nonce}" src="/tracker.js"></script>
 <script nonce="${opts.nonce}" src="/widget.js"></script>
@@ -809,6 +801,7 @@ export default {
       nonce: csp.nonce,
       noindex: rec.visibility === "unlisted",
       docId: rec.doc_id,
+      html: rec.source_type === "html",
     });
 
     const headers = new Headers(docSecurityHeaders(csp.header));

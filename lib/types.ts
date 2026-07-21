@@ -38,6 +38,9 @@ export interface SlugRecord {
   rendered_r2_key: string;
   password_hash: string | null;
   expires_at: number | null;
+  // Chooses the serving shell: "html" renders full-bleed (author controls all
+  // styling); "md" renders in the zen reading shell. Optional for old records.
+  source_type?: SourceType;
 }
 
 // Result of the sanitize step: safe HTML plus the extracted title.

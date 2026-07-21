@@ -28,13 +28,33 @@ describe("sanitizeDocument — the core security boundary", () => {
     expect(html).not.toContain("javascript:");
   });
 
-  it("removes iframes, forms, objects", () => {
+  it("removes iframes and objects; keeps forms but strips their action (inert)", () => {
     const { html } = sanitizeDocument(
-      '<iframe src="https://evil.example"></iframe><form action="//evil"><object></object>',
+      '<iframe src="https://evil.example"></iframe><form action="//evil"><object></object></form>',
     );
     expect(html).not.toContain("<iframe");
-    expect(html).not.toContain("<form");
     expect(html).not.toContain("<object");
+    // Forms are allowed as visual containers, but the `action` is stripped and
+    // the served CSP sets form-action 'none' — they cannot submit anywhere.
+    expect(html).not.toContain("//evil");
+    expect(html).not.toMatch(/action=/i);
+  });
+
+  it("keeps styling (style tag + inline style) for landing-page mockups", () => {
+    const { html } = sanitizeDocument(
+      '<style>.hero{display:grid}</style><div class="hero" style="color:red">x</div>',
+    );
+    expect(html).toContain("<style");
+    expect(html).toContain("display:grid");
+    expect(html).toContain('style="color:red"');
+  });
+
+  it("a </style> breakout cannot smuggle a script through", () => {
+    const { html } = sanitizeDocument(
+      "<style>body{}</style><script>bad()</script>",
+    );
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("bad(");
   });
 
   it("drops the DOM-clobbering `name` attribute on anchors", () => {
