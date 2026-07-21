@@ -31,6 +31,13 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-// Wire OpenNext's Cloudflare dev bindings so `next dev` can reach D1/R2/KV locally.
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-initOpenNextCloudflareForDev();
+// Wire OpenNext's Cloudflare dev bindings so `next dev` can reach D1/R2/KV
+// locally. Only in dev — during `next build` (NODE_ENV=production) it must NOT
+// run: it boots Miniflare/workerd, which fails in CI's Linux sandbox and isn't
+// needed for a build.
+if (process.env.NODE_ENV !== "production") {
+  // Lazy import so the build never even loads it.
+  import("@opennextjs/cloudflare")
+    .then((m) => m.initOpenNextCloudflareForDev())
+    .catch(() => {});
+}
