@@ -2,6 +2,7 @@
 // then the publish form itself, then a short honest list of what you get.
 import Link from "next/link";
 import { PublishForm } from "@/app/(app)/publish/publish-form";
+import { PILLARS, LEGAL } from "@/lib/seo/site";
 
 const VALUE = [
   {
@@ -23,12 +24,20 @@ export default function Home() {
     <main className="mx-auto flex min-h-dvh max-w-3xl flex-col px-6 py-8">
       <header className="flex items-center justify-between">
         <p className="text-sm font-medium tracking-wide text-accent">ilolink</p>
-        <Link
-          href="/dashboard"
-          className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"
-        >
-          Your documents
-        </Link>
+        <nav className="flex items-center gap-5 text-sm text-ink-soft">
+          <Link
+            href="/guides"
+            className="transition-colors duration-150 hover:text-ink"
+          >
+            Guides
+          </Link>
+          <Link
+            href="/dashboard"
+            className="transition-colors duration-150 hover:text-ink"
+          >
+            Your documents
+          </Link>
+        </nav>
       </header>
 
       <div className="mt-16 sm:mt-20">
@@ -53,8 +62,71 @@ export default function Home() {
         ))}
       </ul>
 
-      <footer className="mt-auto pt-16 text-sm text-ink-faint">
-        Share what you wrote. See how it read.
+      <footer className="mt-auto border-t border-hairline pt-12">
+        <div className="grid gap-8 sm:grid-cols-3">
+          <div>
+            <p className="text-sm font-medium text-ink">Guides</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {Object.values(PILLARS).map((p) => (
+                <li key={p.path}>
+                  <Link
+                    href={p.path}
+                    className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                  >
+                    {p.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-ink">Product</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li>
+                <Link
+                  href="/publish"
+                  className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                >
+                  Publish a doc
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/dashboard"
+                  className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                >
+                  Your documents
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/guides"
+                  className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                >
+                  All guides
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-ink">Legal</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {Object.values(LEGAL).map((l) => (
+                <li key={l.path}>
+                  <Link
+                    href={l.path}
+                    className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                  >
+                    {l.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <p className="mt-10 text-sm text-ink-faint">
+          Share what you wrote. See how it read.
+        </p>
       </footer>
     </main>
   );
