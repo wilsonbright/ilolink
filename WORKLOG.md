@@ -5,6 +5,28 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — Phase 4: anchored comments + delete/unpublish (verified live)
+- **Asked:** Continue (Phase 4).
+- **Built:** Hand-wrote the security-critical delete path (token-gated `DELETE /api/documents`,
+  cascade D1 delete + KV purge + R2 `deleteByPrefix`). Workflow (2 agents + verify) added:
+  anchored comments — text selection offers a "Comment" affordance, stores
+  `{quote,prefix,suffix,start,end}` in `comments.anchor` (offsets into the immutable doc text →
+  resolve exactly), widget highlights the span + drops a margin pin; and the delete UI (two-step
+  confirm on the dashboard detail page + per-card, with localStorage cleanup).
+- **Security review:** no HIGH. Fixed [LOW-MED] moved the destructive delete token from the URL
+  query to an `Authorization: Bearer` header (keeps it out of access logs); [LOW] batched the D1
+  cascade into one atomic `DB.batch`. Documented [LOW/info]: anchor `quote` is commenter-provided
+  display context (no XSS — textContent; the real highlight uses offsets), minor spoof surface.
+- **VERIFIED LIVE (observed):** anchored comment posts + `GET /_comments` returns its anchor;
+  anchor-on-reply rejected (400). Delete: no-auth 400, wrong-token 403, right-token `{ok:true}`;
+  view → 404; **full erasure confirmed** (KV slug gone, D1 `docs:0 orphan_comments:0`). Dashboard
+  detail page renders the "Danger → Delete document" zone (screenshot).
+- **Deferred (noted):** Durable-Object exact counters (optional; AE counts honest for v1).
+- **Visual not verifiable from here:** the anchored-comment margin pins/highlight render on the
+  doc page (view.ilolink.com) — needs your eyes; data path verified.
+
+---
+
 ## 2026-07-21 — Phase 3: heatmaps (built, deployed, verified live)
 - **Asked:** Proceed with next steps; fix GitHub attribution to wilsonbright (not compressstudio).
 - **Git:** commits were authored `wilson@blocksurvey.org` (maps to compressstudio GH account) —
