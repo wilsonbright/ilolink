@@ -5,6 +5,34 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — Phase 3: heatmaps (built, deployed, verified live)
+- **Asked:** Proceed with next steps; fix GitHub attribution to wilsonbright (not compressstudio).
+- **Git:** commits were authored `wilson@blocksurvey.org` (maps to compressstudio GH account) —
+  re-authored ALL commits to `wilsonbright <10022551+wilsonbright@users.noreply.github.com>`,
+  force-pushed; GitHub now attributes to wilsonbright. Repo-local git identity updated.
+- **Phase 3 (2-agent workflow + hand-written security fixes):** click capture in tracker.js
+  (document-relative fractions x,y ∈ [0,1]); collector writes click coords to Analytics Engine
+  (doubles 5/6, extended to 6 doubles for all events); token-gated `/api/heatmap` (clicks +
+  scroll bands per device bucket sm/md/lg) and `/api/doc-html` (sanitized body for the overlay);
+  dashboard `HeatmapView` — sandboxed no-scripts `srcdoc` iframe + canvas overlay (click-density
+  blobs, scroll bands), device-bucket + click/scroll toggles. Render approach chosen to keep the
+  content origin's strict CSP intact (never frames view.ilolink.com).
+- **Security review:** no HIGH. Fixed [LOW-MED] `/_collect` accepted arbitrary event `type`
+  (heatmap poisoning + possible AE write error) → closed-set validation + blob length caps +
+  try/catch the write; [LOW] added `cache-control: private, no-store` to all token-in-URL
+  responses (heatmap/stats/feedback/doc-html). Verified solid: token gating, AE SQL-injection
+  defense, coord clamping, enumeration protection, iframe script-safety.
+- **VERIFIED LIVE (observed):** click beacons → AE click rows; garbage event type dropped (not
+  written); `/api/heatmap` returns the click points + scroll bands (cache-control set); token
+  gating 403; `/api/doc-html` token-gated returns sanitized body. **Visual (screenshot of
+  ilolink dashboard):** stats tiles + scroll funnel + referrers/countries/devices + reactions +
+  private note all render; **heatmap overlay renders the doc + a click-density blob at the
+  captured coords** with working bucket/mode toggles.
+- **AE SQL note reconfirmed:** heatmap queries also use `count()` (not COUNT(*)).
+- **Deployed:** content-worker `ad792e89`… then security fix; app redeployed. Both live.
+
+---
+
 ## 2026-07-21 — Accountless pivot + Phase 2 (analytics, feedback, comments)
 - **Asked:** No email/signup — open platform, browser-local index/history; do Phase 2 (all three).
 - **Design:** brainstormed → spec + plan committed under `docs/superpowers/`. Chose: immutable docs +
