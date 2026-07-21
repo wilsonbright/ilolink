@@ -5,6 +5,31 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — Accountless pivot + Phase 2 (analytics, feedback, comments)
+- **Asked:** No email/signup — open platform, browser-local index/history; do Phase 2 (all three).
+- **Design:** brainstormed → spec + plan committed under `docs/superpowers/`. Chose: immutable docs +
+  silent per-doc **manage token** (localStorage) gating private analytics + comment moderation;
+  Turnstile + IP rate-limit on publish; Turnstile NOT on the content origin (keeps its strict CSP).
+- **Foundation (hand-written):** migration `0002` (drop `users` + `owner_id`, add `manage_token_hash`);
+  deleted all auth (magic link, sessions, `/api/auth`, signin, middleware); `lib/manage-token`,
+  `lib/turnstile`, `lib/history` (localStorage); rewrote `/api/publish` open (Turnstile + rate-limit,
+  returns `{slug,url,manageToken}`).
+- **Phase 2 (5-agent workflow):** client dashboard (localStorage), Turnstile publish form; `tracker.js`
+  (cookieless pageview/scroll/time, DNT-respecting) + `/_collect` → Analytics Engine; `widget.js`
+  (reactions + notes + threaded comments) + `/_feedback`/`/_comments`; token-gated `/api/stats`
+  (AE SQL) + `/api/comments/moderate` + `StatsView`. Both scripts served same-origin under CSP nonce.
+- **Security review:** 1 HIGH fixed (public `/_feedback` leaked private notes → split: reactions public,
+  notes token-gated via new `/api/feedback`); 2 LOW accepted+documented: rate-limit is KV
+  read-then-write (not atomic — Durable Object is Phase 4); `img-src https:` lets a doc author beacon
+  viewer IPs via embedded `<img>` (kept, since docs need external images — privacy caveat).
+- **Secrets set:** app worker `TURNSTILE_SECRET` (CF test key) + `AE_SQL_TOKEN` (currently the account
+  token — MUST be re-set to a dedicated Analytics-Read token after the deploy token is rotated);
+  content-worker `SALT_SECRET`.
+- **Verified:** app `next build` clean (10 routes); content-worker bundles (31.76 KiB).
+- **Next:** deploy both + live end-to-end verify (publish → beacon → stats → react/comment → moderate).
+
+---
+
 ## 2026-07-21 — Phase 1: publish + read (built, deployed, verified live)
 - **Asked:** Build Phase 1 (ultracode).
 - **Did:** Wrote security core by hand (types contract, `lib/cf`, `lib/sanitize/{markdown,html,csp}`).

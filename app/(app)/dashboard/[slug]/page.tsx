@@ -1,48 +1,25 @@
-// Per-document detail. Phase 1 is intentionally thin: the URL, its visibility,
-// how many versions exist, and a way back into the publish flow. The Phase 2+
-// surfaces (analytics, heatmap, comments) are shown as disabled placeholders —
-// never fake data — so the shape is legible without pretending it works yet.
+"use client";
+
+// Per-document detail, accountless. Ownership is proved by the per-doc manage
+// token this browser stored at publish time — not a session. If the token isn't
+// here, this browser can't manage the doc, and we say so plainly (no data leak).
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { currentUser } from "@/lib/auth/current-user";
-import { getDocumentBySlug } from "@/lib/db/documents";
-import { queryFirst } from "@/lib/db/client";
-import type { Visibility } from "@/lib/types";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getEntry, type HistoryEntry } from "@/lib/history";
+import { StatsView } from "@/app/(app)/dashboard/stats-view";
 
-export const dynamic = "force-dynamic";
+export default function DocumentDetailPage() {
+  const params = useParams<{ slug: string }>();
+  const slug = params.slug;
 
-const VISIBILITY_LABEL: Record<Visibility, string> = {
-  public: "Public",
-  unlisted: "Unlisted",
-  password: "Password",
-  expiring: "Expiring",
-};
+  // localStorage is client-only; resolve after mount. `undefined` = still
+  // loading, `null` = looked and found nothing.
+  const [entry, setEntry] = useState<HistoryEntry | null | undefined>(undefined);
 
-const PHASE2_TABS = ["Analytics", "Heatmap", "Comments"] as const;
-
-async function versionCount(docId: string): Promise<number> {
-  const row = await queryFirst<{ n: number }>(
-    "SELECT COUNT(*) AS n FROM document_versions WHERE document_id = ?",
-    docId,
-  );
-  return row?.n ?? 0;
-}
-
-export default async function DocumentDetailPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const user = await currentUser();
-  if (!user) redirect("/signin");
-
-  const { slug } = await params;
-  const doc = await getDocumentBySlug(slug);
-  // Not found, or owned by someone else — same answer, no ownership leak.
-  if (!doc || doc.owner_id !== user.id) notFound();
-
-  const versions = await versionCount(doc.id);
-  const viewUrl = `view.ilolink.com/${doc.slug}`;
+  useEffect(() => {
+    setEntry(getEntry(slug));
+  }, [slug]);
 
   return (
     <section>
@@ -53,61 +30,42 @@ export default async function DocumentDetailPage({
         ← All documents
       </Link>
 
-      <h1 className="mt-6 text-2xl font-semibold text-ink">
-        {doc.title ?? "Untitled"}
-      </h1>
+      {entry === undefined ? null : entry === null ? (
+        <div className="mt-6 max-w-prose space-y-3">
+          <h1 className="text-2xl font-semibold text-ink">
+            Not published from this browser
+          </h1>
+          <p className="leading-relaxed text-ink-soft">
+            ilolink keeps the key that unlocks a document&rsquo;s stats and
+            comments in the browser that published it. This browser doesn&rsquo;t
+            have the key for{" "}
+            <span className="text-ink">/{slug}</span>, so its private analytics
+            can&rsquo;t be shown here.
+          </p>
+          <p className="text-sm text-ink-faint">
+            Open this page in the browser you published from, or publish a new
+            document to start fresh.
+          </p>
+        </div>
+      ) : (
+        <>
+          <h1 className="mt-6 text-2xl font-semibold text-ink">
+            {entry.title || "Untitled"}
+          </h1>
+          <a
+            href={entry.url}
+            className="mt-1 inline-block text-sm text-ink-soft transition-colors duration-150 hover:text-accent"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {entry.url}
+          </a>
 
-      <dl className="mt-8 space-y-5">
-        <div>
-          <dt className="text-sm text-ink-faint">Current URL</dt>
-          <dd className="mt-1">
-            <a
-              href={`https://${viewUrl}`}
-              className="text-ink-soft transition-colors duration-150 hover:text-accent"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {viewUrl}
-            </a>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-sm text-ink-faint">Visibility</dt>
-          <dd className="mt-1 text-ink">{VISIBILITY_LABEL[doc.visibility]}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-ink-faint">Versions</dt>
-          <dd className="mt-1 text-ink">
-            {versions} {versions === 1 ? "version" : "versions"}
-          </dd>
-        </div>
-      </dl>
-
-      <div className="mt-10">
-        <Link
-          href={`/publish?slug=${doc.slug}`}
-          className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-surface transition-colors duration-150"
-        >
-          Re-publish new version
-        </Link>
-      </div>
-
-      <div className="mt-14 border-t border-hairline pt-8">
-        <div className="flex flex-wrap gap-2">
-          {PHASE2_TABS.map((tab) => (
-            <span
-              key={tab}
-              aria-disabled="true"
-              className="cursor-not-allowed rounded-md border border-hairline px-3 py-1.5 text-sm text-ink-faint"
-            >
-              {tab}
-            </span>
-          ))}
-        </div>
-        <p className="mt-4 text-sm text-ink-faint">
-          Analytics, heatmaps, and comments arrive in Phase 2.
-        </p>
-      </div>
+          <div className="mt-10">
+            <StatsView slug={entry.slug} token={entry.manageToken} />
+          </div>
+        </>
+      )}
     </section>
   );
 }

@@ -1,13 +1,13 @@
-// POST /api/publish — publish a new document (spec §5.1, §6).
+// POST /api/publish — publish a new document (spec §5.1, §6). Open: no account.
 //
 // Accepts either JSON:
-//   { content: string, sourceType: "md"|"html", visibility?, password?,
-//     expiresAt?, customSlug?, title? }
+//   { content, sourceType, visibility?, password?, expiresAt?, customSlug?,
+//     title?, turnstileToken }
 // or multipart/form-data with a `file` field (.md/.html, <= 2 MB) plus the same
-// optional fields. On success returns { slug, url, editUrl }.
+// optional fields. Gated by Turnstile + IP rate-limit. On success returns
+// { slug, url, manageToken } — the token is shown once and kept in the browser.
 
 import { NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth/current-user";
 import { hashPassword } from "@/lib/crypto/password";
 import {
   createDocument,
@@ -15,10 +15,12 @@ import {
   writeSlugRecord,
 } from "@/lib/db/documents";
 import { generateSlug, isValidCustomSlug } from "@/lib/slug";
+import { verifyTurnstile } from "@/lib/turnstile";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { newManageToken, hashToken } from "@/lib/manage-token";
 import {
   MAX_BODY_BYTES,
   byteLength,
-  editUrl,
   isSourceType,
   isVisibility,
   renderAndSanitize,
@@ -42,6 +44,7 @@ interface PublishInput {
   expiresAt?: number;
   customSlug?: string;
   title?: string;
+  turnstileToken?: string;
 }
 
 function asString(v: FormDataEntryValue | null | undefined): string | undefined {
@@ -74,6 +77,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
   let expiresAtRaw: unknown;
   let customSlug: string | undefined;
   let title: string | undefined;
+  let turnstileToken: string | undefined;
 
   if (contentType.includes("multipart/form-data")) {
     let form: FormData;
@@ -100,6 +104,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     expiresAtRaw = asString(form.get("expiresAt"));
     customSlug = asString(form.get("customSlug"));
     title = asString(form.get("title"));
+    turnstileToken = asString(form.get("turnstileToken"));
   } else {
     let body: unknown;
     try {
@@ -121,6 +126,8 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     expiresAtRaw = b.expiresAt;
     customSlug = typeof b.customSlug === "string" ? b.customSlug : undefined;
     title = typeof b.title === "string" ? b.title : undefined;
+    turnstileToken =
+      typeof b.turnstileToken === "string" ? b.turnstileToken : undefined;
   }
 
   if (content.trim().length === 0) {
@@ -149,6 +156,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     expiresAt: expiresAt ?? undefined,
     customSlug,
     title: title?.trim() ? title.trim() : undefined,
+    turnstileToken,
   };
 }
 
@@ -174,11 +182,19 @@ async function resolveSlug(customSlug?: string): Promise<string | NextResponse> 
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const user = await currentUser();
-  if (!user) return bad("Sign in to publish.", 401);
+  const ip = clientIp(req);
+
+  // Abuse control on the open publish endpoint: IP rate-limit + Turnstile.
+  if (!(await rateLimit(`publish:ip:${ip}`, 20, 3600))) {
+    return bad("Too many documents published from here. Try again later.", 429);
+  }
 
   const input = await readInput(req);
   if (input instanceof NextResponse) return input;
+
+  if (!(await verifyTurnstile(input.turnstileToken, ip))) {
+    return bad("Human check failed. Please retry.", 403);
+  }
 
   // Visibility-dependent requirements.
   let passwordHash: string | null = null;
@@ -207,13 +223,17 @@ export async function POST(req: Request): Promise<NextResponse> {
   const slug = await resolveSlug(input.customSlug);
   if (slug instanceof NextResponse) return slug;
 
+  // Mint the manage token; store only its hash. Raw token returned once below.
+  const manageToken = newManageToken();
+  const manageTokenHash = await hashToken(manageToken);
+
   const doc = await createDocument({
     slug,
-    owner_id: user.id,
     source_type: input.sourceType,
     title,
     visibility: input.visibility,
     password_hash: passwordHash,
+    manage_token_hash: manageTokenHash,
     expires_at: expiresAt,
   });
 
@@ -229,7 +249,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   });
 
   return NextResponse.json(
-    { slug, url: viewUrl(slug), editUrl: editUrl(doc.id) },
+    { slug, url: viewUrl(slug), manageToken },
     { status: 201 },
   );
 }

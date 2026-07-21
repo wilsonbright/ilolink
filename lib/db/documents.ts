@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import { env } from "@/lib/cf";
-import { queryFirst, queryAll, execute } from "@/lib/db/client";
+import { queryFirst, execute } from "@/lib/db/client";
 import { rawKey, renderedKey } from "@/lib/r2/store";
 import type {
   DocumentRow,
@@ -11,14 +11,14 @@ import type {
 } from "@/lib/types";
 
 // Fields a caller supplies at publish time; the rest (id, timestamps, current
-// version) are derived here.
+// version) are derived here. No owner — ownership is the manage token hash.
 export interface CreateDocumentInput {
   slug: string;
-  owner_id: string;
   source_type: SourceType;
   title?: string | null;
   visibility?: Visibility;
   password_hash?: string | null;
+  manage_token_hash?: string | null;
   expires_at?: number | null;
 }
 
@@ -30,11 +30,11 @@ export async function createDocument(
   const row: DocumentRow = {
     id: nanoid(),
     slug: input.slug,
-    owner_id: input.owner_id,
     title: input.title ?? null,
     source_type: input.source_type,
     visibility: input.visibility ?? "public",
     password_hash: input.password_hash ?? null,
+    manage_token_hash: input.manage_token_hash ?? null,
     current_version_id: null,
     expires_at: input.expires_at ?? null,
     published_at: now,
@@ -43,16 +43,17 @@ export async function createDocument(
   };
   await execute(
     `INSERT INTO documents
-      (id, slug, owner_id, title, source_type, visibility, password_hash,
-       current_version_id, expires_at, published_at, created_at, updated_at)
+      (id, slug, title, source_type, visibility, password_hash,
+       manage_token_hash, current_version_id, expires_at, published_at,
+       created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     row.id,
     row.slug,
-    row.owner_id,
     row.title,
     row.source_type,
     row.visibility,
     row.password_hash,
+    row.manage_token_hash,
     row.current_version_id,
     row.expires_at,
     row.published_at,
@@ -73,16 +74,6 @@ export function getDocumentBySlug(slug: string): Promise<DocumentRow | null> {
 // Fetch by primary key; null if not found.
 export function getDocumentById(id: string): Promise<DocumentRow | null> {
   return queryFirst<DocumentRow>("SELECT * FROM documents WHERE id = ?", id);
-}
-
-// A creator's documents, newest first.
-export function listDocumentsByOwner(
-  ownerId: string,
-): Promise<DocumentRow[]> {
-  return queryAll<DocumentRow>(
-    "SELECT * FROM documents WHERE owner_id = ? ORDER BY created_at DESC",
-    ownerId,
-  );
 }
 
 // Append a version row. R2 keys default to the docs/<docId>/<versionId>/…

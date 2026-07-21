@@ -5,21 +5,16 @@ export type SourceType = "md" | "html";
 
 export type Visibility = "public" | "unlisted" | "password" | "expiring";
 
-export interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  created_at: number; // epoch ms
-}
-
+// No accounts. Ownership is proved by a per-doc manage token whose SHA-256 is
+// stored here; the raw token lives only in the publisher's browser.
 export interface DocumentRow {
   id: string;
   slug: string;
-  owner_id: string;
   title: string | null;
   source_type: SourceType;
   visibility: Visibility;
   password_hash: string | null;
+  manage_token_hash: string | null;
   current_version_id: string | null;
   expires_at: number | null;
   published_at: number | null;
@@ -43,21 +38,6 @@ export interface SlugRecord {
   rendered_r2_key: string;
   password_hash: string | null;
   expires_at: number | null;
-}
-
-// KV session record stored at key `session:<token>`; cookie holds the opaque token.
-export interface SessionRecord {
-  user_id: string;
-  email: string;
-  created_at: number;
-  expires_at: number;
-}
-
-// KV magic-link record at key `magic:<token>`; single-use, short TTL.
-export interface MagicLinkRecord {
-  email: string;
-  created_at: number;
-  expires_at: number;
 }
 
 // Result of the sanitize step: safe HTML plus the extracted title.

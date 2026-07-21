@@ -1,6 +1,6 @@
 // Shared publish pipeline (spec §5.1, §6): render → sanitize → store in R2 →
-// append a version → point the document at it. Used by the initial publish route
-// and the re-publish route so both go through the identical security boundary.
+// append a version → point the document at it. Documents are immutable, so each
+// has exactly one version; the pipeline still routes through the sanitize boundary.
 
 import { renderMarkdown } from "@/lib/sanitize/markdown";
 import { sanitizeDocument } from "@/lib/sanitize/html";
@@ -11,9 +11,8 @@ import type { DocumentVersion, SourceType, Visibility } from "@/lib/types";
 // Upload ceiling for both raw bodies and file uploads.
 export const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
 
-// Public content origin (isolated) and the creator origin (this app).
+// Public content origin (isolated) where published docs are served.
 export const VIEW_ORIGIN = "https://view.ilolink.com";
-export const APP_ORIGIN = "https://ilolink.com";
 
 const VISIBILITIES: ReadonlySet<Visibility> = new Set<Visibility>([
   "public",
@@ -68,4 +67,3 @@ export async function storeVersion(
 }
 
 export const viewUrl = (slug: string): string => `${VIEW_ORIGIN}/${slug}`;
-export const editUrl = (docId: string): string => `${APP_ORIGIN}/edit/${docId}`;

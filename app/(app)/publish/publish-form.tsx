@@ -2,6 +2,31 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SourceType, Visibility } from "@/lib/types";
+import { addToHistory } from "@/lib/history";
+
+// Cloudflare Turnstile. The published site injects a real sitekey via env; the
+// documented test key ("always passes") keeps local + preview builds unblocked.
+const TURNSTILE_SITEKEY =
+  process.env.NEXT_PUBLIC_TURNSTILE_SITEKEY || "1x00000000000000000000AA";
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        el: HTMLElement,
+        opts: {
+          sitekey: string;
+          callback: (token: string) => void;
+          "expired-callback"?: () => void;
+          "error-callback"?: () => void;
+          theme?: "auto" | "light" | "dark";
+        },
+      ) => string;
+      reset: (id?: string) => void;
+      remove: (id?: string) => void;
+    };
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // The composer. One column, progressive disclosure: settings stay hidden
@@ -20,6 +45,22 @@ const VISIBILITY: { value: Visibility; label: string; hint: string }[] = [
   { value: "password", label: "Password", hint: "Opens only with a password you set." },
   { value: "expiring", label: "Expiring", hint: "Stops working after a date you choose." },
 ];
+
+// A cheap, honest hint — not a parser. Enough to give history a readable name.
+function deriveTitle(text: string, source: SourceType): string {
+  const t = text.trim();
+  if (source === "html") {
+    const title = t.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+    const h1 = t.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1];
+    const raw = (title ?? h1 ?? "").replace(/<[^>]+>/g, "").trim();
+    if (raw) return raw.slice(0, 120);
+  } else {
+    const heading = t.split(/\r?\n/).find((l) => l.trim().startsWith("#"));
+    if (heading) return heading.replace(/^#+\s*/, "").trim().slice(0, 120);
+  }
+  const firstLine = t.split(/\r?\n/).find((l) => l.trim().length > 0);
+  return firstLine ? firstLine.trim().slice(0, 120) : "Untitled";
+}
 
 // A cheap, honest hint — not a parser. Enough to label the source type.
 function detectSource(text: string): SourceType {
@@ -49,8 +90,10 @@ export function PublishForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PublishResult | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const onTurnstileToken = useCallback((t: string) => setTurnstileToken(t), []);
 
   const detected = useMemo(() => detectSource(content), [content]);
   useEffect(() => {
@@ -113,6 +156,12 @@ export function PublishForm() {
       setError("A custom link is 3–32 characters: lowercase letters, numbers, and hyphens.");
       return;
     }
+    if (!turnstileToken) {
+      setError("Please complete the human check below.");
+      return;
+    }
+
+    const title = deriveTitle(content, source);
 
     setSubmitting(true);
     try {
@@ -123,6 +172,8 @@ export function PublishForm() {
           content,
           sourceType: source,
           visibility,
+          title,
+          turnstileToken,
           ...(visibility === "password" ? { password } : {}),
           ...(visibility === "expiring" ? { expiresAt: expiresMs } : {}),
           ...(wantSlug ? { customSlug: wantSlug } : {}),
@@ -132,6 +183,9 @@ export function PublishForm() {
       const obj = (data ?? {}) as Record<string, unknown>;
 
       if (!res.ok || obj.ok === false) {
+        // A used/failed token can't be replayed — force a fresh human check.
+        setTurnstileToken("");
+        window.turnstile?.reset();
         setError(
           typeof obj.error === "string"
             ? obj.error
@@ -151,8 +205,21 @@ export function PublishForm() {
         setError("Published, but no link came back. Check your dashboard.");
         return;
       }
+
+      const manageToken = typeof obj.manageToken === "string" ? obj.manageToken : "";
+      addToHistory({
+        slug: outSlug,
+        title,
+        url: outUrl,
+        visibility,
+        publishedAt: Date.now(),
+        manageToken,
+      });
+
       setResult({ slug: outSlug, url: outUrl });
     } catch {
+      setTurnstileToken("");
+      window.turnstile?.reset();
       setError("Network hiccup. Check your connection and try again.");
     } finally {
       setSubmitting(false);
@@ -170,6 +237,7 @@ export function PublishForm() {
     setShowSlug(false);
     setSlug("");
     setError(null);
+    setTurnstileToken("");
   }
 
   if (result) {
@@ -353,12 +421,13 @@ export function PublishForm() {
       </section>
 
       {/* Submit ───────────────────────────────────────────── */}
-      <div className="space-y-3 border-t border-hairline pt-8">
+      <div className="space-y-4 border-t border-hairline pt-8">
         {error && (
           <p role="alert" className="text-sm text-ink">
             {error}
           </p>
         )}
+        <Turnstile onToken={onTurnstileToken} />
         <button
           type="submit"
           disabled={!canSubmit}
@@ -369,6 +438,67 @@ export function PublishForm() {
       </div>
     </form>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Turnstile — Cloudflare's cookieless human check. Loads the script once and
+// renders a single widget; the token flows up via onToken and is spent on
+// publish. Muted, on-brand, self-cleaning on unmount.
+// ─────────────────────────────────────────────────────────────────────────
+
+function Turnstile({ onToken }: { onToken: (token: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+    let widgetId: string | undefined;
+    let cancelled = false;
+    let poll: number | undefined;
+
+    const render = () => {
+      if (cancelled || !ref.current || !window.turnstile) return;
+      ref.current.replaceChildren();
+      widgetId = window.turnstile.render(ref.current, {
+        sitekey: TURNSTILE_SITEKEY,
+        callback: (t) => onToken(t),
+        "expired-callback": () => onToken(""),
+        "error-callback": () => onToken(""),
+        theme: "auto",
+      });
+    };
+
+    if (window.turnstile) {
+      render();
+    } else if (!document.querySelector(`script[src="${SRC}"]`)) {
+      const s = document.createElement("script");
+      s.src = SRC;
+      s.async = true;
+      s.defer = true;
+      s.onload = render;
+      document.head.appendChild(s);
+    } else {
+      poll = window.setInterval(() => {
+        if (window.turnstile) {
+          window.clearInterval(poll);
+          render();
+        }
+      }, 150);
+    }
+
+    return () => {
+      cancelled = true;
+      if (poll) window.clearInterval(poll);
+      if (widgetId && window.turnstile) {
+        try {
+          window.turnstile.remove(widgetId);
+        } catch {
+          /* widget already gone */
+        }
+      }
+    };
+  }, [onToken]);
+
+  return <div ref={ref} className="min-h-[65px]" />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────

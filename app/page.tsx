@@ -36,7 +36,7 @@ export default function Home() {
 
         <div className="mt-10">
           <Link
-            href="/signin"
+            href="/publish"
             className="inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-surface transition-opacity duration-150 hover:opacity-90"
           >
             Publish a document
@@ -55,10 +55,10 @@ export default function Home() {
 
       <footer className="mt-auto pt-24 text-sm text-ink-faint">
         <Link
-          href="/signin"
+          href="/publish"
           className="transition-colors duration-150 hover:text-ink-soft"
         >
-          Sign in
+          Publish a document
         </Link>
       </footer>
     </main>

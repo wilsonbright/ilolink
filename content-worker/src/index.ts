@@ -18,6 +18,13 @@ import {
   buildChromeCsp,
   docSecurityHeaders,
 } from "../../lib/sanitize/csp";
+import {
+  visitorHash,
+  deviceClass,
+  refHost,
+} from "../../lib/analytics/collect";
+import { TRACKER_JS } from "./tracker-script";
+import { WIDGET_JS } from "./widget-script";
 
 // Constant-time compare of two equal-length ASCII strings (the unlock token is
 // a fixed 64-hex digest). Avoids a timing oracle on the per-doc unlock cookie.
@@ -34,6 +41,72 @@ interface Env {
   DOCS: R2Bucket;
   DB: D1Database;
   EVENTS: AnalyticsEngineDataset;
+}
+
+// ─── interaction plumbing (analytics / feedback / comments) ────────────────
+// This Worker is standalone (NOT OpenNext), so it cannot import @/lib/cf or
+// @/lib/ratelimit — those reach for getCloudflareContext, which exists only in
+// the Next app. Everything below talks to env.KV / env.DB / env.EVENTS directly.
+
+// Best-effort client IP from Cloudflare headers (mirrors lib/ratelimit.clientIp).
+function clientIp(request: Request): string {
+  return (
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown"
+  );
+}
+
+// Inline fixed-window KV rate limiter (same pattern as lib/ratelimit.rateLimit).
+// Returns true when ALLOWED, false when the window is exhausted.
+async function rateLimitKV(
+  env: Env,
+  key: string,
+  limit: number,
+  windowSeconds: number,
+): Promise<boolean> {
+  const k = `rl:${key}`;
+  const current = Number((await env.KV.get(k)) ?? "0");
+  if (current >= limit) return false;
+  await env.KV.put(k, String(current + 1), { expirationTtl: windowSeconds });
+  return true;
+}
+
+// SALT_SECRET is a Worker secret, read via env cast (as in lib/turnstile.ts).
+function saltSecret(env: Env): string {
+  return (env as Env & { SALT_SECRET?: string }).SALT_SECRET ?? "";
+}
+
+// Do-Not-Track: honour the DNT / Sec-GPC request headers and an optional body
+// flag. When set, analytics is dropped silently (still a 202 to the beacon).
+function isDnt(request: Request, bodyFlag?: unknown): boolean {
+  if (request.headers.get("dnt") === "1") return true;
+  if (request.headers.get("sec-gpc") === "1") return true;
+  return bodyFlag === true || bodyFlag === 1 || bodyFlag === "1";
+}
+
+// Two-decimal UTC day for the reaction daily-dedupe key.
+function utcDay(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}
+
+function scriptResponse(js: string): Response {
+  return new Response(js, {
+    headers: {
+      "content-type": "text/javascript; charset=utf-8",
+      "cache-control": "public, max-age=300",
+    },
+  });
 }
 
 // Cookie that proves a viewer cleared the password gate for one specific doc.
@@ -93,6 +166,7 @@ function readerShell(opts: {
   body: string;
   nonce: string;
   noindex: boolean;
+  docId: string;
 }): string {
   const robots = opts.noindex
     ? '<meta name="robots" content="noindex" />'
@@ -103,6 +177,7 @@ function readerShell(opts: {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 ${robots}
+<meta name="ilo:doc" content="${escapeHtml(opts.docId)}" />
 <title>${escapeHtml(opts.title)}</title>
 <style>
 :root {
@@ -181,8 +256,9 @@ body {
 <main class="doc">
 ${opts.body}
 </main>
-<!-- Phase 2 tracker; served no-op today so a page never breaks on it. -->
+<!-- First-party, same-origin interaction scripts; admitted only by this nonce. -->
 <script nonce="${opts.nonce}" src="/tracker.js"></script>
+<script nonce="${opts.nonce}" src="/widget.js"></script>
 </body>
 </html>`;
 }
@@ -305,20 +381,231 @@ async function loadSlugRecord(
   return env.KV.get<SlugRecord>(`slug:${slug}`, "json");
 }
 
+// Does a document with this id exist? Guards FK inserts from spam to dead ids.
+async function docExists(env: Env, docId: string): Promise<boolean> {
+  const row = await env.DB.prepare("SELECT 1 AS x FROM documents WHERE id = ?")
+    .bind(docId)
+    .first<{ x: number }>();
+  return row !== null;
+}
+
+const REACTION_KEYS = ["👍", "🤔", "👀"] as const;
+
+// GET /_feedback?doc= -> aggregated reaction counts ONLY. Reactions are public
+// (the doc's reaction bar needs them). Reader NOTES are private to the publisher
+// and are NOT returned here — they are served token-gated from the app origin
+// (/api/feedback), since anyone can read a doc id from the served page.
+async function feedbackSummary(env: Env, docId: string): Promise<Response> {
+  const reactions: Record<string, number> = { "👍": 0, "🤔": 0, "👀": 0 };
+  const rx = await env.DB.prepare(
+    "SELECT value, COUNT(*) AS n FROM feedback WHERE document_id = ? AND kind = 'reaction' GROUP BY value",
+  )
+    .bind(docId)
+    .all<{ value: string; n: number }>();
+  for (const r of rx.results) {
+    if (r.value in reactions) reactions[r.value] = Number(r.n);
+  }
+  return jsonResponse({ reactions });
+}
+
+// POST /_feedback — reaction or note. Honeypot + IP rate-limit; reactions are
+// de-duped per (doc, visitor, UTC day) via KV so counts reflect people, not taps.
+async function postFeedback(request: Request, env: Env): Promise<Response> {
+  let data: Record<string, unknown>;
+  try {
+    data = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return jsonResponse({ error: "bad json" }, 400);
+  }
+  if (!data || typeof data !== "object") {
+    return jsonResponse({ error: "bad request" }, 400);
+  }
+  // Honeypot: a filled hp field means a bot — accept silently, store nothing.
+  if (String(data.hp ?? "") !== "") return jsonResponse({ ok: true });
+
+  const docId = typeof data.doc === "string" ? data.doc : "";
+  const kind =
+    data.kind === "note" ? "note" : data.kind === "reaction" ? "reaction" : "";
+  let value = typeof data.value === "string" ? data.value : "";
+  if (!docId || !kind || !value) {
+    return jsonResponse({ error: "missing fields" }, 400);
+  }
+  if (kind === "reaction" && !REACTION_KEYS.includes(value as never)) {
+    return jsonResponse({ error: "bad reaction" }, 400);
+  }
+  if (kind === "note") {
+    value = value.slice(0, 2000).trim();
+    if (!value) return jsonResponse({ error: "empty note" }, 400);
+  }
+
+  const ip = clientIp(request);
+  if (!(await rateLimitKV(env, `fb:${ip}`, 30, 60))) {
+    return jsonResponse({ error: "rate limited" }, 429);
+  }
+  if (!(await docExists(env, docId))) {
+    return jsonResponse({ error: "not found" }, 404);
+  }
+
+  const ua = request.headers.get("user-agent") ?? "";
+  const vh = await visitorHash(ip, ua, docId, saltSecret(env));
+
+  if (kind === "reaction") {
+    const dedupeKey = `fb:${docId}:${vh}:${utcDay()}`;
+    if (await env.KV.get(dedupeKey)) {
+      return jsonResponse({ ok: true, deduped: true });
+    }
+    await env.KV.put(dedupeKey, "1", { expirationTtl: 60 * 60 * 30 });
+  }
+
+  await env.DB.prepare(
+    "INSERT INTO feedback (id, document_id, kind, value, visitor_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+  )
+    .bind(crypto.randomUUID(), docId, kind, value, vh, Date.now())
+    .run();
+  return jsonResponse({ ok: true });
+}
+
+// GET /_comments?doc= -> visible comments (flat; the client nests one level).
+async function commentsList(env: Env, docId: string): Promise<Response> {
+  const rows = await env.DB.prepare(
+    "SELECT id, parent_id, author_name, body, created_at FROM comments WHERE document_id = ? AND status = 'visible' ORDER BY created_at ASC LIMIT 500",
+  )
+    .bind(docId)
+    .all<{
+      id: string;
+      parent_id: string | null;
+      author_name: string | null;
+      body: string;
+      created_at: number;
+    }>();
+  return jsonResponse({ comments: rows.results });
+}
+
+// POST /_comments — add a visible comment. Honeypot + IP rate-limit + 4 KB body
+// cap. One reply level only: a reply's parent must exist, belong to this doc, and
+// itself be top-level (reject a parent that already has a parent).
+async function postComment(request: Request, env: Env): Promise<Response> {
+  let data: Record<string, unknown>;
+  try {
+    data = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return jsonResponse({ error: "bad json" }, 400);
+  }
+  if (!data || typeof data !== "object") {
+    return jsonResponse({ error: "bad request" }, 400);
+  }
+  if (String(data.hp ?? "") !== "") return jsonResponse({ ok: true });
+
+  const docId = typeof data.doc === "string" ? data.doc : "";
+  const body = typeof data.body === "string" ? data.body.trim() : "";
+  const name =
+    typeof data.name === "string" ? data.name.trim().slice(0, 80) : "";
+  const parentId =
+    typeof data.parentId === "string" && data.parentId ? data.parentId : null;
+  if (!docId || !body) return jsonResponse({ error: "missing fields" }, 400);
+  if (body.length > 4000) return jsonResponse({ error: "too long" }, 400);
+
+  const ip = clientIp(request);
+  if (!(await rateLimitKV(env, `cm:${ip}`, 15, 60))) {
+    return jsonResponse({ error: "rate limited" }, 429);
+  }
+  if (!(await docExists(env, docId))) {
+    return jsonResponse({ error: "not found" }, 404);
+  }
+
+  if (parentId) {
+    const parent = await env.DB.prepare(
+      "SELECT parent_id, document_id FROM comments WHERE id = ? AND status = 'visible'",
+    )
+      .bind(parentId)
+      .first<{ parent_id: string | null; document_id: string }>();
+    // Parent must exist, be on this doc, and be top-level (one reply level).
+    if (!parent || parent.document_id !== docId || parent.parent_id) {
+      return jsonResponse({ error: "bad parent" }, 400);
+    }
+  }
+
+  await env.DB.prepare(
+    "INSERT INTO comments (id, document_id, parent_id, author_name, body, status, created_at) VALUES (?, ?, ?, ?, ?, 'visible', ?)",
+  )
+    .bind(crypto.randomUUID(), docId, parentId, name || null, body, Date.now())
+    .run();
+  return jsonResponse({ ok: true });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Phase-2 tracker endpoint. Served as a harmless no-op today so the injected
-    // <script src="/tracker.js"> never 404s or breaks a page.
-    if (pathname === "/tracker.js") {
-      return new Response("/* ilolink tracker: phase 2 */\n", {
-        headers: {
-          "content-type": "text/javascript; charset=utf-8",
-          "cache-control": "public, max-age=300",
-        },
+    // First-party interaction scripts, served same-origin so the doc's strict
+    // CSP nonce is all that's needed to run them.
+    if (pathname === "/tracker.js") return scriptResponse(TRACKER_JS);
+    if (pathname === "/widget.js") return scriptResponse(WIDGET_JS);
+
+    // ─── analytics beacon ────────────────────────────────────────────────
+    // POST /_collect — one Analytics Engine data point per event. Drops on DNT,
+    // rate-limited per IP. Always 202 (fire-and-forget; never leak state).
+    if (pathname === "/_collect") {
+      if (request.method !== "POST") return notFoundPage();
+      let data: Record<string, unknown>;
+      try {
+        data = (await request.json()) as Record<string, unknown>;
+      } catch {
+        return new Response(null, { status: 202 });
+      }
+      if (!data || typeof data !== "object") {
+        return new Response(null, { status: 202 });
+      }
+      if (isDnt(request, data.dnt)) return new Response(null, { status: 202 });
+      const docId = typeof data.doc === "string" ? data.doc : "";
+      if (!docId) return new Response(null, { status: 202 });
+
+      const ip = clientIp(request);
+      if (!(await rateLimitKV(env, `collect:${ip}`, 240, 60))) {
+        return new Response(null, { status: 202 });
+      }
+
+      const ua = request.headers.get("user-agent") ?? "";
+      const vh = await visitorHash(ip, ua, docId, saltSecret(env));
+      const cf = request.cf as { country?: string } | undefined;
+      const country = typeof cf?.country === "string" ? cf.country : "";
+      const type = typeof data.type === "string" ? data.type : "pageview";
+      const w = Number(data.w) || 0;
+      const h = Number(data.h) || 0;
+      const path = typeof data.path === "string" ? data.path : "";
+      const ref = typeof data.ref === "string" ? data.ref : "";
+      const scrollPct = Number(data.scrollPct) || 0;
+      const timeS = Number(data.timeS) || 0;
+
+      env.EVENTS.writeDataPoint({
+        blobs: [docId, type, refHost(ref), country, deviceClass(w), path, vh],
+        doubles: [scrollPct, timeS, w, h],
+        indexes: [docId],
       });
+      return new Response(null, { status: 202 });
+    }
+
+    // ─── feedback (reactions + notes) ────────────────────────────────────
+    if (pathname === "/_feedback") {
+      if (request.method === "GET") {
+        const docId = url.searchParams.get("doc") ?? "";
+        if (!docId) return jsonResponse({ reactions: {}, notes: [] });
+        return feedbackSummary(env, docId);
+      }
+      if (request.method === "POST") return postFeedback(request, env);
+      return notFoundPage();
+    }
+
+    // ─── comments ────────────────────────────────────────────────────────
+    if (pathname === "/_comments") {
+      if (request.method === "GET") {
+        const docId = url.searchParams.get("doc") ?? "";
+        if (!docId) return jsonResponse({ comments: [] });
+        return commentsList(env, docId);
+      }
+      if (request.method === "POST") return postComment(request, env);
+      return notFoundPage();
     }
 
     // Password unlock: POST /_unlock/<slug>
@@ -404,6 +691,7 @@ export default {
       body,
       nonce: csp.nonce,
       noindex: rec.visibility === "unlisted",
+      docId: rec.doc_id,
     });
 
     const headers = new Headers(docSecurityHeaders(csp.header));
