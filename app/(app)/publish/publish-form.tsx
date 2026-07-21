@@ -121,11 +121,11 @@ export function PublishForm() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           content,
-          source_type: source,
+          sourceType: source,
           visibility,
           ...(visibility === "password" ? { password } : {}),
-          ...(visibility === "expiring" ? { expires_at: expiresMs } : {}),
-          ...(wantSlug ? { slug: wantSlug } : {}),
+          ...(visibility === "expiring" ? { expiresAt: expiresMs } : {}),
+          ...(wantSlug ? { customSlug: wantSlug } : {}),
         }),
       });
       const data: unknown = await res.json().catch(() => ({}));

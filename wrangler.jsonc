@@ -5,10 +5,21 @@
   "compatibility_date": "2026-07-20",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "account_id": "a8ec57aa9f4b6a49e48e60b1aa2a306e",
+  // Keep the *.workers.dev URL live alongside the custom domain so deploys don't
+  // silently disable it (used for testing before the apex is wired).
+  "workers_dev": true,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // App origin — dashboard, auth, publish API. Custom domain auto-provisions
+  // DNS + edge cert. Untrusted docs live on view.ilolink.com, never here.
+  "routes": [
+    {
+      "pattern": "ilolink.com",
+      "custom_domain": true
+    }
+  ],
   // Relational metadata: users, documents, versions, comments, feedback.
   "d1_databases": [
     {

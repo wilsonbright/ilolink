@@ -33,3 +33,7 @@ cloudflare-env.d.ts
 
 # TS incremental build cache
 *.tsbuildinfo
+
+# Test artifacts
+.playwright-mcp/
+*.png

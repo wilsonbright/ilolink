@@ -12,8 +12,8 @@
   // The isolated origin. Everything under it is document content, never the app.
   "routes": [
     {
-      "pattern": "view.ilolink.com/*",
-      "zone_name": "ilolink.com"
+      "pattern": "view.ilolink.com",
+      "custom_domain": true
     }
   ],
   // Slug -> doc lookups (hot path), password unlock tokens. Same namespace as app.

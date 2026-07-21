@@ -5,6 +5,35 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — Phase 1: publish + read (built, deployed, verified live)
+- **Asked:** Build Phase 1 (ultracode).
+- **Did:** Wrote security core by hand (types contract, `lib/cf`, `lib/sanitize/{markdown,html,csp}`).
+  Ran a 10-agent workflow (foundation libs → surface routes/worker/UI → adversarial security
+  review + build-verify). Applied the security review: fixed broken magic-link callback URL,
+  PBKDF2 100k→600k, anti-framing/CSP on all content-worker responses, constant-time unlock
+  compare, dropped DOM-clobbering `name` attr, added KV rate-limit on magic endpoint.
+- **Deployed:** content-worker → **view.ilolink.com** (custom domain, live). App → OpenNext
+  Worker `ilolink`, live on **ilolink.sweet-night-5b17.workers.dev** (apex ilolink.com custom
+  domain trigger FAILED — pre-existing parked A record → 192.64.119.21; not overridden, needs
+  user decision). Set `workers_dev: true` in config after a redeploy silently disabled it.
+- **VERIFIED LIVE (observed, not inferred):** landing renders zen UI (screenshot); magic-link
+  auth → 307 + host-only `ilo_session` cookie; publish a deliberately MALICIOUS html doc →
+  slug `9hepg7`; fetched `view.ilolink.com/9hepg7` via edge and confirmed `<script>`, `onerror`,
+  `onclick`, `javascript:` link, `<iframe>` ALL stripped, legit content survived, CSP
+  `default-src 'none'; script-src 'nonce-…'` + X-Frame-Options DENY etc. all present.
+- **Integration bugs caught by the live test + fixed:** publish form sent snake_case
+  (`source_type`) vs API camelCase (`sourceType`) — two agents disagreed on the contract;
+  `APP_ORIGIN` was `app.ilolink.com` → corrected to `ilolink.com`.
+- **Known Phase-1 tradeoffs (documented):** magic token consumable by link-prefetchers (GET
+  single-use); Turnstile deferred to Phase 2.
+- **Files:** lib/{types,cf,ratelimit}, lib/sanitize/*, lib/db/*, lib/auth/*, lib/crypto/password,
+  lib/r2/store, lib/slug, lib/publish/pipeline, app/api/{publish,documents/[id],auth/*},
+  app/(app)/*, app/(auth)/signin/*, app/page.tsx, middleware.ts, content-worker/*, wrangler.jsonc.
+- **Open:** wire ilolink.com apex to the app (needs user OK — repoints the domain); set RESEND_API_KEY
+  for real email; Phase 2 (analytics/feedback/comments).
+
+---
+
 ## 2026-07-21 — Phase 0: skeleton
 - **Asked:** Build first version from `ilolink-spec.md` (ultracode). Phase 0 + Phase 1.
 - **Did (Phase 0):** Provisioned Cloudflare resources via API token — D1 `ilolink`

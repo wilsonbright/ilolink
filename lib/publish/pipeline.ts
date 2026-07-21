@@ -13,7 +13,7 @@ export const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
 
 // Public content origin (isolated) and the creator origin (this app).
 export const VIEW_ORIGIN = "https://view.ilolink.com";
-export const APP_ORIGIN = "https://app.ilolink.com";
+export const APP_ORIGIN = "https://ilolink.com";
 
 const VISIBILITIES: ReadonlySet<Visibility> = new Set<Visibility>([
   "public",
