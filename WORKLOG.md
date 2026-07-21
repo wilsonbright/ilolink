@@ -29,8 +29,11 @@ date, what was asked, what was done, files touched.
 - **Files:** lib/{types,cf,ratelimit}, lib/sanitize/*, lib/db/*, lib/auth/*, lib/crypto/password,
   lib/r2/store, lib/slug, lib/publish/pipeline, app/api/{publish,documents/[id],auth/*},
   app/(app)/*, app/(auth)/signin/*, app/page.tsx, middleware.ts, content-worker/*, wrangler.jsonc.
-- **Open:** wire ilolink.com apex to the app (needs user OK — repoints the domain); set RESEND_API_KEY
-  for real email; Phase 2 (analytics/feedback/comments).
+- **Apex wired (user approved takeover):** deleted the parked A record (→192.64.119.21), redeployed;
+  **ilolink.com** now serves the app (custom domain, cert issued, HTTP 200). Full production loop
+  re-verified on the real domains: apex auth → apex publish (md) → `view.ilolink.com/2kqffj` renders.
+- **Open:** set RESEND_API_KEY for real email (dev fallback works now); Phase 2
+  (analytics/feedback/comments); rotate the CF API token after the session.
 
 ---
 
