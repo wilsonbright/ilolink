@@ -22,6 +22,27 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — Fix: render styled HTML docs (landing mockups)
+- **Reported:** an uploaded HTML landing mockup rendered wrong (view.ilolink.com/8sjbae).
+- **Root cause:** sanitization runs at PUBLISH time. The sanitizer stripped the doc's `<style>`
+  block + inline `style=` (kept classes/divs → unstyled), AND the 68ch reading shell cramped the
+  full-width layout.
+- **Fix:** (1) sanitizer now allows `<style>` + `style=` + layout/form tags (nav/header/footer/
+  main/aside/form/input/button/label/select/textarea) — safe under the served doc's strict CSP
+  (no JS in CSS; external url()/@import governed by CSP; form-action 'none'); scripts/iframes/
+  objects/on* still stripped. (2) `SlugRecord.source_type` added; content-worker renders HTML docs
+  FULL-BLEED (author controls styling), Markdown docs in the zen reading shell.
+- **VERIFIED LIVE (observed, screenshot):** re-published the mockup → rendered as the full landing
+  page (peach→coral gradient hero, nav, serif headline, search box, sticky profile card + 9-lens
+  grid, fixed badge). 28 unit tests green (added: styling kept, </style> can't smuggle a script,
+  forms inert). Both workers deployed.
+- **Caveat:** custom Google Fonts (@import fonts.googleapis) are blocked by the strict CSP → system
+  font fallback (layout/colors perfect). Relaxing CSP for Google Fonts is a small optional follow-up.
+- **Note:** existing docs published BEFORE this fix (e.g. 8sjbae) stay broken — they were stored
+  sanitized-old; they must be RE-PUBLISHED to pick up the fix.
+
+---
+
 ## 2026-07-21 — Real invisible Turnstile provisioned
 - **Asked:** Provision real Turnstile (granted Turnstile:Edit scope).
 - **Did:** Created an INVISIBLE Turnstile widget via CF API (sitekey 0x4AAAAAAD6lbUQWiBAq0dKi,
