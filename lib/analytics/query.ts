@@ -96,17 +96,22 @@ export async function queryStats(docId: string): Promise<Stats> {
   if (!DOC_ID_RE.test(docId)) return emptyStats();
   const d = docId; // validated literal, safe to interpolate
 
-  const totalsSql = `SELECT COUNT(*) AS views, COUNT(DISTINCT blob7) AS uniques FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview'`;
+  // NOTE: Analytics Engine SQL rejects COUNT(*)/COUNT(expr) ("COUNT() must have 0
+  // arguments") and has no uniq()/uniqExact(). Use count() for row counts, and a
+  // subquery (GROUP BY the visitor hash, then count() the groups) for uniques.
+  const viewsSql = `SELECT count() AS views FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview'`;
+  const uniquesSql = `SELECT count() AS uniques FROM (SELECT blob7 FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview' GROUP BY blob7)`;
   const avgSql = `SELECT avg(double2) AS avg_time FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'time'`;
-  const refSql = `SELECT blob3 AS host, COUNT(*) AS n FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview' AND blob3 != '' GROUP BY host ORDER BY n DESC LIMIT 10`;
-  const countrySql = `SELECT blob4 AS code, COUNT(*) AS n FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview' AND blob4 != '' GROUP BY code ORDER BY n DESC LIMIT 10`;
-  const deviceSql = `SELECT blob5 AS class, COUNT(*) AS n FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview' AND blob5 != '' GROUP BY class ORDER BY n DESC`;
-  const scrollSql = `SELECT intDiv(toUInt32(double1), 25) * 25 AS pct, COUNT(*) AS n FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'scroll' GROUP BY pct ORDER BY pct`;
-  const dailySql = `SELECT toDate(timestamp) AS day, COUNT(*) AS views FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview' AND timestamp > now() - INTERVAL '30' DAY GROUP BY day ORDER BY day`;
+  const refSql = `SELECT blob3 AS host, count() AS n FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview' AND blob3 != '' GROUP BY host ORDER BY n DESC LIMIT 10`;
+  const countrySql = `SELECT blob4 AS code, count() AS n FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview' AND blob4 != '' GROUP BY code ORDER BY n DESC LIMIT 10`;
+  const deviceSql = `SELECT blob5 AS class, count() AS n FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview' AND blob5 != '' GROUP BY class ORDER BY n DESC`;
+  const scrollSql = `SELECT intDiv(toUInt32(double1), 25) * 25 AS pct, count() AS n FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'scroll' GROUP BY pct ORDER BY pct`;
+  const dailySql = `SELECT toDate(timestamp) AS day, count() AS views FROM ${DATASET} WHERE blob1 = '${d}' AND blob2 = 'pageview' AND timestamp > now() - INTERVAL '30' DAY GROUP BY day ORDER BY day`;
 
-  const [totals, avg, refs, countries, devices, scroll, daily] =
+  const [views, uniques, avg, refs, countries, devices, scroll, daily] =
     await Promise.all([
-      aeQuery(totalsSql),
+      aeQuery(viewsSql),
+      aeQuery(uniquesSql),
       aeQuery(avgSql),
       aeQuery(refSql),
       aeQuery(countrySql),
@@ -116,8 +121,8 @@ export async function queryStats(docId: string): Promise<Stats> {
     ]);
 
   return {
-    views: num(totals[0]?.views),
-    uniques: num(totals[0]?.uniques),
+    views: num(views[0]?.views),
+    uniques: num(uniques[0]?.uniques),
     avgTimeS: Math.round(num(avg[0]?.avg_time)),
     referrers: refs.map((r) => ({ host: str(r.host), n: num(r.n) })),
     countries: countries.map((r) => ({ code: str(r.code), n: num(r.n) })),

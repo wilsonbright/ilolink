@@ -25,8 +25,18 @@ date, what was asked, what was done, files touched.
 - **Secrets set:** app worker `TURNSTILE_SECRET` (CF test key) + `AE_SQL_TOKEN` (currently the account
   token — MUST be re-set to a dedicated Analytics-Read token after the deploy token is rotated);
   content-worker `SALT_SECRET`.
-- **Verified:** app `next build` clean (10 routes); content-worker bundles (31.76 KiB).
-- **Next:** deploy both + live end-to-end verify (publish → beacon → stats → react/comment → moderate).
+- **Deployed + VERIFIED LIVE (observed, real domains):** both workers deployed (ilolink.com +
+  view.ilolink.com custom domains). End-to-end: anonymous publish w/ Turnstile test token → slug
+  `dh23s9` + manageToken; doc serves tracker.js (1899B) + widget.js (6036B) + `ilo:doc` meta;
+  `/_collect` beacons → Analytics Engine rows; token-gated `/api/stats` shows views 1 / uniques 1 /
+  scroll 100%→1 / referrer news.ycombinator.com / device ≥1025; reactions public via `/_feedback`,
+  notes ONLY via token-gated `/api/feedback` (HIGH fix confirmed — notes not leaked); honeypot
+  drops bot reaction; comments post+reply+list (stored XSS inert, rendered via textContent);
+  moderation 403 (wrong token) / 200 (right token) → hidden comment drops from public list.
+- **Live-test bug caught + fixed:** Analytics Engine SQL rejects `COUNT(*)` ("must have 0
+  arguments") and lacks `uniq()` — rewrote query.ts to `count()` + a GROUP BY subquery for
+  uniques. Without the live test this would have shipped as silent all-zero stats.
+- **Test docs** in prod (dh23s9, plus earlier) under throwaway data — harmless, no delete UI yet.
 
 ---
 
