@@ -22,6 +22,28 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — Home=composer, preview device switcher, single-origin ilolink.com URLs
+- **Asked (3):** publish on the home page (fewer clicks); preview device switcher
+  (mobile/tablet/desktop, default by device, desktop full-res in frame); doc address bar to stay
+  ilolink.com (not view.ilolink.com).
+- **Did:** (1) app/page.tsx now renders the `<PublishForm/>` composer directly under a tight hero.
+  (2) Preview got a Mobile/Tablet/Desktop toggle — iframe renders at the device's real width
+  (390/834/1280) and is transform-scaled to fit, so desktop shows its full-resolution layout;
+  default picks from window.innerWidth. (3) next.config reverse-proxy rewrites forward slug-shaped
+  paths + /tracker.js /widget.js /_collect /_feedback /_comments /_unlock to the content worker, so
+  ilolink.com/<slug> serves the doc with the address bar staying ilolink.com; removed the old
+  app/[slug] redirect. viewUrl already returns ilolink.com/<slug>.
+- **Security note:** proxying serves untrusted doc HTML under the ilolink.com ORIGIN (same origin as
+  the dashboard + its localStorage manage tokens), which trades away the two-origin isolation. The
+  strict per-doc CSP (default-src 'none'; nonce script only) is retained as the primary defense.
+  Documented tradeoff; user chose clean URLs. (Old view.ilolink.com links still work directly.)
+- **VERIFIED LIVE on ilolink.com (screenshots):** home shows the composer; publish → share card with
+  ilolink.com/<slug> URL + Open button + a device-switchable Preview (desktop full-res scaled,
+  mobile 390px); ilolink.com/<slug> returns the doc (200, strict CSP), /tracker.js + /_collect proxy,
+  app routes (/ , /publish) intact. 28 tests green.
+
+---
+
 ## 2026-07-21 — UX fixes: fonts, publish preview, readable comments, branded URL
 - **Asked (4):** relax CSP for Google Fonts; publish page preview + Open-in-new-tab before Copy;
   fix dark-on-dark comment/note inputs; share URL on ilolink.com not view.ilolink.com.

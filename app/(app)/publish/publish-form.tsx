@@ -586,13 +586,33 @@ function ShareCard({
   );
 }
 
-// A small live preview of the published page — the sanitized doc HTML in a
-// sandboxed, script-free iframe (same pattern as the heatmap overlay). Fetched
-// token-gated from our own origin so it never depends on framing the isolated
-// content origin (which forbids being framed).
+// A live preview of the published page — the sanitized doc HTML in a sandboxed,
+// script-free iframe. Switch device widths; the iframe renders at the device's
+// real width and is scaled to fit, so desktop shows its full-resolution layout.
+const DEVICES = [
+  { key: "mobile", label: "Mobile", w: 390 },
+  { key: "tablet", label: "Tablet", w: 834 },
+  { key: "desktop", label: "Desktop", w: 1280 },
+] as const;
+type DeviceKey = (typeof DEVICES)[number]["key"];
+const FRAME_H = 760; // rendered viewport height before scaling
+
+function defaultDevice(): DeviceKey {
+  if (typeof window === "undefined") return "desktop";
+  const w = window.innerWidth;
+  if (w < 640) return "mobile";
+  if (w < 1024) return "tablet";
+  return "desktop";
+}
+
 function Preview({ slug, token }: { slug: string; token: string }) {
   const [html, setHtml] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [device, setDevice] = useState<DeviceKey>("desktop");
+  const [boxW, setBoxW] = useState(0);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setDevice(defaultDevice()), []);
 
   useEffect(() => {
     let alive = true;
@@ -606,27 +626,74 @@ function Preview({ slug, token }: { slug: string; token: string }) {
     };
   }, [slug, token]);
 
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const measure = () => setBoxW(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   if (failed) return null;
+
+  const dev = DEVICES.find((d) => d.key === device) ?? DEVICES[2];
+  // Never upscale a narrow device; scale a wide one down to fit the column.
+  const scale = boxW ? Math.min(1, boxW / dev.w) : 1;
+  const scaledW = Math.round(dev.w * scale);
+  const scaledH = Math.round(FRAME_H * scale);
 
   return (
     <div className="mt-10">
-      <p className="mb-2 text-sm font-medium text-ink-faint">Preview</p>
-      <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-ink-faint">Preview</p>
+        <div className="flex gap-0.5 rounded-md border border-hairline p-0.5">
+          {DEVICES.map((d) => (
+            <button
+              key={d.key}
+              type="button"
+              onClick={() => setDevice(d.key)}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
+                device === d.key
+                  ? "bg-accent text-surface"
+                  : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div
+        ref={boxRef}
+        className="flex justify-center overflow-hidden rounded-lg border border-hairline bg-surface"
+        style={{ height: html == null ? 288 : scaledH }}
+      >
         {html == null ? (
-          <div className="flex h-72 items-center justify-center text-sm text-ink-faint">
+          <div className="flex items-center text-sm text-ink-faint">
             Loading preview…
           </div>
         ) : (
-          <iframe
-            title="Published page preview"
-            sandbox="allow-same-origin"
-            srcDoc={html}
-            className="h-[560px] w-full border-0 bg-white"
-          />
+          <div style={{ width: scaledW, height: scaledH, overflow: "hidden" }}>
+            <iframe
+              title="Published page preview"
+              sandbox="allow-same-origin"
+              srcDoc={html}
+              style={{
+                width: dev.w,
+                height: FRAME_H,
+                border: 0,
+                background: "#fff",
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
+              }}
+            />
+          </div>
         )}
       </div>
       <p className="mt-2 text-xs text-ink-faint">
-        A quick look at the published page. Open the link for the full experience.
+        {dev.label} width, scaled to fit. Open the link for the full experience.
       </p>
     </div>
   );

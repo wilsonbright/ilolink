@@ -1,6 +1,7 @@
-// Landing. Zen, typography-led — one true sentence, one accent, one CTA, and a
-// short honest list of what you get. No dashboard chrome, no marketing slop.
+// Home = the composer. Get started immediately, no extra click. A tight hero,
+// then the publish form itself, then a short honest list of what you get.
 import Link from "next/link";
+import { PublishForm } from "@/app/(app)/publish/publish-form";
 
 const VALUE = [
   {
@@ -19,32 +20,31 @@ const VALUE = [
 
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col px-6 py-20">
-      <header>
+    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col px-6 py-8">
+      <header className="flex items-center justify-between">
         <p className="text-sm font-medium tracking-wide text-accent">ilolink</p>
+        <Link
+          href="/dashboard"
+          className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"
+        >
+          Your documents
+        </Link>
       </header>
 
-      <div className="mt-24 sm:mt-32">
-        <h1 className="max-w-[20ch] text-4xl font-semibold leading-[1.15] text-ink sm:text-5xl">
+      <div className="mt-16 sm:mt-20">
+        <h1 className="max-w-[20ch] text-4xl font-semibold leading-[1.1] text-ink sm:text-5xl">
           Publish a document, get a link, and see how it landed.
         </h1>
-        <p className="mt-6 max-w-[52ch] text-lg leading-relaxed text-ink-soft">
-          Paste Markdown or HTML. Share the link. Watch how people read it —
-          cookieless, with heatmaps and quiet feedback. Nothing that tracks a
-          person from page to page.
+        <p className="mt-5 max-w-[52ch] text-lg leading-relaxed text-ink-soft">
+          Paste Markdown or HTML, or drop a file. Cookieless analytics, heatmaps,
+          and quiet feedback — no account needed.
         </p>
-
-        <div className="mt-10">
-          <Link
-            href="/publish"
-            className="inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-surface transition-opacity duration-150 hover:opacity-90"
-          >
-            Publish a document
-          </Link>
-        </div>
       </div>
 
-      <ul className="mt-28 grid gap-10 border-t border-hairline pt-12 sm:mt-32 sm:grid-cols-3 sm:gap-8">
+      {/* The composer, right here. */}
+      <PublishForm />
+
+      <ul className="mt-24 grid gap-10 border-t border-hairline pt-12 sm:grid-cols-3 sm:gap-8">
         {VALUE.map((v) => (
           <li key={v.title}>
             <h2 className="text-sm font-medium text-ink">{v.title}</h2>
@@ -53,13 +53,8 @@ export default function Home() {
         ))}
       </ul>
 
-      <footer className="mt-auto pt-24 text-sm text-ink-faint">
-        <Link
-          href="/publish"
-          className="transition-colors duration-150 hover:text-ink-soft"
-        >
-          Publish a document
-        </Link>
+      <footer className="mt-auto pt-16 text-sm text-ink-faint">
+        Share what you wrote. See how it read.
       </footer>
     </main>
   );
