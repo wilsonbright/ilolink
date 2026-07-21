@@ -20,6 +20,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Stats } from "@/lib/analytics/query";
 
+// /api/stats returns Stats plus the doc id (slug→id bridge) and the exact
+// Durable-Object view count (preferred over the sampled AE `views` when present).
+type StatsData = Stats & { doc: string; exactViews?: number | null };
+
 const VIEW_ORIGIN = "https://view.ilolink.com";
 const REACTIONS = ["👍", "🤔", "👀"] as const;
 const SCROLL_THRESHOLDS = [25, 50, 75, 100] as const;
@@ -68,7 +72,7 @@ function formatDuration(s: number): string {
 }
 
 export function StatsView({ slug, token }: { slug: string; token: string }) {
-  const [stats, setStats] = useState<Load<Stats>>({ state: "loading" });
+  const [stats, setStats] = useState<Load<StatsData>>({ state: "loading" });
   const [feedback, setFeedback] = useState<Load<FeedbackData>>({
     state: "loading",
   });
@@ -85,7 +89,7 @@ export function StatsView({ slug, token }: { slug: string; token: string }) {
     fetch(`/api/stats?${q}`)
       .then((r) =>
         r.ok
-          ? (r.json() as Promise<Stats & { doc: string }>)
+          ? (r.json() as Promise<StatsData>)
           : Promise.reject(),
       )
       .then((data) => {
@@ -191,7 +195,7 @@ function Quiet({ children }: { children: React.ReactNode }) {
 
 // ── Top-line tiles ───────────────────────────────────────────────────────
 
-function Tiles({ stats }: { stats: Load<Stats> }) {
+function Tiles({ stats }: { stats: Load<StatsData> }) {
   const tiles = useMemo(() => {
     if (stats.state !== "ready") {
       return [
@@ -201,7 +205,10 @@ function Tiles({ stats }: { stats: Load<Stats> }) {
       ];
     }
     return [
-      { label: "Views", value: compact(stats.data.views) },
+      {
+        label: "Views",
+        value: compact(stats.data.exactViews ?? stats.data.views),
+      },
       { label: "Unique readers", value: compact(stats.data.uniques) },
       { label: "Avg. time", value: formatDuration(stats.data.avgTimeS) },
     ];

@@ -25,6 +25,10 @@ import {
 } from "../../lib/analytics/collect";
 import { TRACKER_JS } from "./tracker-script";
 import { WIDGET_JS } from "./widget-script";
+import { ViewCounter } from "./view-counter";
+
+// Re-export the Durable Object class so wrangler can bind it from this Worker.
+export { ViewCounter };
 
 // Constant-time compare of two equal-length ASCII strings (the unlock token is
 // a fixed 64-hex digest). Avoids a timing oracle on the per-doc unlock cookie.
@@ -41,6 +45,7 @@ interface Env {
   DOCS: R2Bucket;
   DB: D1Database;
   EVENTS: AnalyticsEngineDataset;
+  VIEW_COUNTER: DurableObjectNamespace<ViewCounter>;
 }
 
 // ─── interaction plumbing (analytics / feedback / comments) ────────────────
@@ -611,7 +616,11 @@ async function postComment(request: Request, env: Env): Promise<Response> {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const url = new URL(request.url);
     const { pathname } = url;
 
@@ -679,6 +688,17 @@ export default {
         });
       } catch {
         // swallow — analytics is best-effort
+      }
+
+      // Exact headline view count: atomic increment in the per-doc Durable
+      // Object on each real pageview. Fire-and-forget so the beacon stays fast.
+      if (type === "pageview") {
+        try {
+          const stub = env.VIEW_COUNTER.get(env.VIEW_COUNTER.idFromName(docId));
+          ctx.waitUntil(stub.increment().then(() => undefined));
+        } catch {
+          // best-effort
+        }
       }
       return new Response(null, { status: 202 });
     }

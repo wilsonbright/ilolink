@@ -45,6 +45,22 @@
       "dataset": "ilolink_events"
     }
   ],
+  // Exact per-doc view counter (atomic). Defined here (this Worker increments it
+  // on pageview); the app reads it cross-script for the dashboard headline.
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "VIEW_COUNTER",
+        "class_name": "ViewCounter"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ViewCounter"]
+    }
+  ],
   "observability": {
     "enabled": true
   }

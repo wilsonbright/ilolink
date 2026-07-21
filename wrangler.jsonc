@@ -50,6 +50,17 @@
       "dataset": "ilolink_events"
     }
   ],
+  // Cross-script read of the exact per-doc view counter defined + migrated in
+  // the content Worker. The dashboard reads the exact headline "views" from here.
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "VIEW_COUNTER",
+        "class_name": "ViewCounter",
+        "script_name": "ilolink-content"
+      }
+    ]
+  },
   // Async work: heatmap aggregation, notification emails, version cleanup.
   "queues": {
     "producers": [
