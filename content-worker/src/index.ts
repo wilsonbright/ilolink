@@ -464,12 +464,22 @@ async function postFeedback(request: Request, env: Env): Promise<Response> {
 
 // A resolved anchor: character offsets into the ".doc" container's textContent
 // plus display context. Docs are immutable, so offsets are stable resolvers.
-interface CommentAnchor {
-  quote: string;
-  prefix: string;
-  suffix: string;
-  start: number;
-  end: number;
+// Two anchor kinds: a text-quote anchor (character offsets into the doc), or a
+// point anchor (Figma-style pin — fractional x/y of the document).
+type CommentAnchor =
+  | {
+      type: "text";
+      quote: string;
+      prefix: string;
+      suffix: string;
+      start: number;
+      end: number;
+    }
+  | { type: "point"; x: number; y: number; label: string };
+
+function frac(v: unknown): number | null {
+  if (typeof v !== "number" || !Number.isFinite(v)) return null;
+  return v < 0 ? 0 : v > 1 ? 1 : v;
 }
 
 // Validate an untrusted anchor against the ANCHOR CONTRACT (shape + caps).
@@ -478,6 +488,17 @@ interface CommentAnchor {
 function validateAnchor(input: unknown): CommentAnchor | null {
   if (!input || typeof input !== "object") return null;
   const a = input as Record<string, unknown>;
+
+  // Point anchor (pin): { type:"point", x, y in [0,1], label }.
+  if (a.type === "point") {
+    const x = frac(a.x);
+    const y = frac(a.y);
+    if (x === null || y === null) return null;
+    const label = typeof a.label === "string" ? a.label.slice(0, 120) : "";
+    return { type: "point", x, y, label };
+  }
+
+  // Text-quote anchor (default; older stored anchors have no `type`).
   if (
     typeof a.quote !== "string" ||
     typeof a.prefix !== "string" ||
@@ -494,6 +515,7 @@ function validateAnchor(input: unknown): CommentAnchor | null {
   if (a.quote.length < 1 || a.quote.length > 400) return null;
   if (a.prefix.length > 48 || a.suffix.length > 48) return null;
   return {
+    type: "text",
     quote: a.quote,
     prefix: a.prefix,
     suffix: a.suffix,

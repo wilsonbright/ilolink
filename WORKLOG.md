@@ -53,6 +53,27 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — Figma-style pin comments + discoverable floating launcher
+- **Asked:** the comment widget is buried at the bottom — make it discoverable (floating, right);
+  and allow Figma-style screen selection (mouse/touch) to add a comment associated to a section.
+- **Did:** rewrote content-worker/src/widget-script.ts:
+  * Floating launcher pill, fixed bottom-right, always visible: "Comment" enters pin mode,
+    "Comments" shows the live count + scrolls to the panel.
+  * Pin mode: crosshair + hint; click anywhere on the doc → a composer popover opens at that spot,
+    pre-labelled with the section's nearby text; posting anchors the comment to that POINT
+    (fractional x/y of the document). Numbered pins render on the page; clicking a pin opens its
+    thread popover (comment + replies + reply box).
+  * Kept the bottom panel (reactions + notes + full comment list) and text-selection anchoring.
+  * New anchor kind on the server: validateAnchor now accepts {type:"point",x,y,label} in [0,1]
+    alongside the text-quote anchor (older no-type anchors still parse as text). All user text via
+    textContent (no innerHTML).
+- **VERIFIED LIVE on ilolink.com (screenshots):** launcher visible; Comment → click hero → composer
+  popover "On: The data hub…" → posted → numbered pin "1" at the spot, launcher shows "1 comment";
+  clicking the pin opens the thread with the comment + reply box. 28 tests green; WIDGET_JS
+  node --check clean; content-worker deployed.
+
+---
+
 ## 2026-07-22 — Home dashboard link, conditional preview switcher, app icon, readable widget
 - **Asked (4):** dashboard link on home after publishing; only show device switcher if the doc has
   responsive CSS (else desktop-only full); add an app icon; posted comment text was dark-on-dark.
