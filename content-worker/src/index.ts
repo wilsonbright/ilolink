@@ -220,6 +220,41 @@ const READING_CSS = `body {
 const FULLBLEED_CSS = `body { margin: 0; background: var(--canvas); color: var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
 img { max-width: 100%; }`;
 
+// pdf documents render as a full-bleed <iframe> pointing at the same-origin
+// /raw/<slug> byte stream — the browser's native PDF viewer. Slug is already
+// validated upstream; re-filtered here as defence in depth.
+function pdfIframe(slug: string): string {
+  const s = slug.replace(/[^a-z0-9-]/g, "");
+  return `<iframe src="/raw/${s}" title="PDF document" style="border:0;width:100%;height:100vh;display:block"></iframe>`;
+}
+
+// Access gate shared by the doc page and the /raw byte stream: enforces expiry
+// and the password cookie. Returns a blocking Response, or null when access is
+// allowed. (The doc page renders the gate UI itself; /raw just refuses.)
+async function gateDoc(
+  env: Env,
+  rec: SlugRecord,
+  slug: string,
+  request: Request,
+): Promise<Response | null> {
+  if (
+    rec.visibility === "expiring" &&
+    typeof rec.expires_at === "number" &&
+    Date.now() > rec.expires_at
+  ) {
+    return gonePage();
+  }
+  if (rec.visibility === "password" && rec.password_hash) {
+    const cookies = parseCookies(request.headers.get("cookie"));
+    const presented = cookies[unlockCookieName(slug)];
+    const expected = await unlockToken(slug, rec.password_hash);
+    if (!presented || !constantTimeEqual(presented, expected)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+  }
+  return null;
+}
+
 // Zen reading shell (md) or full-bleed shell (html). Tokens are inlined (this
 // origin has no app CSS). Both inject the same nonce'd first-party scripts.
 function readerShell(opts: {
@@ -793,6 +828,43 @@ export default {
       return notFoundPage();
     }
 
+    // Raw byte stream for pdf documents: GET /raw/<slug> → the stored PDF, shown
+    // by the browser's native viewer inside the doc page's same-origin <iframe>.
+    if (pathname.startsWith("/raw/")) {
+      const rawSlug = pathname.slice("/raw/".length).split("/")[0];
+      if (!rawSlug) return notFoundPage();
+      const rec = await loadSlugRecord(env, rawSlug);
+      if (!rec || rec.source_type !== "pdf" || !rec.raw_r2_key) {
+        return notFoundPage();
+      }
+      const blocked = await gateDoc(env, rec, rawSlug, request);
+      if (blocked) return blocked;
+
+      const object = await env.DOCS.get(rec.raw_r2_key);
+      if (!object) return notFoundPage();
+
+      const headers = new Headers();
+      headers.set("content-type", "application/pdf");
+      headers.set("content-disposition", `inline; filename="${rawSlug}.pdf"`);
+      headers.set("x-content-type-options", "nosniff");
+      // Only our own doc page (same origin) may frame this asset.
+      headers.set(
+        "content-security-policy",
+        "default-src 'none'; frame-ancestors 'self'",
+      );
+      headers.set("x-frame-options", "SAMEORIGIN");
+      headers.set(
+        "cache-control",
+        rec.visibility === "public"
+          ? "public, max-age=3600"
+          : "private, no-store",
+      );
+      return new Response(request.method === "HEAD" ? null : object.body, {
+        status: 200,
+        headers,
+      });
+    }
+
     const slug = slugFromPath(pathname);
     if (!slug) return notFoundPage();
 
@@ -821,21 +893,29 @@ export default {
       }
     }
 
-    // Fetch the sanitized, rendered body from R2.
-    const object = await env.DOCS.get(rec.rendered_r2_key);
-    if (!object) return notFoundPage();
-    const body = await object.text();
+    // pdf documents skip the R2 rendered body: their bytes live at raw_r2_key and
+    // are shown via a same-origin <iframe> (needs frame-src 'self'). Everything
+    // else fetches its sanitized rendered HTML.
+    const isPdf = rec.source_type === "pdf";
+    let body: string;
+    if (isPdf) {
+      body = pdfIframe(slug);
+    } else {
+      const object = await env.DOCS.get(rec.rendered_r2_key);
+      if (!object) return notFoundPage();
+      body = await object.text();
+    }
 
     // Per-response CSP + nonce. Tracker is same-origin (/tracker.js), so the
     // nonce alone admits it; default-src 'none' blocks everything else.
-    const csp = buildDocCsp();
+    const csp = buildDocCsp({ allowFrame: isPdf });
     const html = readerShell({
-      title: titleFromBody(body),
+      title: isPdf ? "PDF document" : titleFromBody(body),
       body,
       nonce: csp.nonce,
       noindex: rec.visibility === "unlisted",
       docId: rec.doc_id,
-      html: rec.source_type === "html",
+      html: rec.source_type === "html" || isPdf, // full-bleed
     });
 
     const headers = new Headers(docSecurityHeaders(csp.header));

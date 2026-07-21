@@ -20,14 +20,19 @@ import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { newManageToken, hashToken } from "@/lib/manage-token";
 import {
   MAX_BODY_BYTES,
+  MAX_BINARY_BYTES,
   byteLength,
   isSourceType,
   isVisibility,
   renderAndSanitize,
   storeVersion,
+  storeBinaryVersion,
+  detectUpload,
+  decodeDataUrl,
+  docxToHtml,
   viewUrl,
 } from "@/lib/publish/pipeline";
-import type { SourceType, Visibility } from "@/lib/types";
+import type { DocumentVersion, SourceType, Visibility } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -39,6 +44,9 @@ function bad(message: string, status = 400): NextResponse {
 interface PublishInput {
   content: string;
   sourceType: SourceType;
+  // Set when the content is a binary upload (data URL); the server re-derives it
+  // from the content and handles it outside the text render path.
+  upload?: "pdf" | "docx";
   visibility: Visibility;
   password?: string;
   expiresAt?: number;
@@ -51,12 +59,28 @@ function asString(v: FormDataEntryValue | null | undefined): string | undefined 
   return typeof v === "string" && v.length > 0 ? v : undefined;
 }
 
-// Extension → source type for uploaded files.
+// Extension → source type for uploaded text files.
 function sourceTypeFromName(name: string): SourceType | null {
   const lower = name.toLowerCase();
   if (lower.endsWith(".md") || lower.endsWith(".markdown")) return "md";
   if (lower.endsWith(".html") || lower.endsWith(".htm")) return "html";
   return null;
+}
+
+const PDF_MIME = "application/pdf";
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+// A binary upload (pdf/docx) by filename or MIME. Returns its data-URL MIME.
+function binaryMimeOf(file: File): string | null {
+  const lower = file.name.toLowerCase();
+  if (lower.endsWith(".pdf") || file.type === PDF_MIME) return PDF_MIME;
+  if (lower.endsWith(".docx") || file.type === DOCX_MIME) return DOCX_MIME;
+  return null;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString("base64");
 }
 
 function parseExpiresAt(v: unknown): number | undefined | null {
@@ -90,14 +114,26 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     if (!(file instanceof File)) {
       return bad("Missing file upload under field 'file'.");
     }
-    if (file.size > MAX_BODY_BYTES) {
-      return bad("File exceeds the 2 MB limit.", 413);
-    }
-    content = await file.text();
-    // Prefer an explicit sourceType field, else infer from the filename.
-    sourceTypeRaw = asString(form.get("sourceType")) ?? sourceTypeFromName(file.name);
-    if (!sourceTypeRaw) {
-      return bad("Unsupported file type — upload a .md or .html file.");
+    const binMime = binaryMimeOf(file);
+    if (binMime) {
+      // Binary upload: cap on raw bytes, then carry it as a data URL so the rest
+      // of the pipeline (and the JSON path) treat it identically.
+      if (file.size > MAX_BINARY_BYTES) {
+        return bad("File exceeds the 15 MB limit.", 413);
+      }
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      content = `data:${binMime};base64,${bytesToBase64(bytes)}`;
+      sourceTypeRaw = "html"; // re-derived from content below; placeholder
+    } else {
+      if (file.size > MAX_BODY_BYTES) {
+        return bad("File exceeds the 2 MB limit.", 413);
+      }
+      content = await file.text();
+      // Prefer an explicit sourceType field, else infer from the filename.
+      sourceTypeRaw = asString(form.get("sourceType")) ?? sourceTypeFromName(file.name);
+      if (!sourceTypeRaw) {
+        return bad("Unsupported file type — upload .md, .html, .pdf, or .docx.");
+      }
     }
     visibilityRaw = asString(form.get("visibility")) ?? "public";
     password = asString(form.get("password"));
@@ -133,12 +169,22 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
   if (content.trim().length === 0) {
     return bad("Document content is empty.");
   }
-  if (byteLength(content) > MAX_BODY_BYTES) {
-    return bad("Document exceeds the 2 MB limit.", 413);
+
+  // Binary uploads are re-derived from the content itself (never trusting the
+  // client's sourceType) and skip the 2 MB text cap — their byte size is checked
+  // after base64-decode in POST. pdf serves as-is; docx converts to HTML.
+  const upload = detectUpload(content);
+  if (upload) {
+    sourceTypeRaw = upload === "pdf" ? "pdf" : "html";
+  } else {
+    if (byteLength(content) > MAX_BODY_BYTES) {
+      return bad("Document exceeds the 2 MB limit.", 413);
+    }
+    if (!isSourceType(sourceTypeRaw)) {
+      return bad("Field 'sourceType' must be 'md' or 'html'.");
+    }
   }
-  if (!isSourceType(sourceTypeRaw)) {
-    return bad("Field 'sourceType' must be 'md' or 'html'.");
-  }
+
   if (!isVisibility(visibilityRaw)) {
     return bad("Field 'visibility' must be public, unlisted, password, or expiring.");
   }
@@ -150,7 +196,8 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
 
   return {
     content,
-    sourceType: sourceTypeRaw,
+    sourceType: (upload === "pdf" ? "pdf" : upload === "docx" ? "html" : sourceTypeRaw) as SourceType,
+    upload: upload ?? undefined,
     visibility: visibilityRaw,
     password,
     expiresAt: expiresAt ?? undefined,
@@ -214,11 +261,41 @@ export async function POST(req: Request): Promise<NextResponse> {
     expiresAt = input.expiresAt;
   }
 
-  const { html, title: sanitizedTitle } = renderAndSanitize(
-    input.content,
-    input.sourceType,
-  );
-  const title = input.title ?? sanitizedTitle ?? "Untitled";
+  // Resolve how this document is stored. pdf keeps its bytes (served by the
+  // worker's /raw route); docx converts to HTML; everything else renders as
+  // text. Binary byte sizes are validated here, post-decode.
+  let sourceType: SourceType = input.sourceType;
+  let title: string;
+  let store: (docId: string) => Promise<DocumentVersion>;
+
+  if (input.upload) {
+    const bytes = decodeDataUrl(input.content);
+    if (!bytes) return bad("Malformed upload — expected a base64 data URL.");
+    if (bytes.byteLength > MAX_BINARY_BYTES) {
+      return bad("File exceeds the 15 MB limit.", 413);
+    }
+    if (input.upload === "pdf") {
+      sourceType = "pdf";
+      title = input.title ?? "PDF document";
+      store = (docId) => storeBinaryVersion(docId, bytes, "application/pdf");
+    } else {
+      // docx → HTML → sanitize → stored as a normal HTML doc.
+      sourceType = "html";
+      let converted: string;
+      try {
+        converted = await docxToHtml(bytes);
+      } catch {
+        return bad("Could not read that .docx file — it may be corrupt.");
+      }
+      const { html, title: t } = renderAndSanitize(converted, "html");
+      title = input.title ?? t ?? "Document";
+      store = (docId) => storeVersion(docId, converted, html, "html");
+    }
+  } else {
+    const { html, title: t } = renderAndSanitize(input.content, input.sourceType);
+    title = input.title ?? t ?? "Untitled";
+    store = (docId) => storeVersion(docId, input.content, html, input.sourceType);
+  }
 
   const slug = await resolveSlug(input.customSlug);
   if (slug instanceof NextResponse) return slug;
@@ -229,7 +306,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const doc = await createDocument({
     slug,
-    source_type: input.sourceType,
+    source_type: sourceType,
     title,
     visibility: input.visibility,
     password_hash: passwordHash,
@@ -237,16 +314,17 @@ export async function POST(req: Request): Promise<NextResponse> {
     expires_at: expiresAt,
   });
 
-  const version = await storeVersion(doc.id, input.content, html, input.sourceType);
+  const version = await store(doc.id);
 
   await writeSlugRecord(slug, {
     doc_id: doc.id,
     visibility: input.visibility,
     current_version_id: version.id,
     rendered_r2_key: version.rendered_r2_key,
+    raw_r2_key: version.raw_r2_key,
     password_hash: passwordHash,
     expires_at: expiresAt,
-    source_type: input.sourceType,
+    source_type: sourceType,
   });
 
   return NextResponse.json(

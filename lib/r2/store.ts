@@ -11,10 +11,11 @@ export function renderedKey(docId: string, versionId: string): string {
   return `docs/${docId}/${versionId}/rendered`;
 }
 
-// Store a string body at `key` with the given content type.
+// Store a body at `key` with the given content type. Accepts text or binary
+// (PDF bytes are stored as a Uint8Array/ArrayBuffer).
 export async function putBody(
   key: string,
-  body: string,
+  body: string | ArrayBuffer | Uint8Array,
   contentType: string,
 ): Promise<void> {
   await env().DOCS.put(key, body, {

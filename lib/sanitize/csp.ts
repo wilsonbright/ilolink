@@ -19,7 +19,12 @@ function makeNonce(): string {
 
 // Build the CSP for a served document. `trackerHost` is the first-party origin
 // that serves /tracker.js (defaults to 'self' — self-hosted on the content origin).
-export function buildDocCsp(opts?: { trackerSrc?: string }): DocCspResult {
+export function buildDocCsp(opts?: {
+  trackerSrc?: string;
+  // pdf documents embed a same-origin <iframe src="/raw/…"> served as the
+  // browser's native PDF viewer. Only same-origin framing is permitted.
+  allowFrame?: boolean;
+}): DocCspResult {
   const nonce = makeNonce();
   const script = opts?.trackerSrc
     ? `'nonce-${nonce}' ${opts.trackerSrc}`
@@ -38,9 +43,10 @@ export function buildDocCsp(opts?: { trackerSrc?: string }): DocCspResult {
     "connect-src 'self'",
     // Only the nonce'd first-party tracker script may run.
     `script-src ${script}`,
-    // No plugins, no framing of this page, no base tag hijack, no form posts.
+    // No plugins, no base tag hijack, no form posts. pdf docs may frame their
+    // own /raw viewer (same origin); all other docs frame nothing.
     "object-src 'none'",
-    "frame-src 'none'",
+    opts?.allowFrame ? "frame-src 'self'" : "frame-src 'none'",
     "frame-ancestors 'none'",
     "base-uri 'none'",
     "form-action 'none'",

@@ -74,6 +74,8 @@ describe("publish input guards", () => {
     expect(isVisibility("nope")).toBe(false);
     expect(isSourceType("md")).toBe(true);
     expect(isSourceType("html")).toBe(true);
-    expect(isSourceType("pdf")).toBe(false);
+    expect(isSourceType("pdf")).toBe(true); // pdf documents are served from bytes
+    expect(isSourceType("docx")).toBe(false); // docx converts to html
+    expect(isSourceType("xlsx")).toBe(false);
   });
 });

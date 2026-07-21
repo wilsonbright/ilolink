@@ -28,7 +28,49 @@ export function isVisibility(v: unknown): v is Visibility {
 }
 
 export function isSourceType(v: unknown): v is SourceType {
-  return v === "md" || v === "html";
+  return v === "md" || v === "html" || v === "pdf";
+}
+
+// Binary uploads (pdf, docx) are far larger than text; base64 in a data URL
+// also inflates ~33%. Cap the DECODED byte size here.
+export const MAX_BINARY_BYTES = 15 * 1024 * 1024; // 15 MB
+
+// Detect a binary upload from its data-URL MIME. The server re-derives this from
+// the content itself — it never trusts the client's declared sourceType.
+export function detectUpload(content: string): "pdf" | "docx" | null {
+  const head = content.slice(0, 120).toLowerCase();
+  if (head.startsWith("data:application/pdf")) return "pdf";
+  if (
+    head.startsWith(
+      "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+  ) {
+    return "docx";
+  }
+  return null;
+}
+
+// Decode a base64 data URL to bytes. Returns null if it isn't a base64 data URL.
+export function decodeDataUrl(content: string): Uint8Array | null {
+  const comma = content.indexOf(",");
+  if (comma < 0 || !/^data:[^,]*;base64$/i.test(content.slice(0, comma))) {
+    return null;
+  }
+  try {
+    return new Uint8Array(Buffer.from(content.slice(comma + 1), "base64"));
+  } catch {
+    return null;
+  }
+}
+
+// Convert docx bytes to HTML (headings, bold/italic, lists, tables, inline
+// images as data URLs). The HTML still passes through sanitizeDocument upstream.
+export async function docxToHtml(bytes: Uint8Array): Promise<string> {
+  const mammoth = (await import("mammoth")).default;
+  const result = await mammoth.convertToHtml({
+    buffer: Buffer.from(bytes),
+  });
+  return result.value;
 }
 
 // Byte length of a UTF-8 string (matches what R2 stores, not JS char count).
@@ -62,6 +104,21 @@ export async function storeVersion(
   const version = await createVersion(docId);
   await putBody(version.raw_r2_key, raw, rawContentType(sourceType));
   await putBody(version.rendered_r2_key, html, "text/html; charset=utf-8");
+  await setCurrentVersion(docId, version.id);
+  return version;
+}
+
+// Store a binary version (pdf): raw key holds the bytes, served by the worker's
+// /raw/<slug> route. The rendered key holds a marker only — the worker builds the
+// <iframe> viewer shell at serve time, so no rendered HTML is needed.
+export async function storeBinaryVersion(
+  docId: string,
+  bytes: Uint8Array,
+  contentType: string,
+): Promise<DocumentVersion> {
+  const version = await createVersion(docId);
+  await putBody(version.raw_r2_key, bytes, contentType);
+  await putBody(version.rendered_r2_key, "<!-- binary -->", "text/html; charset=utf-8");
   await setCurrentVersion(docId, version.id);
   return version;
 }

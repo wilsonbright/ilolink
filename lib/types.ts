@@ -1,7 +1,7 @@
 // Shared domain types — the contract every lib module and route implements against.
 // Keep this the single source of truth; do not redefine these shapes elsewhere.
 
-export type SourceType = "md" | "html";
+export type SourceType = "md" | "html" | "pdf";
 
 export type Visibility = "public" | "unlisted" | "password" | "expiring";
 
@@ -36,6 +36,9 @@ export interface SlugRecord {
   visibility: Visibility;
   current_version_id: string;
   rendered_r2_key: string;
+  // Binary source (pdf) is streamed from here by the /raw/<slug> route. Optional
+  // for text docs and old records, which serve from rendered_r2_key instead.
+  raw_r2_key?: string;
   password_hash: string | null;
   expires_at: number | null;
   // Chooses the serving shell: "html" renders full-bleed (author controls all

@@ -109,23 +109,34 @@ export function PublishForm() {
     const name = file.name.toLowerCase();
     const isImage =
       /^image\//.test(file.type) || /\.(png|jpe?g|gif|webp|svg)$/.test(name);
+    const isBinary = /\.(pdf|docx)$/.test(name); // rendered server-side
     const isText =
       /\.(md|markdown|html?|txt|json|csv|tsv|log|ya?ml|xml)$/.test(name);
-    if (!isImage && !isText && file.type && !file.type.startsWith("text/")) {
+    if (
+      !isImage &&
+      !isBinary &&
+      !isText &&
+      file.type &&
+      !file.type.startsWith("text/")
+    ) {
       setError(
-        "That file type isn't previewed yet. Markdown, HTML, JSON, CSV, plain text, and images work.",
+        "That file type isn't supported yet. Markdown, HTML, JSON, CSV, plain text, images, PDF, and DOCX work.",
       );
       return;
     }
-    if (file.size > 2_000_000) {
-      setError("That file is over 2 MB. Trim it down or paste the part you want to share.");
+    // Binary formats (PDF/DOCX/images) get a larger ceiling than text.
+    const cap = isBinary ? 15_000_000 : isImage ? 15_000_000 : 2_000_000;
+    if (file.size > cap) {
+      const mb = Math.round(cap / 1_000_000);
+      setError(`That file is over ${mb} MB. Trim it down or paste a smaller part.`);
       return;
     }
     setError(null);
     setFileName(file.name);
     setSourceLocked(false); // let detection re-run on the new content
-    if (isImage) {
-      // Inline the image as a data URL; the server renders it as <img>.
+    if (isImage || isBinary) {
+      // Inline as a data URL; the server detects the type and renders it
+      // (image → <img>, docx → HTML, pdf → native viewer).
       const reader = new FileReader();
       reader.onload = () => setContent(String(reader.result || ""));
       reader.readAsDataURL(file);
@@ -177,8 +188,10 @@ export function PublishForm() {
       return;
     }
 
-    const title = content.startsWith("data:image/")
-      ? (fileName?.replace(/\.[^.]+$/, "") || "Image")
+    // Binary uploads (image/pdf/docx) carry no readable title in their data URL —
+    // use the file name. Text formats derive a title from the content.
+    const title = content.startsWith("data:")
+      ? (fileName?.replace(/\.[^.]+$/, "") || "Document")
       : deriveTitle(content, source);
 
     setSubmitting(true);
@@ -302,7 +315,7 @@ export function PublishForm() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".md,.markdown,.html,.htm,.txt,.json,.csv,.tsv,.log,.yaml,.yml,.xml,.png,.jpg,.jpeg,.gif,.webp,.svg,text/*,image/*"
+            accept=".md,.markdown,.html,.htm,.txt,.json,.csv,.tsv,.log,.yaml,.yml,.xml,.png,.jpg,.jpeg,.gif,.webp,.svg,.pdf,.docx,text/*,image/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -337,7 +350,7 @@ export function PublishForm() {
         {/* One-line hint: any format works, nothing to pick. */}
         <p className="text-sm text-ink-faint">
           ilolink renders whatever your AI emits — Markdown, HTML, JSON, CSV, code,
-          and images. Auto-detected, no need to choose a format.
+          images, PDF, and DOCX. Auto-detected, no need to choose a format.
         </p>
       </section>
 
