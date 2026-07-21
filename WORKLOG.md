@@ -5,6 +5,32 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — PDF + DOCX support (binary uploads)
+- **Asked:** "add pdf and docx support next" (ultracode). Chosen approach for PDF: native iframe (full fidelity).
+- **Built (two distinct data paths):**
+  - **DOCX** → converted to HTML at publish time via `mammoth` (app worker, `nodejs_compat`), then through
+    the existing `sanitizeDocument()` boundary → stored as a normal HTML doc. No CSP change.
+  - **PDF** → stored as raw bytes in R2 (`storeBinaryVersion`), served by the content worker's new
+    `GET /raw/<slug>` route (`application/pdf`, `inline`, `frame-ancestors 'self'`, `nosniff`), and framed by
+    the doc page's same-origin `<iframe>` = browser's native viewer. New `SourceType "pdf"`; CSP gains
+    `frame-src 'self'` only for pdf (`buildDocCsp({allowFrame})`).
+  - Server **re-derives** the real type from the content data-URL (`detectUpload`) — never trusts the client
+    sourceType. Binary cap `MAX_BINARY_BYTES` = 15 MB (decoded); text stays 2 MB.
+  - Publish form: accepts `.pdf`/`.docx` (read as data URL), file-name title, format label ("PDF — native
+    viewer" / "Word document") instead of the md/html toggle for binary; hint copy adds PDF + DOCX.
+  - **Fix found via live test:** `/raw/:slug` wasn't in `next.config.ts` reverse-proxy rewrites → iframe 404'd
+    on ilolink.com. Added the rewrite → view.ilolink.com.
+- **Files:** `lib/types.ts` (+pdf, +raw_r2_key on SlugRecord), `lib/r2/store.ts` (binary putBody),
+  `lib/publish/pipeline.ts` (detectUpload/decodeDataUrl/docxToHtml/storeBinaryVersion/MAX_BINARY_BYTES),
+  `app/api/publish/route.ts` (3-way branch), `lib/sanitize/csp.ts` (allowFrame), `content-worker/src/index.ts`
+  (`/raw` route + `pdfIframe` + `gateDoc`), `next.config.ts` (/raw rewrite), `app/(app)/publish/publish-form.tsx`,
+  `package.json` (+mammoth), tests (`test/binary-formats.test.ts`, tokens-slug update).
+- **VERIFIED LIVE on ilolink.com** (Playwright, real files, screenshots): PDF renders in native viewer
+  ("ilolink PDF works", 1/1, zoom/print/download); DOCX → `<h1>` + `<strong>bold</strong>`; `/raw` returns a
+  valid `application/pdf` (554 B, `file` confirms). 40/40 tests, both workers type-check clean.
+- **Git note:** work was parked to branch `pdf-binary-upload-wip` mid-session, then fast-forwarded into `main`
+  (`97a7983`) and pushed so main == deployed production. Both workers deployed.
+
 ## 2026-07-22 — Glossary + use-cases (reference pages)
 - **Asked:** continue content plan → glossary (F18) + use-cases (D11).
 - **Built (2 pages, workflow — 4 agents, draft→anti-slop/accuracy pipeline):**
