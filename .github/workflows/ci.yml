@@ -18,5 +18,9 @@ jobs:
       - run: npm ci
       - name: Unit tests
         run: npm test
+      - name: Generate Cloudflare binding types
+        # cloudflare-env.d.ts is generated (git-ignored); the app's type-check
+        # needs it. `wrangler types` reads wrangler.jsonc locally — no auth/network.
+        run: npx wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts
       - name: Next build (type-check + compile)
         run: npm run build
