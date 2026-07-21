@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   ilolink design tokens (zen). One accent, warm off-white, calm.
+   Tailwind v4 CSS-first config: these @theme vars generate the
+   utility classes (bg-canvas, text-ink, etc). No ad-hoc hex in JSX.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  /* Surfaces — warm off-white, near-black ink */
+  --color-canvas: #fafaf8;
+  --color-surface: #ffffff;
+  --color-ink: #1a1a17;
+  --color-ink-soft: #56564f;
+  --color-ink-faint: #8a8a80;
+  --color-hairline: #eae8e1;
+
+  /* The single accent */
+  --color-accent: #3b5bdb;
+  --color-accent-soft: #edf0fd;
+
+  /* Type — grotesque UI, optional reading serif for doc bodies */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: "Newsreader", ui-serif, Georgia, serif;
+
+  /* Reading measure + rhythm */
+  --leading-relaxed: 1.65;
+}
+
+/* Dark: same restraint, inverted warmth */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --color-canvas: #17171a;
+      --color-surface: #1f1f23;
+      --color-ink: #edece7;
+      --color-ink-soft: #a8a79f;
+      --color-ink-faint: #6f6e67;
+      --color-hairline: #2c2c31;
+      --color-accent: #7c93f0;
+      --color-accent-soft: #23263a;
+    }
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+  }
+}

@@ -10,7 +10,23 @@ Thumbs.db
 .env.*
 !.env.example
 
+# Env / secrets (Cloudflare local dev vars)
+.dev.vars
+.dev.vars.*
+
 # Deps / build
 node_modules/
 dist/
 build/
+
+# Next.js
+.next/
+next-env.d.ts
+
+# OpenNext + Cloudflare
+.open-next/
+.wrangler/
+cloudflare-env.d.ts
+
+# Cloudflare deploy creds (never commit)
+.cf.env

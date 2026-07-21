@@ -1,0 +1,52 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ilolink",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-07-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "account_id": "a8ec57aa9f4b6a49e48e60b1aa2a306e",
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // Relational metadata: users, documents, versions, comments, feedback.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ilolink",
+      "database_id": "342cf013-28a3-4fb7-b5a6-650102fad933",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Raw + sanitized doc bodies and version blobs.
+  "r2_buckets": [
+    {
+      "binding": "DOCS",
+      "bucket_name": "ilolink-docs"
+    }
+  ],
+  // Sessions, magic-link tokens, slug -> doc lookups, rate-limit counters, page cache.
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "b3b0ebce3b0842afa429cfa3372483e8"
+    }
+  ],
+  // High-cardinality event stream: pageviews, scroll, clicks, heatmap points.
+  "analytics_engine_datasets": [
+    {
+      "binding": "EVENTS",
+      "dataset": "ilolink_events"
+    }
+  ],
+  // Async work: heatmap aggregation, notification emails, version cleanup.
+  "queues": {
+    "producers": [
+      {
+        "binding": "JOBS",
+        "queue": "ilolink-jobs"
+      }
+    ]
+  }
+  // Secrets (set via `wrangler secret put`): RESEND_API_KEY, AE_SQL_TOKEN, TURNSTILE_SECRET, AUTH_SECRET
+}
