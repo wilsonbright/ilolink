@@ -120,24 +120,6 @@ export async function setCurrentVersion(
   );
 }
 
-// Change visibility and its dependent fields (password hash, expiry).
-export async function updateVisibility(
-  docId: string,
-  visibility: Visibility,
-  opts?: { password_hash?: string | null; expires_at?: number | null },
-): Promise<void> {
-  await execute(
-    `UPDATE documents
-       SET visibility = ?, password_hash = ?, expires_at = ?, updated_at = ?
-     WHERE id = ?`,
-    visibility,
-    opts?.password_hash ?? null,
-    opts?.expires_at ?? null,
-    Date.now(),
-    docId,
-  );
-}
-
 // Hard-delete a document and everything hanging off it (comments, feedback,
 // versions, then the row). Callers also purge the KV slug record and R2 bodies.
 // Batched into a single D1 round-trip so the row teardown is atomic.
