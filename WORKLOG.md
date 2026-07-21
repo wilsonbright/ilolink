@@ -5,6 +5,28 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — SEO content plan: source how-tos + pain-point pages
+- **Asked:** What's next → build the low-competition money pages. Chose source how-tos + pain-points.
+- **Built (7 pages, dynamic workflow — 14 agents, draft→anti-slop-edit pipeline, HowTo schema):**
+  - Source how-tos (C10): `/guides/share-claude-artifact`, `/guides/publish-chatgpt-html`,
+    `/guides/share-gemini-output`, `/guides/markdown-to-web-page`, `/guides/host-ai-image`.
+  - Pain-points (E14/D12): `/guides/do-links-expire` (permanence answer up top),
+    `/guides/limitations` (honest limits = citation bait).
+  - Each links UP to P1 + sideways to P2/P3. Source-tool facts made accurate (ChatGPT share =
+    conversation not a page; Claude artifacts export to one file; etc).
+- **Registry wiring:** added `HOW_TOS` + `PAIN_POINTS` to `lib/seo/site.ts` → auto-flow into
+  sitemap + `/guides` index. Rebuilt `/guides` index into grouped sections (Start here / Share
+  from a specific tool / Straight answers). Landing-page footer stays pillar-only (+ "All guides").
+- **Also:** homepage (`app/page.tsx`) got a real 3-column footer (Guides/Product/Legal) + Guides
+  nav link — it sits outside the (marketing) group so it never inherited that footer. Deployed.
+- **VERIFIED:** `tsc` exit 0; `next build` 32/32 static; per-page slop grep = clean on all 7;
+  not-live terms (version rollback, audio/video, per-slide, custom domains) confirmed framed as
+  roadmap/negation, never claimed live; all 5 how-tos carry HowTo JSON-LD.
+- **Deferred still:** comparison /vs pages, format pages (slides/PDF/spreadsheet/diagram),
+  personas (/for), real legal copy, glossary/use-cases. Media (audio/video) waits for infra.
+
+---
+
 ## 2026-07-22 — SEO content plan: pillars + infra (workflow build)
 - **Asked:** Implement `ilolink-content-seo-plan.md` (ultracode). Scoped to: 3 pillar
   pages + SEO infrastructure; legal as plain-language stubs; stop-slop pass on all copy.

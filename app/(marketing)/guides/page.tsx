@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PILLARS } from "@/lib/seo/site";
+import { PILLARS, HOW_TOS, PAIN_POINTS, type SitePage } from "@/lib/seo/site";
 import { Article, Breadcrumbs, PageHeader } from "../_components/content";
 
 export const metadata: Metadata = {
@@ -10,11 +10,46 @@ export const metadata: Metadata = {
   alternates: { canonical: "/guides" },
 };
 
-// The /guides index. Intentionally thin-but-real: it lists the three pillars
-// (the only content live in this pass) rather than padding out a fake hub. As
-// cluster pages ship, they slot under their pillar here.
+// The /guides index. Grouped: the three pillar hubs, then the source-specific
+// how-tos, then the straight-answer pain-point pages. Everything is registry-
+// driven, so a new page in lib/seo/site.ts appears here automatically.
+function Section({
+  heading,
+  pages,
+  size = "lg",
+}: {
+  heading: string;
+  pages: SitePage[];
+  size?: "lg" | "sm";
+}) {
+  return (
+    <section className="mt-12 first:mt-8">
+      <h2 className="text-sm font-medium tracking-wide text-ink-faint">
+        {heading}
+      </h2>
+      <ul className="mt-4 divide-y divide-hairline">
+        {pages.map((p) => (
+          <li key={p.path} className="py-5">
+            <Link href={p.path} className="group block">
+              <p
+                className={`font-medium text-ink transition-colors duration-150 group-hover:text-accent ${
+                  size === "lg" ? "text-xl" : "text-base"
+                }`}
+              >
+                {p.title}
+              </p>
+              <p className="mt-1.5 max-w-[62ch] leading-relaxed text-ink-soft">
+                {p.blurb}
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export default function GuidesIndex() {
-  const pillars = Object.values(PILLARS);
   return (
     <Article>
       <Breadcrumbs
@@ -27,20 +62,17 @@ export default function GuidesIndex() {
         title="Guides"
         lead="Everything about turning AI output into a page people can open — and seeing how they read it once you send the link."
       />
-      <ul className="mt-4 divide-y divide-hairline">
-        {pillars.map((p) => (
-          <li key={p.path} className="py-6">
-            <Link href={p.path} className="group block">
-              <h2 className="text-xl font-medium text-ink transition-colors duration-150 group-hover:text-accent">
-                {p.title}
-              </h2>
-              <p className="mt-2 max-w-[62ch] leading-relaxed text-ink-soft">
-                {p.blurb}
-              </p>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <Section heading="Start here" pages={Object.values(PILLARS)} />
+      <Section
+        heading="Share output from a specific tool"
+        pages={Object.values(HOW_TOS)}
+        size="sm"
+      />
+      <Section
+        heading="Straight answers"
+        pages={Object.values(PAIN_POINTS)}
+        size="sm"
+      />
     </Article>
   );
 }
