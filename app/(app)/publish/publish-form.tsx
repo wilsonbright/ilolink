@@ -294,14 +294,54 @@ export function PublishForm() {
             dragging ? "border-accent" : "border-hairline"
           }`}
         >
-          <textarea
-            id="doc"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Paste Markdown or HTML here — or drop a file anywhere in this box."
-            spellCheck={false}
-            className="block h-72 w-full resize-y rounded-lg bg-transparent px-4 py-3.5 font-mono text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:outline-none"
-          />
+          {content.startsWith("data:") ? (
+            // Binary/data uploads: the content is a base64 data URL — never show
+            // that wall of text. Show a friendly file chip instead.
+            <div className="flex h-72 flex-col items-center justify-center gap-3 px-4 text-center">
+              <div className="text-3xl" aria-hidden>
+                {content.startsWith("data:application/pdf")
+                  ? "📄"
+                  : content.startsWith("data:image/")
+                    ? "🖼️"
+                    : "📝"}
+              </div>
+              <div className="max-w-full truncate font-medium text-ink">
+                {fileName || "Uploaded file"}
+              </div>
+              <div className="text-sm text-ink-faint">
+                {content.startsWith("data:application/pdf")
+                  ? "PDF — renders in the native viewer"
+                  : content.startsWith(
+                        "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                      )
+                    ? "Word document — converted to a web page"
+                    : content.startsWith("data:image/")
+                      ? "Image"
+                      : "File"}{" "}
+                · ready to publish
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setContent("");
+                  setFileName(null);
+                  setSourceLocked(false);
+                }}
+                className="text-sm text-accent transition-colors duration-150 hover:text-ink"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <textarea
+              id="doc"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Paste Markdown or HTML here — or drop a file anywhere in this box."
+              spellCheck={false}
+              className="block h-72 w-full resize-y rounded-lg bg-transparent px-4 py-3.5 font-mono text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:outline-none"
+            />
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-faint">
