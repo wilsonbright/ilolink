@@ -5,6 +5,37 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — SEO content plan: pillars + infra (workflow build)
+- **Asked:** Implement `ilolink-content-seo-plan.md` (ultracode). Scoped to: 3 pillar
+  pages + SEO infrastructure; legal as plain-language stubs; stop-slop pass on all copy.
+- **Built (infra, hand-written):**
+  - `lib/seo/site.ts` — single page registry (drives sitemap, /guides index, footer,
+    internal links). CTAs point at `/` (accountless composer = conversion), not /pricing.
+  - `lib/seo/jsonld.tsx` — schema builders (Article, HowTo, FAQPage, SoftwareApplication,
+    BreadcrumbList) + `<JsonLd>` with hardened serializer (escapes `< > &` so copy can
+    never break out of the script tag).
+  - `app/(marketing)/_components/content.tsx` — Article, Breadcrumbs, PageHeader (liftable
+    lead), Prose, Callout, ComparisonTable, Faq, Cta, RelatedLinks.
+  - `app/(marketing)/layout.tsx` — marketing chrome (header + footer w/ internal links).
+  - `app/sitemap.ts`, `app/robots.ts` (registry-derived), `app/(marketing)/guides/page.tsx`.
+  - `.prose` styles added to `app/globals.css` (no typography plugin; zen tokens).
+- **Built (8 pages, dynamic workflow — 16 agents, draft→anti-slop-edit pipeline):**
+  - Pillars: `/guides/share-ai-output` (P1, +HowTo schema), `/guides/best-way-to-share-ai-html`
+    (P2, comparison table +SoftwareApplication), `/guides/analytics-heatmaps-feedback` (P3).
+  - Legal/ops stubs (all carry a "Draft — not yet legally reviewed"/"Placeholder" callout):
+    `/privacy`, `/terms`, `/acceptable-use`, `/report`, `/status`.
+- **Honesty guardrail:** agents given exact live-feature facts; format-specific metrics
+  (per-slide/PDF/watch-through), version rollback, custom domains, pricing framed as roadmap
+  or omitted — never claimed live. Uniques described as approximate by design.
+- **VERIFIED:** `tsc --noEmit` exit 0; `next build` 25/25 static incl. sitemap.xml + robots.txt;
+  curled live server — titles/meta/H1/JSON-LD (Article+HowTo+FAQPage+BreadcrumbList+
+  SoftwareApplication) all present, 10-URL sitemap, comparison table rendered; per-page grep
+  for banned slop words = clean on all 8; no false-live claims; callouts present.
+- **Not built (deferred per scope):** Group A–F supporting pages, personas (/for), per-competitor
+  /vs pages, glossary, use-cases, real legal copy (stubs are placeholders pending review).
+
+---
+
 ## 2026-07-21 — Exact view counter (Durable Object) + finish/cleanup
 - **Asked:** Continue and finish; what's pending.
 - **Built:** `ViewCounter` Durable Object (defined + migrated in the content-worker, one

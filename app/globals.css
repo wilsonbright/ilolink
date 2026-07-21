@@ -59,3 +59,83 @@
     background: var(--color-accent-soft);
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Article prose. Hand-rolled (no typography plugin) so marketing
+   bodies stay on the same zen tokens as the app. Applied via the
+   <Prose> component's `.prose` wrapper — plain HTML inside renders
+   with reading rhythm without per-element classes.
+   ───────────────────────────────────────────────────────────── */
+@layer components {
+  .prose {
+    color: var(--color-ink-soft);
+    line-height: var(--leading-relaxed);
+    font-size: 1.0625rem;
+  }
+  .prose > * + * {
+    margin-top: 1.15em;
+  }
+  .prose h2 {
+    color: var(--color-ink);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin-top: 2.5rem;
+    scroll-margin-top: 5rem;
+  }
+  .prose h3 {
+    color: var(--color-ink);
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-top: 1.75rem;
+  }
+  .prose p,
+  .prose ul,
+  .prose ol {
+    max-width: 68ch;
+  }
+  .prose a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+  .prose a:hover {
+    color: var(--color-ink);
+  }
+  .prose strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .prose ul,
+  .prose ol {
+    padding-left: 1.35rem;
+  }
+  .prose ul {
+    list-style: disc;
+  }
+  .prose ol {
+    list-style: decimal;
+  }
+  .prose li + li {
+    margin-top: 0.4em;
+  }
+  .prose li::marker {
+    color: var(--color-ink-faint);
+  }
+  .prose code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.9em;
+    background: var(--color-accent-soft);
+    color: var(--color-ink);
+    padding: 0.12em 0.35em;
+    border-radius: 4px;
+  }
+  .prose blockquote {
+    border-left: 2px solid var(--color-hairline);
+    padding-left: 1rem;
+    color: var(--color-ink-faint);
+  }
+}
