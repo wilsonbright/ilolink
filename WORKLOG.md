@@ -22,6 +22,24 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — Home dashboard link, conditional preview switcher, app icon, readable widget
+- **Asked (4):** dashboard link on home after publishing; only show device switcher if the doc has
+  responsive CSS (else desktop-only full); add an app icon; posted comment text was dark-on-dark.
+- **Did:** (1) share card now has a "Your documents →" link to the dashboard. (2) Preview shows the
+  Mobile/Tablet/Desktop switcher ONLY when the doc's HTML has width-based @media queries; otherwise
+  it renders desktop full (scaled to fit) with no switcher. (3) added app/icon.svg (accent
+  rounded-square "link" mark) — Next serves it as the favicon. (4) the doc feedback/comments widget
+  is now a self-contained LIGHT panel (own background + border) so its text (comments, headings) is
+  readable on any doc, including dark-themed ones — the earlier fix only covered inputs.
+- **VERIFIED LIVE on ilolink.com (screenshots):** publish → share card has the dashboard link +
+  device switcher (clema is responsive); icon.svg served + linked in <head>; opened the doc at
+  ilolink.com/<slug>, posted a comment — widget renders as a light card with dark readable text.
+- **NOTE:** left the separately-added marketing/SEO files (app/(marketing)/*, robots.ts, sitemap.ts,
+  lib/seo/*, globals.css .prose) untouched and uncommitted — not part of this task; already build-clean
+  and deployed since they were in the working tree.
+
+---
+
 ## 2026-07-21 — Home=composer, preview device switcher, single-origin ilolink.com URLs
 - **Asked (3):** publish on the home page (fewer clicks); preview device switcher
   (mobile/tablet/desktop, default by device, desktop full-res in frame); doc address bar to stay

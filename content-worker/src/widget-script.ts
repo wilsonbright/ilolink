@@ -162,9 +162,12 @@ positionPin(c.id);
 // ─── reaction bar ──────────────────────────────────────────────────────────
 // Scope the widget's own light, always-readable tokens locally so the doc's
 // :root overrides (and the reader shell's dark mode) can't produce dark-on-dark
-// inputs. --accent is intentionally left to inherit so buttons match the doc.
-var WTOKENS="--surface:#ffffff;--ink:#1a1a17;--ink-soft:#56564f;--ink-faint:#8a8a80;--hairline:#e2ddd3;--accent-soft:#f2ede7;";
-var root=mk("section",WTOKENS+"max-width:68ch;margin:4rem auto 6rem;padding:2rem 1.5rem 0;border-top:1px solid var(--hairline);font-family:"+SANS+";color:var(--ink);");
+// text/inputs. --accent is intentionally left to inherit so buttons match the doc.
+var WTOKENS="--surface:#ffffff;--ink:#1a1a17;--ink-soft:#56564f;--ink-faint:#8a8a80;--hairline:#e2ddd3;--accent-soft:#f2ede7;--canvas:#faf9f7;";
+// A self-contained light panel so the whole widget (text included) stays
+// readable on ANY doc — including dark-themed ones where inheriting the body
+// background would leave dark text on a dark surface.
+var root=mk("section",WTOKENS+"max-width:72ch;margin:4rem auto 6rem;padding:1.75rem 1.75rem 2rem;background:var(--canvas);border:1px solid var(--hairline);border-radius:14px;font-family:"+SANS+";color:var(--ink);");
 var EMOJI=["👍","🤔","👀"],counts={};
 var rrow=mk("div","display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;");
 EMOJI.forEach(function(em){

@@ -565,6 +565,12 @@ function ShareCard({
           </div>
 
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            <a
+              href="/dashboard"
+              className="font-medium text-accent transition-colors duration-150 hover:text-ink"
+            >
+              Your documents →
+            </a>
             <button
               type="button"
               onClick={onAnother}
@@ -638,7 +644,13 @@ function Preview({ slug, token }: { slug: string; token: string }) {
 
   if (failed) return null;
 
-  const dev = DEVICES.find((d) => d.key === device) ?? DEVICES[2];
+  // Only offer mobile/tablet if the doc actually has responsive CSS (width-based
+  // media queries). A fixed-width page looks identical at every width, so we just
+  // show it at desktop, full.
+  const responsive =
+    html != null && /@media[^{]*(?:max-width|min-width)/i.test(html);
+  const effKey = responsive ? device : "desktop";
+  const dev = DEVICES.find((d) => d.key === effKey) ?? DEVICES[2];
   // Never upscale a narrow device; scale a wide one down to fit the column.
   const scale = boxW ? Math.min(1, boxW / dev.w) : 1;
   const scaledW = Math.round(dev.w * scale);
@@ -648,22 +660,24 @@ function Preview({ slug, token }: { slug: string; token: string }) {
     <div className="mt-10">
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-ink-faint">Preview</p>
-        <div className="flex gap-0.5 rounded-md border border-hairline p-0.5">
-          {DEVICES.map((d) => (
-            <button
-              key={d.key}
-              type="button"
-              onClick={() => setDevice(d.key)}
-              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
-                device === d.key
-                  ? "bg-accent text-surface"
-                  : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
+        {responsive && (
+          <div className="flex gap-0.5 rounded-md border border-hairline p-0.5">
+            {DEVICES.map((d) => (
+              <button
+                key={d.key}
+                type="button"
+                onClick={() => setDevice(d.key)}
+                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
+                  device === d.key
+                    ? "bg-accent text-surface"
+                    : "text-ink-soft hover:text-ink"
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div
         ref={boxRef}
