@@ -5,6 +5,23 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — Exact view counter (Durable Object) + finish/cleanup
+- **Asked:** Continue and finish; what's pending.
+- **Built:** `ViewCounter` Durable Object (defined + migrated in the content-worker, one
+  instance per doc, atomic increment on each pageview via ctx.waitUntil). App reads it
+  cross-script (`script_name` binding); `/api/stats` returns `exactViews`, dashboard prefers it
+  over AE's sampled count. Gotcha fixed: DO bindings use `name`, not `binding`. Deploy order:
+  content-worker first (defines DO), then app.
+- **VERIFIED LIVE:** `exactViews 0 → 5` after 5 pageviews (exact, immediate; AE still lagged at 2).
+- **Housekeeping:** purged MY 3 test docs (Smoke Test / Launch Notes / Phase 2 Live) from D1 + KV
+  + R2 — left the USER's 3 real "Clema" docs untouched. Refreshed README + DEPLOY.md to the final
+  accountless + all-phases + DO + real-Turnstile state.
+- **Pending = operational only:** rotate the CF API token (in transcript) and re-set
+  `AE_SQL_TOKEN` after; eyeball doc-page overlays on view.ilolink.com (my DNS can't). No code
+  work remains — full roadmap shipped.
+
+---
+
 ## 2026-07-21 — Real invisible Turnstile provisioned
 - **Asked:** Provision real Turnstile (granted Turnstile:Edit scope).
 - **Did:** Created an INVISIBLE Turnstile widget via CF API (sitekey 0x4AAAAAAD6lbUQWiBAq0dKi,
