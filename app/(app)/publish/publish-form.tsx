@@ -327,7 +327,20 @@ export function PublishForm() {
           {fileName && <span className="truncate text-ink-soft">{fileName}</span>}
 
           <span className="ml-auto flex items-center gap-2">
-            {content.trim() ? (
+            {content.startsWith("data:") ? (
+              // Binary/data uploads render server-side by type — no md/html choice.
+              <span>
+                {content.startsWith("data:application/pdf")
+                  ? "PDF — native viewer"
+                  : content.startsWith(
+                        "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                      )
+                    ? "Word document"
+                    : content.startsWith("data:image/")
+                      ? "Image"
+                      : "File"}
+              </span>
+            ) : content.trim() ? (
               <>
                 <span>Reading as {source === "md" ? "Markdown" : "HTML"}</span>
                 <button
