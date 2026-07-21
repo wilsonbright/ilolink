@@ -1,0 +1,51 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Content origin (spec §3, §6): a SEPARATE Worker on its own hostname,
+  // serving untrusted document HTML. Isolated from the app so a sanitizer miss
+  // executes in an origin with no app session, no first-party cookies, no DOM
+  // access to the dashboard. Same data bindings, different blast radius.
+  "name": "ilolink-content",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "account_id": "a8ec57aa9f4b6a49e48e60b1aa2a306e",
+  // The isolated origin. Everything under it is document content, never the app.
+  "routes": [
+    {
+      "pattern": "view.ilolink.com/*",
+      "zone_name": "ilolink.com"
+    }
+  ],
+  // Slug -> doc lookups (hot path), password unlock tokens. Same namespace as app.
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "b3b0ebce3b0842afa429cfa3372483e8"
+    }
+  ],
+  // Rendered (sanitized) doc bodies, read-only from here.
+  "r2_buckets": [
+    {
+      "binding": "DOCS",
+      "bucket_name": "ilolink-docs"
+    }
+  ],
+  // Shared relational metadata (read-only from the content origin).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ilolink",
+      "database_id": "342cf013-28a3-4fb7-b5a6-650102fad933"
+    }
+  ],
+  // Pageview / interaction events (Phase 2 tracker writes here).
+  "analytics_engine_datasets": [
+    {
+      "binding": "EVENTS",
+      "dataset": "ilolink_events"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

@@ -30,3 +30,6 @@ cloudflare-env.d.ts
 
 # Cloudflare deploy creds (never commit)
 .cf.env
+
+# TS incremental build cache
+*.tsbuildinfo
