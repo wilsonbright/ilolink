@@ -464,8 +464,8 @@ async function postFeedback(request: Request, env: Env): Promise<Response> {
 
 // A resolved anchor: character offsets into the ".doc" container's textContent
 // plus display context. Docs are immutable, so offsets are stable resolvers.
-// Two anchor kinds: a text-quote anchor (character offsets into the doc), or a
-// point anchor (Figma-style pin — fractional x/y of the document).
+// Anchor kinds: a text-quote anchor (char offsets), a point anchor (Figma pin,
+// fractional x/y), or a region anchor (fractional x/y/w/h box on the document).
 type CommentAnchor =
   | {
       type: "text";
@@ -475,7 +475,8 @@ type CommentAnchor =
       start: number;
       end: number;
     }
-  | { type: "point"; x: number; y: number; label: string };
+  | { type: "point"; x: number; y: number; label: string }
+  | { type: "region"; x: number; y: number; w: number; h: number; label: string };
 
 function frac(v: unknown): number | null {
   if (typeof v !== "number" || !Number.isFinite(v)) return null;
@@ -496,6 +497,17 @@ function validateAnchor(input: unknown): CommentAnchor | null {
     if (x === null || y === null) return null;
     const label = typeof a.label === "string" ? a.label.slice(0, 120) : "";
     return { type: "point", x, y, label };
+  }
+
+  // Region anchor (area box): { type:"region", x, y, w, h in [0,1], label }.
+  if (a.type === "region") {
+    const x = frac(a.x);
+    const y = frac(a.y);
+    const w = frac(a.w);
+    const h = frac(a.h);
+    if (x === null || y === null || w === null || h === null) return null;
+    const label = typeof a.label === "string" ? a.label.slice(0, 120) : "";
+    return { type: "region", x, y, w, h, label };
   }
 
   // Text-quote anchor (default; older stored anchors have no `type`).

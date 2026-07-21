@@ -75,6 +75,27 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — Fix comment placement (markdown) + region/area selection
+- **Reported:** (1) on a markdown doc, text-selection comment "doesn't show in right places";
+  (2) on a landing page, the pin has no screenshot and selection is "only for text".
+- **Root cause #1:** in the widget rewrite the text-selection affordance button was created WITHOUT
+  a label → it rendered as a tiny empty box, and clicking it scrolled to the bottom form (far from
+  the selection).
+- **Fixed:** (1) affordance now labelled "💬 Comment" and clicking it opens the composer POPOVER
+  right at the selection (with the quoted context); text anchors unchanged. (2) Added Figma-style
+  AREA selection: in pin mode, click = point pin, DRAG = region — a rubber-band box, then a composer;
+  the comment anchors to that region {type:"region",x,y,w,h}. Region comments render a highlighted
+  BOX over the section + a corner pin; clicking the pin opens the thread and hovering brightens the
+  box. (Pointer events → works with mouse and touch.) A literal screenshot isn't feasible
+  dependency-free under the strict CSP, so the live region box IS the visual of the commented section.
+  Server validateAnchor now accepts the region anchor alongside point + text.
+- **VERIFIED LIVE on ilolink.com (screenshots):** markdown text selection → "💬 Comment" at the
+  selection → composer popover in place; landing/any doc → drag an area → region box + numbered pin,
+  posted, clicking the pin opens "On a selected area" thread with reply. WIDGET_JS node --check clean;
+  28 tests green; content-worker deployed.
+
+---
+
 ## 2026-07-22 — Figma-style pin comments + discoverable floating launcher
 - **Asked:** the comment widget is buried at the bottom — make it discoverable (floating, right);
   and allow Figma-style screen selection (mouse/touch) to add a comment associated to a section.
