@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SourceType, Visibility } from "@/lib/types";
 import { addToHistory } from "@/lib/history";
 
-// Cloudflare Turnstile. The published site injects a real sitekey via env; the
-// documented test key ("always passes") keeps local + preview builds unblocked.
+// Cloudflare Turnstile, run HIDDEN: the widget verifies silently and only shows
+// UI if an interactive challenge is actually required (appearance below).
+// For production, inject an INVISIBLE-mode sitekey via env; the fallback is
+// Cloudflare's documented invisible always-pass test key ("...BB").
 const TURNSTILE_SITEKEY =
-  process.env.NEXT_PUBLIC_TURNSTILE_SITEKEY || "1x00000000000000000000AA";
+  process.env.NEXT_PUBLIC_TURNSTILE_SITEKEY || "1x00000000000000000000BB";
 
 declare global {
   interface Window {
@@ -20,6 +22,7 @@ declare global {
           "expired-callback"?: () => void;
           "error-callback"?: () => void;
           theme?: "auto" | "light" | "dark";
+          appearance?: "always" | "execute" | "interaction-only";
         },
       ) => string;
       reset: (id?: string) => void;
@@ -464,6 +467,8 @@ function Turnstile({ onToken }: { onToken: (token: string) => void }) {
         "expired-callback": () => onToken(""),
         "error-callback": () => onToken(""),
         theme: "auto",
+        // Stay hidden; only render UI if an interactive challenge is required.
+        appearance: "interaction-only",
       });
     };
 
@@ -498,7 +503,9 @@ function Turnstile({ onToken }: { onToken: (token: string) => void }) {
     };
   }, [onToken]);
 
-  return <div ref={ref} className="min-h-[65px]" />;
+  // No reserved height: interaction-only keeps this empty (0px) unless Turnstile
+  // needs to show a challenge, at which point its own iframe sizes the box.
+  return <div ref={ref} className="empty:hidden" />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────

@@ -5,6 +5,18 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — Turnstile hidden (invisible verification)
+- **Asked:** Make Turnstile hidden to verify.
+- **Did:** Publish form now runs Turnstile INVISIBLE + `appearance:"interaction-only"` — verifies
+  silently, only surfaces UI if a real interactive challenge is required. Fallback sitekey switched
+  to Cloudflare's invisible always-pass test key `1x00000000000000000000BB` (prod injects an
+  invisible-mode sitekey via `NEXT_PUBLIC_TURNSTILE_SITEKEY`). Widget container reserves no height.
+- **VERIFIED LIVE (real browser):** /publish shows NO visible Turnstile widget (0 challenge
+  iframes); typed content + clicked Publish → token issued silently → published
+  `view.ilolink.com/tpk4jx` (then deleted). No "human check" error.
+
+---
+
 ## 2026-07-21 — Phase 4: anchored comments + delete/unpublish (verified live)
 - **Asked:** Continue (Phase 4).
 - **Built:** Hand-wrote the security-critical delete path (token-gated `DELETE /api/documents`,
