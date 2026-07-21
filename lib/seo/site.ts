@@ -13,7 +13,13 @@ export const COMPOSE_URL = "/";
 // (Next would otherwise stamp `new Date()` at build time, churning the diff).
 export const SITE_UPDATED = "2026-07-21";
 
-export type PageGroup = "pillar" | "guide" | "compare" | "persona" | "legal";
+export type PageGroup =
+  | "pillar"
+  | "guide"
+  | "compare"
+  | "persona"
+  | "reference"
+  | "legal";
 
 export interface SitePage {
   /** Path relative to the origin, no trailing slash (except "/"). */
@@ -172,6 +178,28 @@ export const PERSONAS = {
   },
 } as const satisfies Record<string, SitePage>;
 
+// ── Reference (Groups F18 glossary, D11 use cases) ───────────────────────
+// Glossary = short quotable definitions (prime AI-citation material). Use cases
+// = examples paired with the analytics question each one answers.
+export const REFERENCE = {
+  glossary: {
+    path: "/glossary",
+    title: "Glossary: AI output, artifacts, static hosting & GEO",
+    blurb:
+      "Short, quotable definitions for the terms around sharing AI output — plus where to read more.",
+    group: "reference",
+    priority: 0.5,
+  },
+  useCases: {
+    path: "/guides/use-cases",
+    title: "What people share with ilolink",
+    blurb:
+      "Real examples — specs, prototypes, client reports — each paired with the question the analytics answer.",
+    group: "reference",
+    priority: 0.6,
+  },
+} as const satisfies Record<string, SitePage>;
+
 // ── Legal / operational ──────────────────────────────────────────────────
 export const LEGAL = {
   privacy: {
@@ -219,6 +247,7 @@ export const ALL_PAGES: SitePage[] = [
   ...Object.values(PAIN_POINTS),
   ...Object.values(COMPARISONS),
   ...Object.values(PERSONAS),
+  ...Object.values(REFERENCE),
   ...Object.values(LEGAL),
 ];
 

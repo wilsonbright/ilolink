@@ -5,6 +5,21 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — Glossary + use-cases (reference pages)
+- **Asked:** continue content plan → glossary (F18) + use-cases (D11).
+- **Built (2 pages, workflow — 4 agents, draft→anti-slop/accuracy pipeline):**
+  - `/glossary` — ~12-15 quotable one-sentence definitions (AI output, artifact, canvas, static hosting,
+    sanitization, CSP, cookieless analytics, scroll depth, heatmap, GEO, anchored comment…) + "Further
+    reading" linking ONLY an allowlist of real external URLs (web.dev CWV, MDN CSP, Cloudflare, Anthropic,
+    OpenAI), each rel="noopener noreferrer". No hallucinated URLs.
+  - `/guides/use-cases` — ~8-10 examples, each paired with the analytics question it answers; honest that
+    analytics are aggregate/approximate, not per-person. Links to personas.
+- **Registry:** added `REFERENCE` group → sitemap; `/guides` index gained a "Reference" section.
+- **VERIFIED:** tsc clean (mine); `next build` 40/40 static; external URLs = allowlist only; slop clean.
+- **NOT deployed yet:** working tree carries a parallel session's uncommitted PDF/binary-upload WIP
+  (publish/route.ts, types.ts+"pdf", r2/store, pipeline, csp, package.json). Build is green but
+  `npm run deploy` would bundle that WIP — held for user decision.
+
 ## 2026-07-22 — Homepage publish discoverability + comparison/persona pages
 - **Asked (1):** publish button hidden below the fold — a user couldn't find how to publish; refactor.
 - **Fixed (`app/page.tsx`):** sticky top bar with an always-visible filled **Publish** button (jumps

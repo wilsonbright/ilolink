@@ -6,6 +6,7 @@ import {
   PAIN_POINTS,
   COMPARISONS,
   PERSONAS,
+  REFERENCE,
   type SitePage,
 } from "@/lib/seo/site";
 import { Article, Breadcrumbs, PageHeader } from "../_components/content";
@@ -86,6 +87,11 @@ export default function GuidesIndex() {
         size="sm"
       />
       <Section heading="By role" pages={Object.values(PERSONAS)} size="sm" />
+      <Section
+        heading="Reference"
+        pages={Object.values(REFERENCE)}
+        size="sm"
+      />
     </Article>
   );
 }
