@@ -37,3 +37,6 @@ cloudflare-env.d.ts
 # Test artifacts
 .playwright-mcp/
 *.png
+
+# Public build vars only (NEXT_PUBLIC_*) — never real secrets
+!.env.production

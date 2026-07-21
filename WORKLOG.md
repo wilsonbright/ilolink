@@ -5,6 +5,20 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-21 — Real invisible Turnstile provisioned
+- **Asked:** Provision real Turnstile (granted Turnstile:Edit scope).
+- **Did:** Created an INVISIBLE Turnstile widget via CF API (sitekey 0x4AAAAAAD6lbUQWiBAq0dKi,
+  hostnames ilolink.com / view.ilolink.com / workers.dev). Set the real `TURNSTILE_SECRET` worker
+  secret; put the public sitekey in committed `.env.production` (NEXT_PUBLIC_, baked into client).
+  Rebuilt + redeployed app.
+- **VERIFIED LIVE (real browser):** /publish shows no visible widget; typed content + Publish →
+  real invisible widget issued a token silently → real secret validated → published
+  `view.ilolink.com/s224fh` (then deleted). No challenge shown.
+- **Secret hygiene:** widget secret is a worker secret only (never committed); `.env.production`
+  holds the public sitekey only.
+
+---
+
 ## 2026-07-21 — Turnstile hidden (invisible verification)
 - **Asked:** Make Turnstile hidden to verify.
 - **Did:** Publish form now runs Turnstile INVISIBLE + `appearance:"interaction-only"` — verifies
