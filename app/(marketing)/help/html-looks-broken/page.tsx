@@ -63,10 +63,13 @@ export default function Page() {
           load that stylesheet, your layout falls back to raw, unstyled HTML.
         </p>
         <p>
-          Author JavaScript never runs either. Scripts are frozen to static on
-          ingest, so the layout and CSS render but event handlers, JS
-          frameworks, and interactive widgets do nothing. A page that builds its
-          styling <em>with</em> JavaScript will therefore also look bare.
+          By default, author JavaScript doesn&apos;t run either. Scripts are
+          frozen to static on ingest, so the layout and CSS render but event
+          handlers, JS frameworks, and interactive widgets do nothing. A page
+          that builds its styling <em>with</em> JavaScript will therefore also
+          look bare — unless you mark the doc as trusted at publish time, which
+          keeps it as-is and runs its own scripts inside a sandboxed frame on
+          the isolated origin.
         </p>
 
         <h2>The fix</h2>
@@ -127,7 +130,7 @@ export default function Page() {
           },
           {
             q: "Why is my button dead?",
-            a: "Author JavaScript is frozen to static on every published page, so click handlers and interactive scripts don't run. The button renders but can't do anything — build the interactive part to static output before publishing.",
+            a: "By default, author JavaScript is frozen to static, so click handlers and interactive scripts don't run and the button renders but can't do anything. Either build the interactive part to static output before publishing, or mark the doc as trusted at publish time so it runs as-is inside a sandboxed frame on the isolated origin.",
           },
           {
             q: "The page renders but images are missing — same cause?",

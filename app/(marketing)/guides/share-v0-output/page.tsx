@@ -118,7 +118,10 @@ export default function Page() {
           Untrusted AI HTML is sanitized on the way in: scripts are stripped and{" "}
           <strong>interactive JavaScript is frozen to static</strong>, so the
           layout and CSS render as designed but nothing executes — you get a
-          visual mockup, not a live app. Inline <code>&lt;style&gt;</code> and
+          visual mockup, not a live app. That&apos;s the default; if you mark the
+          doc trusted at publish time, it&apos;s kept as-is and its own scripts
+          run, sandboxed in an opaque-origin iframe on that same isolated origin.
+          Inline <code>&lt;style&gt;</code> and
           Google Fonts work; other external stylesheets, external scripts,
           relative asset paths, and <code>http:</code> images do not, so keep
           everything inline and on <code>https</code> or <code>data</code> URLs.
@@ -181,7 +184,7 @@ export default function Page() {
           },
           {
             q: "Does the interactive JavaScript still work?",
-            a: "No. Interactive JS is frozen to static, so scripts don't run. The layout and CSS render as designed, so you get a faithful visual mockup — it just doesn't execute as a live app.",
+            a: "Not by default. Interactive JS is frozen to static, so the layout and CSS render as designed and you get a faithful visual mockup that doesn't execute as a live app. But if you mark the doc trusted at publish time, it runs as-is inside a sandboxed frame on the isolated origin.",
           },
           {
             q: "Is it free?",

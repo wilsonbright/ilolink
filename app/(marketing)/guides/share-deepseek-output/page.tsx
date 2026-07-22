@@ -118,8 +118,11 @@ export default function Page() {
           <code>data:</code> images, since relative asset paths and{" "}
           <code>http:</code> images won&apos;t load. A static HTML mockup renders
           exactly as designed — the CSS is kept. If DeepSeek gave you something
-          interactive, it&apos;s shown <strong>frozen</strong> to its static
-          state rather than executing. Forms are inert. The cap is 2 MB per doc.
+          interactive, by default it&apos;s shown <strong>frozen</strong> to its
+          static state rather than executing, and forms are inert. If you mark
+          the doc <strong>trusted</strong> at publish time, it&apos;s kept as-is
+          and its own scripts run, sandboxed on that isolated origin. The cap is
+          2 MB per doc.
         </p>
 
         <h2>What you learn after sharing</h2>
@@ -161,8 +164,8 @@ export default function Page() {
       <Callout title="One honest limit">
         Docs are immutable — one version per link. There&apos;s no version
         history or rollback yet. If the DeepSeek output changes, you publish a
-        new doc and share the new link. Sanitizing is strict on purpose:
-        interactive JavaScript renders frozen, not running.
+        new doc and share the new link. Sanitizing is strict by default: unless you
+        mark a doc trusted, interactive JavaScript renders frozen, not running.
       </Callout>
 
       <Faq
@@ -177,7 +180,7 @@ export default function Page() {
           },
           {
             q: "What if the DeepSeek output has interactive JavaScript?",
-            a: "It's frozen to its static state. The CSS is kept so the layout looks right, but no arbitrary JavaScript runs — an interactive snippet renders as a static snapshot, not a working app.",
+            a: "Not by default — it's frozen to its static state. The CSS is kept so the layout looks right, but no arbitrary JavaScript runs, so an interactive snippet renders as a static snapshot. If you mark the doc trusted at publish time, it runs as-is inside a sandboxed frame on the isolated origin — a working app, still contained.",
           },
           {
             q: "Can I password-protect it?",

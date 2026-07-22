@@ -63,9 +63,12 @@ export default function Page() {
         <p>
           You keep all rights to what you publish. By publishing, you grant ilolink the
           limited permission needed to store, sanitize, and serve your content so the link
-          works. Untrusted HTML is sanitized on ingest and interactive scripts are frozen to
-          static output &mdash; that&apos;s a safety step, not a claim on your work. You&apos;re
-          responsible for having the right to publish whatever you post.
+          works. By default, uploaded HTML is sanitized on ingest and interactive scripts are
+          frozen to static output &mdash; that&apos;s a safety step, not a claim on your work. If
+          you explicitly mark a document as trusted at publish time, it is stored and served
+          unsanitized inside a sandboxed frame on an isolated origin, and you are responsible
+          for content you publish as trusted. Either way, you&apos;re responsible for having the
+          right to publish whatever you post.
         </p>
 
         <h2>Acceptable use</h2>

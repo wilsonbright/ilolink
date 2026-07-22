@@ -92,11 +92,11 @@ export default function Page() {
           },
           {
             q: "Is pasted AI HTML safe to publish?",
-            a: "Yes. On ingest we sanitize it: scripts and JavaScript are dropped, interactive JS is frozen to static, CSS is kept, and forms are made inert. Every doc is served on an isolated view.ilolink.com origin under a strict CSP with default-src 'none'.",
+            a: "Yes. By default we sanitize it on ingest: scripts and JavaScript are dropped, interactive JS is frozen to static, CSS is kept, and forms are made inert. Every doc is served on an isolated view.ilolink.com origin under a strict CSP with default-src 'none'. If you deliberately mark an HTML doc trusted at publish time, it runs as-is inside a sandboxed frame on that same isolated origin.",
           },
           {
             q: "Will an interactive app or widget run on my page?",
-            a: "No. Interactive JavaScript is frozen to static, so buttons, calculators, and app logic won't run. The layout, styling, and content render exactly as designed.",
+            a: "Not by default. Interactive JavaScript is frozen to static, so buttons, calculators, and app logic won't run, while layout, styling, and content render exactly as designed. But if you mark the HTML doc trusted at publish time, its scripts run as-is inside a sandboxed frame on the isolated origin.",
           },
           {
             q: "Who can see my analytics?",

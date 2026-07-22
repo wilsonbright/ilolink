@@ -113,8 +113,11 @@ export default function Page() {
           Untrusted AI HTML is sanitized on the way in: scripts and{" "}
           <code>javascript:</code> URLs are dropped, and no arbitrary JavaScript
           runs. Your CSS is kept, so a static landing-page mockup renders exactly
-          as designed. An interactive JS app is shown <strong>frozen</strong> to
-          its static state rather than executing. For the wider view, see{" "}
+          as designed. By default, an interactive JS app is shown{" "}
+          <strong>frozen</strong> to its static state rather than executing —
+          unless you mark the doc <strong>trusted</strong> at publish time, in
+          which case it runs as-is inside a sandboxed frame on that isolated
+          origin. For the wider view, see{" "}
           <a href="/guides/share-ai-output">share AI output as a real link</a>,
           and check <a href="/guides/requirements">what ilolink accepts</a> before
           you paste.
@@ -180,7 +183,7 @@ export default function Page() {
           },
           {
             q: "Does an interactive app stay interactive?",
-            a: "No. Untrusted AI HTML is sanitized on ingest and no arbitrary JavaScript runs, so an interactive app is shown frozen to its static state. Static CSS-styled pages render exactly as designed.",
+            a: "Not by default. Uploaded HTML is sanitized on ingest, so an interactive app is shown frozen to its static state. But if you mark the doc trusted at publish time, it runs as-is inside a sandboxed frame on the isolated origin. Static CSS-styled pages render exactly as designed.",
           },
         ]}
       />

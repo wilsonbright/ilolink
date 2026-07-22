@@ -115,8 +115,11 @@ export default function Page() {
           <code>javascript:</code>, <code>data:</code>, and{" "}
           <code>vbscript:</code> URLs are dropped, and no arbitrary JavaScript
           runs. A static landing-page mockup renders exactly as designed — the
-          CSS is kept. An interactive JS app is shown <strong>frozen</strong> to
-          its static state rather than executing. The cap is 2 MB per doc.
+          CSS is kept. By default an interactive JS app is shown{" "}
+          <strong>frozen</strong> to its static state rather than executing —
+          unless you mark the doc trusted at publish time, in which case it runs
+          as-is inside a sandboxed frame on that same isolated origin. The cap is
+          2 MB per doc.
         </p>
 
         <h2>What can I share this way?</h2>
@@ -187,8 +190,9 @@ export default function Page() {
       <Callout title="One honest limit">
         Docs are immutable — one version per link. There&apos;s no version
         history or rollback yet. If the content changes, you publish a new doc
-        and share the new link. Sanitizing is strict on purpose: an interactive
-        JavaScript app renders frozen, not running.
+        and share the new link. Sanitizing is strict by default: an interactive
+        JavaScript app renders frozen, not running — unless you mark the doc
+        trusted, when it runs inside a sandboxed frame on the isolated origin.
       </Callout>
 
       <Faq

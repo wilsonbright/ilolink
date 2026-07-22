@@ -114,13 +114,15 @@ export default function Page() {
           The branded link 302-redirects to an isolated render origin,{" "}
           <code>view.ilolink.com</code>, where the doc is served under a strict
           content-security policy (<code>default-src &apos;none&apos;</code>).
-          Untrusted AI HTML is sanitized on the way in:{" "}
+          By default, AI HTML is sanitized on the way in:{" "}
           <code>javascript:</code>, <code>data:</code>, and{" "}
           <code>vbscript:</code> URLs are dropped, and no arbitrary JavaScript
           runs. A static HTML mockup renders exactly as designed — the CSS is
           kept. If Gemini gave you something interactive, it&apos;s shown{" "}
-          <strong>frozen</strong> to its static state rather than executing.
-          Forms are inert. The cap is 2 MB per doc.
+          <strong>frozen</strong> to its static state rather than executing —
+          unless you mark the doc <strong>trusted</strong> at publish time, in
+          which case it runs as-is inside a sandboxed frame on that same
+          isolated origin. Forms are inert. The cap is 2 MB per doc.
         </p>
 
         <h2>What you see after sharing</h2>
@@ -162,8 +164,9 @@ export default function Page() {
       <Callout title="One honest limit">
         Docs are immutable — one version per link. There&apos;s no version
         history or rollback yet. If the Gemini output changes, you publish a new
-        doc and share the new link. Sanitizing is strict on purpose: interactive
-        JavaScript renders frozen, not running.
+        doc and share the new link. Sanitizing is strict by default: interactive
+        JavaScript renders frozen, not running — unless you mark the doc trusted,
+        which runs it as-is in a sandboxed frame on the isolated origin.
       </Callout>
 
       <Faq
@@ -174,7 +177,7 @@ export default function Page() {
           },
           {
             q: "What if the Gemini output has interactive JavaScript?",
-            a: "It's frozen to its static state. The CSS is kept so the layout looks right, but no arbitrary JavaScript runs — an interactive app renders as a static snapshot, not a working app.",
+            a: "By default it's frozen to its static state — the CSS is kept so the layout looks right, but no arbitrary JavaScript runs, so an interactive app renders as a static snapshot. If you mark the doc trusted at publish time, it runs as-is inside a sandboxed frame on the isolated origin.",
           },
           {
             q: "Is it free?",

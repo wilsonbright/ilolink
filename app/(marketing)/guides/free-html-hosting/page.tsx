@@ -138,9 +138,11 @@ export default function Page() {
               and mockups; not for heavy asset bundles.
             </li>
             <li>
-              <strong>Interactive JS is frozen to static.</strong> Scripts are
-              dropped and interactive JavaScript is frozen to its rendered state
-              — CSS is kept, forms are inert. A live app won&apos;t stay live.
+              <strong>Interactive JS is frozen to static by default.</strong> By
+              default scripts are dropped and interactive JavaScript is frozen to
+              its rendered state — CSS is kept, forms are inert, so a live app
+              won&apos;t stay live. If you mark an HTML doc as trusted at publish
+              time, it runs as-is inside a sandboxed frame on the isolated origin.
             </li>
             <li>
               <strong>No media hosting.</strong> Audio and video hosting
@@ -170,8 +172,8 @@ export default function Page() {
           Reach for ilolink when the reading matters: when you want the page up
           in one paste, safe to hand a stranger, permanent without an account,
           and honest about how it landed. That&apos;s the trade — you give up
-          custom domains and live scripts; you get analytics, heatmaps, and
-          feedback with no tier to buy.
+          custom domains and, unless you mark a doc trusted, live scripts; you
+          get analytics, heatmaps, and feedback with no tier to buy.
         </p>
       </Prose>
 

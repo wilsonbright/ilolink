@@ -64,12 +64,14 @@ export default function Page() {
           people you send it to.
         </p>
         <p>
-          One honest limit up front: untrusted HTML is sanitized on ingest, and
-          interactive JavaScript is <strong>frozen to static</strong>. Buttons,
-          carousels, and form submits render but won&apos;t run — you&apos;re
-          shipping a static preview of the page, not a working app. That&apos;s
-          the right shape for a mockup or a message test, and it&apos;s why the
-          link is safe to hand around.
+          One honest limit up front: by default, uploaded HTML is sanitized on
+          ingest and interactive JavaScript is <strong>frozen to static</strong>.
+          Buttons, carousels, and form submits render but won&apos;t run —
+          you&apos;re shipping a static preview of the page, not a working app.
+          That&apos;s the right shape for a mockup or a message test, and it&apos;s
+          why the link is safe to hand around. If you deliberately mark a doc as{" "}
+          <strong>trusted</strong> at publish time, it&apos;s kept as-is and its
+          own scripts run inside a sandboxed frame on the isolated origin.
         </p>
 
         <h2>See what drew attention</h2>
@@ -120,7 +122,7 @@ export default function Page() {
         items={[
           {
             q: "Do interactive elements work?",
-            a: "No — interactive JavaScript is frozen to static on ingest. The layout and CSS render, so the page looks right, but buttons, sliders, and form submits won't run. It's a static preview, which is what makes the link safe to share.",
+            a: "Not by default — interactive JavaScript is frozen to static on ingest. The layout and CSS render, so the page looks right, but buttons, sliders, and form submits won't run. If you mark the doc as trusted at publish time, it's kept as-is and its own scripts run inside a sandboxed frame on the isolated origin; otherwise it stays a static preview, which is what makes the link safe to share.",
           },
           {
             q: "Can I see who clicked?",

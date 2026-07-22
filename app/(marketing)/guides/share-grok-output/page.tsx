@@ -118,8 +118,11 @@ export default function Page() {
           work, but external stylesheets, relative asset paths, and{" "}
           <code>http:</code> images do not — use inline CSS and{" "}
           <code>https</code>/<code>data:</code> images. If Grok gave you something
-          interactive, it&apos;s shown <strong>frozen</strong> to its static
-          state rather than executing. Forms are inert. The cap is 2 MB per doc.
+          interactive, by default it&apos;s shown <strong>frozen</strong> to its
+          static state rather than executing, and forms are inert — unless you
+          mark the doc <strong>trusted</strong> at publish time, in which case it
+          runs as-is inside a sandboxed frame on the isolated origin. The cap is 2
+          MB per doc.
         </p>
 
         <h2>What you learn after sharing</h2>
@@ -161,8 +164,9 @@ export default function Page() {
       <Callout title="One honest limit">
         Docs are immutable — one version per link. There&apos;s no version
         history or rollback yet. If the Grok output changes, you publish a new
-        doc and share the new link. Sanitizing is strict on purpose: interactive
-        JavaScript renders frozen, not running.
+        doc and share the new link. Sanitizing is strict by default: interactive
+        JavaScript renders frozen — unless you mark the doc trusted, which runs it
+        sandboxed on the isolated origin.
       </Callout>
 
       <Faq
@@ -177,7 +181,7 @@ export default function Page() {
           },
           {
             q: "What if the Grok output has interactive JavaScript?",
-            a: "It's frozen to its static state. The CSS is kept so the layout looks right, but no arbitrary JavaScript runs — an interactive page renders as a static snapshot, not a working app.",
+            a: "By default it's frozen to its static state — the CSS is kept so the layout looks right, but no arbitrary JavaScript runs, so an interactive page renders as a static snapshot, not a working app. If you mark the doc trusted at publish time, it runs as-is inside a sandboxed frame on the isolated origin instead.",
           },
           {
             q: "Can I password-protect it?",

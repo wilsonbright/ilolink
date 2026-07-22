@@ -60,10 +60,12 @@ export default function Page() {
           token in your browser.
         </p>
         <p>
-          One thing to know up front: <strong>interactive JS is frozen to
-          static</strong> on ingest. Untrusted markup is sanitized so nothing
-          runs, which keeps the link safe to send — but it also means a
-          click-through prototype won&apos;t click through. Share a{" "}
+          One thing to know up front: <strong>by default, interactive JS is
+          frozen to static</strong> on ingest. Uploaded markup is sanitized so
+          nothing runs, which keeps the link safe to send — but it also means a
+          click-through prototype won&apos;t click through, unless you mark the
+          doc <strong>trusted</strong> at publish time, which serves it as-is
+          inside a sandboxed frame on the isolated origin. Share a{" "}
           <strong>static or exported mockup</strong> (a single screen, a flat
           landing page, an exported frame) and it&apos;s ideal. The visual is
           exactly what you get feedback on.
@@ -127,7 +129,7 @@ export default function Page() {
         items={[
           {
             q: "Will my interactive prototype run?",
-            a: "No — interactive JS is frozen to static on ingest, so click-throughs and live components won't run. The layout and CSS render exactly as built. Export a static version of the screen you want feedback on and share that.",
+            a: "Not by default — interactive JS is frozen to static on ingest, so click-throughs and live components won't run, and the layout and CSS render exactly as built. But if you mark the HTML doc as trusted at publish time, its scripts do run, sandboxed on the isolated origin. Otherwise, export a static version of the screen you want feedback on and share that.",
           },
           {
             q: "Do reviewers need an account?",

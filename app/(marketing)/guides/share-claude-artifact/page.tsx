@@ -119,8 +119,11 @@ export default function Page() {
           <code>vbscript:</code> URLs are dropped, and no arbitrary JavaScript
           runs. A static landing-page mockup renders exactly as designed — the
           CSS is kept. An interactive artifact that relies on scripts is shown{" "}
-          <strong>frozen</strong> to its static state rather than executing. The
-          cap is 2 MB per doc. If you&apos;re weighing formats, see{" "}
+          <strong>frozen</strong> to its static state rather than executing.
+          That&apos;s the default. If you instead mark an HTML doc as{" "}
+          <strong>trusted</strong> at publish time, it&apos;s kept as-is and its
+          own scripts run — contained inside a sandboxed frame on that same
+          isolated origin. The cap is 2 MB per doc. If you&apos;re weighing formats, see{" "}
           <a href="/guides/best-way-to-share-ai-html">
             the best way to share AI-generated HTML
           </a>
@@ -170,8 +173,9 @@ export default function Page() {
       <Callout title="One honest limit">
         Docs are immutable — one version per link. There&apos;s no version
         history or rollback yet. If the artifact changes in Claude, you export it
-        again and publish a new doc. Sanitizing is strict on purpose: an
-        interactive artifact renders frozen, not running.
+        again and publish a new doc. Sanitizing is strict by default: an
+        interactive artifact renders frozen, not running — unless you mark the
+        doc trusted, which runs it sandboxed on the isolated origin.
       </Callout>
 
       <Faq
@@ -182,7 +186,7 @@ export default function Page() {
           },
           {
             q: "Does an interactive artifact stay interactive?",
-            a: "No. JavaScript is frozen to static, so scripts don't run. The layout and CSS render as designed, but interactive behavior is shown in its static state — the artifact looks right, it just doesn't execute.",
+            a: "Not by default — JavaScript is frozen to static, so the layout and CSS render as designed but scripts don't run. If you mark the doc trusted at publish time, though, it's kept as-is and its scripts run inside a sandboxed frame on the isolated origin, so an interactive artifact stays interactive.",
           },
           {
             q: "Is it free?",
