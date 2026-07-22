@@ -84,6 +84,14 @@ export default function MarketingLayout({
                     All guides
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/help"
+                    className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                  >
+                    Help center
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>

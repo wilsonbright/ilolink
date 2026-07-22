@@ -19,6 +19,7 @@ export type PageGroup =
   | "compare"
   | "persona"
   | "reference"
+  | "help"
   | "legal";
 
 export interface SitePage {
@@ -61,6 +62,51 @@ export const PILLARS = {
   },
 } as const satisfies Record<string, SitePage>;
 
+// ── Getting started (Groups A1/A3 foundations, C7/C8 setup) ──────────────
+// Top-of-funnel definition + why + the fast path + prerequisites. High intent;
+// these link down into the source how-tos and up to the pillars.
+export const GETTING_STARTED = {
+  quickStart: {
+    path: "/guides/quick-start",
+    title: "Share a ChatGPT or Claude HTML page in under a minute",
+    blurb:
+      "The fastest path: copy the output, paste it in, get a link — then watch the first view land.",
+    group: "guide",
+    priority: 0.8,
+  },
+  whatIs: {
+    path: "/guides/what-is-ai-output-hosting",
+    title: "What is AI output hosting?",
+    blurb:
+      "Turning ChatGPT, Claude, and Gemini results into shareable pages — and why the raw output isn't shareable as-is.",
+    group: "guide",
+    priority: 0.7,
+  },
+  why: {
+    path: "/guides/why-host-ai-output",
+    title: "Why send an AI output as a real web page",
+    blurb:
+      "Screenshot, raw file, or chat-share link versus a clean hosted page you can measure.",
+    group: "guide",
+    priority: 0.7,
+  },
+  requirements: {
+    path: "/guides/requirements",
+    title: "What you need to share an AI output",
+    blurb: "Spoiler: just the output. No server, no repo, no build step, no account.",
+    group: "guide",
+    priority: 0.7,
+  },
+  capabilities: {
+    path: "/guides/capabilities",
+    title: "What ilolink does",
+    blurb:
+      "Hosting plus cookieless analytics, heatmaps, and feedback — the full capability tour in one place.",
+    group: "guide",
+    priority: 0.7,
+  },
+} as const satisfies Record<string, SitePage>;
+
 // ── Source-specific how-tos (Group C10) ──────────────────────────────────
 // Long-tail, low-competition, highest ROI. One page per output origin. Each
 // links up to P1 and sideways to the comparison (P2) and analytics (P3) hubs.
@@ -99,6 +145,41 @@ export const HOW_TOS = {
     path: "/guides/host-ai-image",
     title: "How to host and share an AI-generated image",
     blurb: "Publish an AI image as its own page and see who opened it.",
+    group: "guide",
+    priority: 0.7,
+  },
+  perplexity: {
+    path: "/guides/share-perplexity-output",
+    title: "How to share a Perplexity answer as a page",
+    blurb: "Turn a Perplexity answer or report into a clean, shareable link with read analytics.",
+    group: "guide",
+    priority: 0.7,
+  },
+  v0: {
+    path: "/guides/share-v0-output",
+    title: "How to share a v0 output as a live page",
+    blurb: "Publish a v0-generated UI as a static page — and see how it was viewed.",
+    group: "guide",
+    priority: 0.7,
+  },
+  copilot: {
+    path: "/guides/share-copilot-output",
+    title: "How to share Microsoft Copilot output as a page",
+    blurb: "Publish HTML or Markdown from Copilot as a link anyone can open.",
+    group: "guide",
+    priority: 0.7,
+  },
+  grok: {
+    path: "/guides/share-grok-output",
+    title: "How to share a Grok output as a page",
+    blurb: "Turn Grok-generated HTML or Markdown into a shareable page with analytics.",
+    group: "guide",
+    priority: 0.7,
+  },
+  deepseek: {
+    path: "/guides/share-deepseek-output",
+    title: "How to share a DeepSeek output as a page",
+    blurb: "Publish DeepSeek HTML or Markdown as a link and track how it's read.",
     group: "guide",
     priority: 0.7,
   },
@@ -176,9 +257,69 @@ export const PERSONAS = {
     group: "persona",
     priority: 0.6,
   },
+  founder: {
+    path: "/for/founders",
+    title: "ilolink for founders",
+    blurb:
+      "Share investor updates and pitches as a link, and see whether they got opened and read.",
+    group: "persona",
+    priority: 0.6,
+  },
+  marketer: {
+    path: "/for/marketers",
+    title: "ilolink for marketers",
+    blurb:
+      "Share landing-page mockups and campaign pages, and see where attention went with heatmaps.",
+    group: "persona",
+    priority: 0.6,
+  },
+  sales: {
+    path: "/for/sales",
+    title: "ilolink for sales teams",
+    blurb:
+      "Send proposals and one-pagers to prospects, then time your follow-up by how they engaged.",
+    group: "persona",
+    priority: 0.6,
+  },
+  teacher: {
+    path: "/for/teachers",
+    title: "ilolink for teachers",
+    blurb:
+      "Share handouts and lessons as a link and see how far students read — in aggregate, never per-student.",
+    group: "persona",
+    priority: 0.6,
+  },
 } as const satisfies Record<string, SitePage>;
 
-// ── Reference (Groups F18 glossary, D11 use cases) ───────────────────────
+// ── Go deeper (Groups D13 metrics, E15 location, B6 free) ────────────────
+export const DEEP_GUIDES = {
+  analytics: {
+    path: "/guides/reading-your-analytics",
+    title: "How to read your share analytics",
+    blurb:
+      "Views, scroll depth, heatmaps and feedback — what each one tells you and what 'good' looks like.",
+    group: "guide",
+    priority: 0.7,
+  },
+  whereHosted: {
+    path: "/guides/where-hosted",
+    title: "Where your shared docs live",
+    blurb:
+      "Cloudflare's edge, HTTPS, and cookieless measurement — what's collected and what isn't.",
+    group: "guide",
+    priority: 0.6,
+  },
+  freeHosting: {
+    path: "/guides/free-html-hosting",
+    title: "Free HTML hosting: what “free” actually costs",
+    blurb:
+      "What free hosts quietly charge you — expiry, caps, watermarks — and what ilolink includes free.",
+    group: "guide",
+    priority: 0.7,
+  },
+} as const satisfies Record<string, SitePage>;
+
+// ── Reference (Groups F18 glossary, D11 use cases, F19 FAQ) ───────────────
 // Glossary = short quotable definitions (prime AI-citation material). Use cases
 // = examples paired with the analytics question each one answers.
 export const REFERENCE = {
@@ -197,6 +338,69 @@ export const REFERENCE = {
       "Real examples — specs, prototypes, client reports — each paired with the question the analytics answer.",
     group: "reference",
     priority: 0.6,
+  },
+  faq: {
+    path: "/faq",
+    title: "Frequently asked questions",
+    blurb: "Accounts, privacy, formats, size limits, link permanence — the direct answers.",
+    group: "reference",
+    priority: 0.6,
+  },
+} as const satisfies Record<string, SitePage>;
+
+// ── Help center (Group E16) ──────────────────────────────────────────────
+// Real troubleshooting for the common failure modes, grounded in the served-doc
+// CSP (inline styles + Google Fonts allowed; other external assets blocked;
+// relative paths break; https/data images only).
+export const HELP = {
+  hub: {
+    path: "/help",
+    title: "Help center",
+    blurb: "Fix the common issues and get the most out of ilolink.",
+    group: "help",
+    priority: 0.5,
+  },
+  broken: {
+    path: "/help/html-looks-broken",
+    title: "My HTML looks broken",
+    blurb: "Why a page can render differently once hosted — usually a blocked CDN link — and the fix.",
+    group: "help",
+    priority: 0.5,
+  },
+  images: {
+    path: "/help/images-dont-load",
+    title: "My images don't load",
+    blurb: "Relative and http: image paths break; use an absolute https URL or embed the image.",
+    group: "help",
+    priority: 0.5,
+  },
+  large: {
+    path: "/help/file-too-large",
+    title: "My file is too large",
+    blurb: "The 2 MB per-doc cap, why it exists, and how to get under it.",
+    group: "help",
+    priority: 0.5,
+  },
+  unlock: {
+    path: "/help/page-wont-unlock",
+    title: "My password page won't unlock",
+    blurb: "Why a password-protected page won't open, and how to fix or reset it.",
+    group: "help",
+    priority: 0.5,
+  },
+  notFound: {
+    path: "/help/link-shows-404",
+    title: "My link shows 404 or expired",
+    blurb: "Expired links, unpublished docs, and slug typos — how to tell which, and what to do.",
+    group: "help",
+    priority: 0.5,
+  },
+  deleteReplace: {
+    path: "/help/delete-or-replace",
+    title: "How to delete or replace a published doc",
+    blurb: "Docs are immutable — how to publish a replacement and remove the old one.",
+    group: "help",
+    priority: 0.5,
   },
 } as const satisfies Record<string, SitePage>;
 
@@ -243,11 +447,14 @@ export const LEGAL = {
 // this registry (they're not part of the content plan's surface).
 export const ALL_PAGES: SitePage[] = [
   ...Object.values(PILLARS),
+  ...Object.values(GETTING_STARTED),
   ...Object.values(HOW_TOS),
+  ...Object.values(DEEP_GUIDES),
   ...Object.values(PAIN_POINTS),
   ...Object.values(COMPARISONS),
   ...Object.values(PERSONAS),
   ...Object.values(REFERENCE),
+  ...Object.values(HELP),
   ...Object.values(LEGAL),
 ];
 

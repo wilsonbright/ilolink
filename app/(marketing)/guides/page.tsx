@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   PILLARS,
+  GETTING_STARTED,
   HOW_TOS,
+  DEEP_GUIDES,
   PAIN_POINTS,
   COMPARISONS,
   PERSONAS,
   REFERENCE,
+  HELP,
   type SitePage,
 } from "@/lib/seo/site";
 import { Article, Breadcrumbs, PageHeader } from "../_components/content";
@@ -72,8 +75,18 @@ export default function GuidesIndex() {
       />
       <Section heading="Start here" pages={Object.values(PILLARS)} />
       <Section
+        heading="Get started"
+        pages={Object.values(GETTING_STARTED)}
+        size="sm"
+      />
+      <Section
         heading="Share output from a specific tool"
         pages={Object.values(HOW_TOS)}
+        size="sm"
+      />
+      <Section
+        heading="Go deeper"
+        pages={Object.values(DEEP_GUIDES)}
         size="sm"
       />
       <Section
@@ -90,6 +103,11 @@ export default function GuidesIndex() {
       <Section
         heading="Reference"
         pages={Object.values(REFERENCE)}
+        size="sm"
+      />
+      <Section
+        heading="Help & troubleshooting"
+        pages={Object.values(HELP)}
         size="sm"
       />
     </Article>
