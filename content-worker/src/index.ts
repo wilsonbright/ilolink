@@ -95,12 +95,23 @@ function utcDay(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// The app dashboard (https://ilolink.com) reads these JSON endpoints —
+// /_comments and /_feedback — cross-origin from the content origin. Without an
+// Access-Control-Allow-Origin header the browser blocks the response (the fetch
+// rejects even though the worker returns 200), so the dashboard shows "Couldn't
+// load comments / reactions" despite the data existing. These are simple GETs
+// (no custom headers, no credentials), so a response ACAO is sufficient — no
+// preflight. Scoped to the app origin, not '*'. Harmless on the POST responses.
+const APP_ORIGIN = "https://ilolink.com";
+
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
+      "access-control-allow-origin": APP_ORIGIN,
+      vary: "Origin",
     },
   });
 }
