@@ -97,6 +97,22 @@ export async function publishForWorkspace(
   workspaceId: string,
   input: PublishToolInput,
 ): Promise<PublishResult> {
+  // 0. Per-workspace quota on live documents.
+  const q = await b.DB.prepare("SELECT quota_docs FROM workspaces WHERE id = ?")
+    .bind(workspaceId)
+    .first<{ quota_docs: number }>();
+  const quota = q?.quota_docs ?? 50;
+  const cnt = await b.DB.prepare(
+    "SELECT COUNT(*) AS n FROM documents WHERE workspace_id = ? AND unpublished_at IS NULL",
+  )
+    .bind(workspaceId)
+    .first<{ n: number }>();
+  if ((cnt?.n ?? 0) >= quota) {
+    throw new PublishError(
+      `You've reached your ${quota}-document limit. Unpublish one, or manage documents on your dashboard.`,
+    );
+  }
+
   // 1. Assemble the raw content (inline text or a data URL from base64).
   let content: string;
   if (input.file_base64) {

@@ -102,54 +102,6 @@ export async function touchLastSeen(DB: D1Database, id: string): Promise<void> {
     .run();
 }
 
-// --- Signed, login-free dashboard URL ---
-// The link is the key. For the OAuth path the workspace id is never shown to the
-// user, so we bind it into an HMAC-signed token. The dashboard route (Phase 3)
-// verifies the signature before rendering.
-
-function b64url(bytes: ArrayBuffer): string {
-  let bin = "";
-  for (const b of new Uint8Array(bytes)) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-async function hmac(secret: string, msg: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(msg),
-  );
-  return b64url(sig);
-}
-
-export async function signedDashboardUrl(
-  workspaceId: string,
-  secret: string,
-): Promise<string> {
-  const sig = await hmac(secret, workspaceId);
-  return `https://ilolink.com/w/${workspaceId}~${sig}`;
-}
-
-// Constant-time-ish verify for the dashboard route.
-export async function verifyDashboardToken(
-  token: string,
-  secret: string,
-): Promise<string | null> {
-  const i = token.indexOf("~");
-  if (i < 0) return null;
-  const id = token.slice(0, i);
-  const sig = token.slice(i + 1);
-  const expected = await hmac(secret, id);
-  if (sig.length !== expected.length) return null;
-  let diff = 0;
-  for (let k = 0; k < sig.length; k++)
-    diff |= sig.charCodeAt(k) ^ expected.charCodeAt(k);
-  return diff === 0 ? id : null;
-}
+// Signed, login-free dashboard URLs live in the shared token module (the app
+// dashboard route verifies with the same HMAC + shared DASHBOARD_SECRET).
+export { signedDashboardUrl, verifyDashboardToken } from "@/lib/mcp/dashboard-token";

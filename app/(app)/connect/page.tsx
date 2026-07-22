@@ -71,9 +71,78 @@ export default function ConnectPage() {
 
       <h2 className="mt-10 text-lg font-medium text-ink">ChatGPT</h2>
       <p className="mt-2 text-ink-soft">
-        A tokenized connector URL for ChatGPT Developer Mode is coming next. For
-        now, use ilolink on the web or with Claude.
+        ChatGPT needs <span className="text-ink">Developer Mode</span> (Plus, Pro,
+        Business, or Enterprise). Create a workspace, then add its connector URL as
+        a custom connector with <span className="text-ink">no authentication</span>.
       </p>
+      <ChatGptConnect />
     </section>
+  );
+}
+
+interface Minted {
+  connector_url: string;
+  dashboard_url: string;
+}
+
+function ChatGptConnect() {
+  const [minted, setMinted] = useState<Minted | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function mint() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/connect", { method: "POST" });
+      const data = (await res.json()) as Minted & { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Could not create a workspace.");
+      setMinted({ connector_url: data.connector_url, dashboard_url: data.dashboard_url });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!minted) {
+    return (
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={mint}
+          disabled={busy}
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-ink disabled:opacity-50"
+        >
+          {busy ? "Creating…" : "Create my ChatGPT workspace"}
+        </button>
+        {error ? <p className="mt-2 text-sm text-[#b3261e]">{error}</p> : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 space-y-4">
+      <div>
+        <p className="text-sm font-medium text-ink">Connector URL (paste into ChatGPT)</p>
+        <CopyRow value={minted.connector_url} />
+        <p className="mt-1 text-sm text-[#b3261e] dark:text-[#f2827a]">
+          Treat this like a password — anyone with it can publish to your workspace.
+        </p>
+      </div>
+      <div>
+        <p className="text-sm font-medium text-ink">Your private dashboard</p>
+        <CopyRow value={minted.dashboard_url} />
+        <p className="mt-1 text-sm text-ink-faint">Bookmark it. No login — the link is the key.</p>
+      </div>
+      <ol className="list-decimal space-y-2 pl-5 text-ink-soft">
+        <li>In ChatGPT, enable <span className="text-ink">Developer Mode</span> (Settings).</li>
+        <li>
+          Add a custom connector, paste the connector URL, choose{" "}
+          <span className="text-ink">No authentication</span>.
+        </li>
+        <li>Enable it for a chat, then: <em>&ldquo;Use ilolink to publish this as a page.&rdquo;</em></li>
+      </ol>
+    </div>
   );
 }
