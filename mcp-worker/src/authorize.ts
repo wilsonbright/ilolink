@@ -58,15 +58,19 @@ export const authorizeHandler = {
     const url = new URL(request.url);
 
     if (url.pathname === "/authorize") {
-      const oauthReq = await helpers.parseAuthRequest(request);
-
+      // GET: parse the OAuth request from the query (this validates redirect_uri
+      // etc.) and render the consent page, carrying the request forward as state.
       if (request.method === "GET") {
+        const oauthReq = await helpers.parseAuthRequest(request);
         const state = btoa(JSON.stringify(oauthReq));
         return new Response(page(state), {
           headers: { "content-type": "text/html; charset=utf-8" },
         });
       }
 
+      // POST (approve): reconstruct the AuthRequest from state — do NOT call
+      // parseAuthRequest here, the POST has no query params so it would reject an
+      // empty redirect_uri.
       if (request.method === "POST") {
         const form = await request.formData();
         let parsed: { scope?: string[] } & Record<string, unknown>;
