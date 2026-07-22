@@ -14,7 +14,15 @@
   "routes": [{ "pattern": "mcp.ilolink.com", "custom_domain": true }],
   // The McpAgent runs as a SQLite-backed Durable Object.
   "durable_objects": {
-    "bindings": [{ "name": "MCP_OBJECT", "class_name": "IlolinkMCP" }]
+    "bindings": [
+      { "name": "MCP_OBJECT", "class_name": "IlolinkMCP" },
+      // Cross-script: exact per-doc view counter defined in the content worker.
+      {
+        "name": "VIEW_COUNTER",
+        "class_name": "ViewCounter",
+        "script_name": "ilolink-content"
+      }
+    ]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["IlolinkMCP"] }],
   // OAuth provider token/grant/client store (workers-oauth-provider requires it).
