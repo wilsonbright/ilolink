@@ -20,9 +20,36 @@ import {
 } from "@/lib/publish/store-core";
 import { generateSlug, isValidCustomSlug } from "@/lib/slug";
 import { hashPassword } from "@/lib/crypto/password";
+import { scanContent } from "@/lib/abuse/scan";
 import type { SourceType, Visibility } from "@/lib/types";
 
 const MAX_TEXT_BYTES = 2 * 1024 * 1024; // 2 MB, matches the web path
+
+// Flagged publishes before a workspace is auto-suspended.
+const ABUSE_FLAG_LIMIT = 5;
+
+// Suspend a workspace and take all its live docs offline (reversible: rows +
+// R2 bodies stay; the KV slug records are dropped so links 404).
+export async function suspendWorkspace(
+  b: PublishBindings,
+  workspaceId: string,
+): Promise<void> {
+  const now = Date.now();
+  const docs = await b.DB.prepare(
+    "SELECT slug FROM documents WHERE workspace_id = ? AND unpublished_at IS NULL",
+  )
+    .bind(workspaceId)
+    .all<{ slug: string }>();
+  await b.DB.prepare("UPDATE workspaces SET status = 'suspended' WHERE id = ?")
+    .bind(workspaceId)
+    .run();
+  await b.DB.prepare(
+    "UPDATE documents SET unpublished_at = ? WHERE workspace_id = ? AND unpublished_at IS NULL",
+  )
+    .bind(now, workspaceId)
+    .run();
+  await Promise.all(docs.results.map((d) => b.KV.delete(`slug:${d.slug}`)));
+}
 
 export interface PublishToolInput {
   content?: string;
@@ -97,11 +124,18 @@ export async function publishForWorkspace(
   workspaceId: string,
   input: PublishToolInput,
 ): Promise<PublishResult> {
-  // 0. Per-workspace quota on live documents.
-  const q = await b.DB.prepare("SELECT quota_docs FROM workspaces WHERE id = ?")
+  // 0. Workspace status + quota.
+  const q = await b.DB.prepare(
+    "SELECT quota_docs, status FROM workspaces WHERE id = ?",
+  )
     .bind(workspaceId)
-    .first<{ quota_docs: number }>();
-  const quota = q?.quota_docs ?? 50;
+    .first<{ quota_docs: number; status: string }>();
+  if (!q || q.status !== "active") {
+    throw new PublishError(
+      "This workspace is suspended. If you believe this is a mistake, contact abuse@ilolink.com.",
+    );
+  }
+  const quota = q.quota_docs ?? 50;
   const cnt = await b.DB.prepare(
     "SELECT COUNT(*) AS n FROM documents WHERE workspace_id = ? AND unpublished_at IS NULL",
   )
@@ -146,6 +180,7 @@ export async function publishForWorkspace(
   let sourceType: SourceType;
   let title: string;
   let store: (docId: string) => Promise<{ id: string; rendered_r2_key: string; raw_r2_key: string }>;
+  let scanHtml = ""; // rendered HTML fed to the abuse scan (empty for pdf bytes)
 
   if (upload) {
     const bytes = decodeDataUrl(content);
@@ -164,6 +199,7 @@ export async function publishForWorkspace(
       });
       const r = renderContent(html, "html");
       title = input.title ?? r.title ?? input.filename?.replace(/\.[^.]+$/, "") ?? "Document";
+      scanHtml = r.html;
       store = (docId) => storeVersionWith(b, docId, html, r.html, "html");
     }
   } else {
@@ -176,7 +212,18 @@ export async function publishForWorkspace(
     const r = renderContent(content, st);
     sourceType = st;
     title = input.title ?? r.title ?? "Untitled";
+    scanHtml = r.html;
     store = (docId) => storeVersionWith(b, docId, content, r.html, st);
+  }
+
+  // 2b. Abuse scan (backstop; the sanitizer already stripped active markup).
+  // Block egregious credential-capture up front; softer signals are flagged
+  // after publish and feed workspace auto-suspension.
+  const scan = scanContent(sourceType === "pdf" ? title : content, scanHtml);
+  if (scan.verdict === "block") {
+    throw new PublishError(
+      "This content looks like a phishing or credential-capture page, so it can't be published.",
+    );
   }
 
   // 3. Slug + rows + KV, all under this workspace.
@@ -202,6 +249,21 @@ export async function publishForWorkspace(
     expires_at: expiresAt,
     source_type: sourceType,
   });
+
+  // Softer signal: allowed, but counted. Auto-suspend the workspace on repeat.
+  if (scan.verdict === "flag") {
+    await b.DB.prepare(
+      "UPDATE workspaces SET abuse_flags = abuse_flags + 1 WHERE id = ?",
+    )
+      .bind(workspaceId)
+      .run();
+    const w = await b.DB.prepare("SELECT abuse_flags FROM workspaces WHERE id = ?")
+      .bind(workspaceId)
+      .first<{ abuse_flags: number }>();
+    if ((w?.abuse_flags ?? 0) >= ABUSE_FLAG_LIMIT) {
+      await suspendWorkspace(b, workspaceId);
+    }
+  }
 
   return {
     document_id: doc.id,

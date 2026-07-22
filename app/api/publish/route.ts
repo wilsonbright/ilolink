@@ -18,6 +18,7 @@ import { generateSlug, isValidCustomSlug } from "@/lib/slug";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { newManageToken, hashToken } from "@/lib/manage-token";
+import { scanContent } from "@/lib/abuse/scan";
 import {
   MAX_BODY_BYTES,
   MAX_BINARY_BYTES,
@@ -268,6 +269,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   let title: string;
   let store: (docId: string) => Promise<DocumentVersion>;
 
+  let scanHtml = ""; // rendered HTML fed to the abuse scan (empty for pdf bytes)
   if (input.upload) {
     const bytes = decodeDataUrl(input.content);
     if (!bytes) return bad("Malformed upload — expected a base64 data URL.");
@@ -289,12 +291,23 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
       const { html, title: t } = renderAndSanitize(converted, "html");
       title = input.title ?? t ?? "Document";
+      scanHtml = html;
       store = (docId) => storeVersion(docId, converted, html, "html");
     }
   } else {
     const { html, title: t } = renderAndSanitize(input.content, input.sourceType);
     title = input.title ?? t ?? "Untitled";
+    scanHtml = html;
     store = (docId) => storeVersion(docId, input.content, html, input.sourceType);
+  }
+
+  // Abuse backstop: block egregious credential-capture / phishing pages. Softer
+  // signals are allowed on the web path (no workspace to flag).
+  if (scanContent(input.content, scanHtml).verdict === "block") {
+    return bad(
+      "This content looks like a phishing or credential-capture page, so it can't be published.",
+      422,
+    );
   }
 
   const slug = await resolveSlug(input.customSlug);

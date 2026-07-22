@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
         { source: "/_collect", destination: `${CONTENT}/_collect` },
         { source: "/_feedback", destination: `${CONTENT}/_feedback` },
         { source: "/_comments", destination: `${CONTENT}/_comments` },
+        { source: "/_report", destination: `${CONTENT}/_report` },
         { source: "/_unlock/:slug", destination: `${CONTENT}/_unlock/:slug` },
         // Binary bytes for pdf documents, streamed by the content worker and
         // framed by the doc page's same-origin <iframe>.

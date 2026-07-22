@@ -288,6 +288,11 @@ ${css}
 </head>
 <body>
 ${bodyInner}
+<!-- Abuse report affordance (spec §7): subtle, on every published page. -->
+<a id="ilo-report" href="#" style="position:fixed;left:10px;bottom:10px;font:12px/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--ink-faint,#8a8a80);text-decoration:none;opacity:.55;z-index:2147483000">⚑ Report</a>
+<script nonce="${opts.nonce}">
+(function(){var m=document.querySelector('meta[name="ilo:doc"]');var doc=m&&m.getAttribute('content');var a=document.getElementById('ilo-report');if(!a||!doc)return;a.addEventListener('click',function(e){e.preventDefault();var r=window.prompt('Report this page. What is wrong? (phishing, spam, malware, abuse…)');if(!r)return;fetch('/_report',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({doc:doc,reason:r})}).then(function(){a.textContent='⚑ Reported';a.style.pointerEvents='none';},function(){a.textContent='⚑ Report failed';});});})();
+</script>
 <!-- First-party, same-origin interaction scripts; admitted only by this nonce. -->
 <script nonce="${opts.nonce}" src="/tracker.js"></script>
 <script nonce="${opts.nonce}" src="/widget.js"></script>
@@ -512,6 +517,105 @@ type CommentAnchor =
     }
   | { type: "point"; x: number; y: number; label: string }
   | { type: "region"; x: number; y: number; w: number; h: number; label: string };
+
+// --- Abuse reports (spec §7) ---
+const REPORT_LIMIT = 3; // distinct reporters before a doc is auto-unpublished
+const WS_REPORT_FLAG_LIMIT = 5; // workspace flags before auto-suspension
+
+// POST /_report — a viewer flags a published page. Honeypot + IP rate-limit +
+// per-reporter dedupe. At REPORT_LIMIT distinct reporters the doc is taken
+// offline; repeated hits suspend the owning workspace.
+async function postReport(request: Request, env: Env): Promise<Response> {
+  let data: Record<string, unknown>;
+  try {
+    data = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return jsonResponse({ error: "bad json" }, 400);
+  }
+  if (String(data.hp ?? "") !== "") return jsonResponse({ ok: true }); // honeypot
+
+  const docId = typeof data.doc === "string" ? data.doc : "";
+  let reason = typeof data.reason === "string" ? data.reason.slice(0, 500).trim() : "";
+  if (!docId) return jsonResponse({ error: "missing doc" }, 400);
+  if (!reason) reason = "unspecified";
+
+  const ip = clientIp(request);
+  if (!(await rateLimitKV(env, `rep:${ip}`, 10, 3600))) {
+    return jsonResponse({ error: "rate limited" }, 429);
+  }
+  if (!(await docExists(env, docId))) {
+    return jsonResponse({ error: "not found" }, 404);
+  }
+
+  const ua = request.headers.get("user-agent") ?? "";
+  const rh = await visitorHash(ip, ua, docId, saltSecret(env));
+
+  const existing = await env.DB.prepare(
+    "SELECT id FROM reports WHERE document_id = ? AND reporter_hash = ?",
+  )
+    .bind(docId, rh)
+    .first();
+  if (!existing) {
+    await env.DB.prepare(
+      "INSERT INTO reports (id, document_id, reason, reporter_hash, created_at, status) VALUES (?, ?, ?, ?, ?, 'open')",
+    )
+      .bind(crypto.randomUUID(), docId, reason, rh, Date.now())
+      .run();
+  }
+
+  const cnt = await env.DB.prepare(
+    "SELECT COUNT(DISTINCT reporter_hash) AS n FROM reports WHERE document_id = ?",
+  )
+    .bind(docId)
+    .first<{ n: number }>();
+  if ((cnt?.n ?? 0) >= REPORT_LIMIT) {
+    await autoActionDoc(env, docId);
+  }
+  return jsonResponse({ ok: true });
+}
+
+// Take a reported doc offline and flag/suspend its workspace. Reversible: the
+// D1 row + R2 bodies stay; only the KV slug records are dropped so links 404.
+async function autoActionDoc(env: Env, docId: string): Promise<void> {
+  const doc = await env.DB.prepare(
+    "SELECT slug, workspace_id, unpublished_at FROM documents WHERE id = ?",
+  )
+    .bind(docId)
+    .first<{ slug: string; workspace_id: string | null; unpublished_at: number | null }>();
+  if (!doc || doc.unpublished_at) return;
+
+  await env.DB.prepare("UPDATE documents SET unpublished_at = ? WHERE id = ?")
+    .bind(Date.now(), docId)
+    .run();
+  await env.KV.delete(`slug:${doc.slug}`);
+  await env.DB.prepare("UPDATE reports SET status = 'actioned' WHERE document_id = ?")
+    .bind(docId)
+    .run();
+
+  if (!doc.workspace_id) return;
+  await env.DB.prepare("UPDATE workspaces SET abuse_flags = abuse_flags + 1 WHERE id = ?")
+    .bind(doc.workspace_id)
+    .run();
+  const w = await env.DB.prepare("SELECT abuse_flags FROM workspaces WHERE id = ?")
+    .bind(doc.workspace_id)
+    .first<{ abuse_flags: number }>();
+  if ((w?.abuse_flags ?? 0) >= WS_REPORT_FLAG_LIMIT) {
+    const others = await env.DB.prepare(
+      "SELECT slug FROM documents WHERE workspace_id = ? AND unpublished_at IS NULL",
+    )
+      .bind(doc.workspace_id)
+      .all<{ slug: string }>();
+    await env.DB.prepare("UPDATE workspaces SET status = 'suspended' WHERE id = ?")
+      .bind(doc.workspace_id)
+      .run();
+    await env.DB.prepare(
+      "UPDATE documents SET unpublished_at = ? WHERE workspace_id = ? AND unpublished_at IS NULL",
+    )
+      .bind(Date.now(), doc.workspace_id)
+      .run();
+    await Promise.all(others.results.map((d) => env.KV.delete(`slug:${d.slug}`)));
+  }
+}
 
 function frac(v: unknown): number | null {
   if (typeof v !== "number" || !Number.isFinite(v)) return null;
@@ -783,6 +887,12 @@ export default {
         return commentsList(env, docId);
       }
       if (request.method === "POST") return postComment(request, env);
+      return notFoundPage();
+    }
+
+    // ─── abuse report ────────────────────────────────────────────────────
+    if (pathname === "/_report") {
+      if (request.method === "POST") return postReport(request, env);
       return notFoundPage();
     }
 
