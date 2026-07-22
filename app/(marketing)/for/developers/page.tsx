@@ -76,11 +76,14 @@ export default function Page() {
           </li>
         </ul>
         <p>
-          One honest caveat: if your HTML doc carries interactive JavaScript, it
-          is frozen to static on the way in. Scripts are dropped and don&apos;t
-          run — the layout and CSS render, so an interactive widget shows as a
-          visual preview, not a working control. For docs that&apos;s rarely a
-          problem; prose, code, and tables are all static anyway.
+          One honest caveat: by default, if your HTML doc carries interactive
+          JavaScript, it is frozen to static on the way in. Scripts are dropped
+          and don&apos;t run — the layout and CSS render, so an interactive
+          widget shows as a visual preview, not a working control. For docs
+          that&apos;s rarely a problem; prose, code, and tables are all static
+          anyway. If you do need the scripts to run, mark the doc trusted at
+          publish time and it&apos;s served as-is inside a sandboxed frame on the
+          isolated origin.
         </p>
 
         <h2>See if the team read it</h2>
@@ -153,9 +156,10 @@ export default function Page() {
         It won&apos;t tell you <strong>who</strong> read the doc. Analytics are
         cookieless and aggregate — unique views are approximate, built from a
         rotating visitor hash with no fingerprint and no per-person identity. And
-        it&apos;s a reading shell, not a runtime: interactive JavaScript in an
-        HTML doc is frozen to static, so it renders as a preview, not a running
-        app.
+        by default it&apos;s a reading shell, not a runtime: interactive
+        JavaScript in an HTML doc is frozen to static, so it renders as a
+        preview, not a running app — unless you mark the doc trusted, which runs
+        its scripts sandboxed on the isolated origin.
       </Callout>
 
       <Faq

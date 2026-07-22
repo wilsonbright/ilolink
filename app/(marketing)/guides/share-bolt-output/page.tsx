@@ -117,8 +117,11 @@ export default function Page() {
           content-security policy (<code>default-src &apos;none&apos;</code>).
           Untrusted AI HTML is sanitized on the way in: scripts are stripped and{" "}
           <strong>interactive JavaScript is frozen to static</strong>, so the
-          layout and CSS render as designed but nothing executes — you get a
-          visual preview, not a live app. Inline <code>&lt;style&gt;</code> and
+          layout and CSS render as designed but nothing runs by default — you get
+          a visual preview, not a live app. If you mark an HTML doc as trusted at
+          publish time, it&apos;s kept as-is and its own scripts run, contained
+          inside a sandboxed, opaque-origin frame on that same isolated origin.
+          Inline <code>&lt;style&gt;</code> and
           Google Fonts work; external stylesheets, external scripts, relative
           asset paths, and <code>http:</code> images do not, so keep everything
           inline and on <code>https</code> or <code>data</code> URLs. The cap is
@@ -186,7 +189,7 @@ export default function Page() {
           },
           {
             q: "Does the interactive JavaScript still work?",
-            a: "No. Interactive JS is frozen to static, so the layout and CSS render as designed and you get a faithful visual preview that doesn't execute as a live app. For a running app, deploy the Bolt.new build on a dev platform.",
+            a: "Not by default. Interactive JS is frozen to static, so the layout and CSS render as designed and you get a faithful visual preview that doesn't execute. But if you mark the doc as trusted at publish time, it runs as-is inside a sandboxed frame on the isolated origin. For a full production app, deploy the Bolt.new build on a dev platform.",
           },
           {
             q: "Can I password-protect it?",

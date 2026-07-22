@@ -166,9 +166,11 @@ export default function Page() {
       <Callout title="One honest limit">
         Docs are immutable — one version per link. There&apos;s no version
         history or rollback yet. If the Le Chat output changes, you publish a new
-        doc and share the new link. Sanitizing is strict: interactive JavaScript
-        renders frozen to static, so an interactive build shows as a visual
-        preview, not a running app.
+        doc and share the new link. By default, sanitizing is strict:
+        interactive JavaScript renders frozen to static, so an interactive build
+        shows as a visual preview, not a running app — unless you mark the doc
+        trusted at publish time, which runs it as-is inside a sandboxed frame on
+        the isolated origin.
       </Callout>
 
       <Faq
@@ -183,7 +185,7 @@ export default function Page() {
           },
           {
             q: "What if the Le Chat output has interactive JavaScript?",
-            a: "It's frozen to static — the layout and CSS render so the page looks right, but no arbitrary JavaScript runs, so an interactive build shows as a static visual preview rather than a running app.",
+            a: "Not by default — it's frozen to static, so the layout and CSS render and the page looks right, but scripts don't run and an interactive build shows as a static visual preview. If you mark the doc trusted at publish time, it runs as-is inside a sandboxed frame on the isolated origin.",
           },
           {
             q: "Can I password-protect it?",

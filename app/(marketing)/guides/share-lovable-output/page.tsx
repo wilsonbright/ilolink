@@ -115,9 +115,12 @@ export default function Page() {
         <p>
           The branded link 302-redirects to an isolated render origin,{" "}
           <code>view.ilolink.com</code>, where the doc is served under a strict
-          content-security policy. On the way in, the HTML is sanitized:
-          scripts are stripped and interactive JavaScript is frozen to its
-          static state, so no arbitrary code runs. Inline CSS, Google Fonts, and{" "}
+          content-security policy. On the way in, the HTML is sanitized by
+          default: scripts are stripped and interactive JavaScript is frozen to
+          its static state, so no arbitrary code runs — unless you mark the doc
+          trusted at publish time, in which case it&apos;s served as-is and its
+          scripts run inside a sandboxed frame on that same isolated origin.
+          Inline CSS, Google Fonts, and{" "}
           <code>https</code> and <code>data</code> images render, so the design
           survives — the app just doesn&apos;t execute. The cap is 2 MB per doc,
           and every doc loads on its own isolated origin.
@@ -180,7 +183,7 @@ export default function Page() {
           },
           {
             q: "Will my Lovable app actually run on the page?",
-            a: "No. Interactive JavaScript is frozen to static, so the page renders as a visual preview — layout and CSS come through, but buttons, state, and routing don't execute. For a live app, host the build on a dev platform.",
+            a: "Not by default. Interactive JavaScript is frozen to static, so the page renders as a visual preview — layout and CSS come through, but buttons, state, and routing don't execute. If you mark the doc trusted at publish time, though, it's served as-is and its scripts run inside a sandboxed frame on the isolated origin. Otherwise, for a live app, host the build on a dev platform.",
           },
           {
             q: "Can I password-protect it?",
