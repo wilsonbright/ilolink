@@ -17,6 +17,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.8.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "agents": "^0.17.4",
     "mammoth": "^1.12.0",
     "markdown-it": "^14.1.0",
     "nanoid": "^5.0.9",
