@@ -49,6 +49,52 @@ function isDelimited(s: string): "," | "\t" | null {
   return null;
 }
 
+// --- Binary uploads (pdf, docx) — pure helpers shared by the app route and the
+// MCP worker. No env(); safe to import into a standalone Worker bundle. ---
+
+// Binary uploads are far larger than text; base64 in a data URL inflates ~33%.
+export const MAX_BINARY_BYTES = 15 * 1024 * 1024; // 15 MB (decoded)
+
+// Detect a binary upload from its data-URL MIME. The server re-derives this from
+// the content itself — it never trusts the client's declared sourceType.
+export function detectUpload(content: string): "pdf" | "docx" | null {
+  const head = content.slice(0, 120).toLowerCase();
+  if (head.startsWith("data:application/pdf")) return "pdf";
+  if (
+    head.startsWith(
+      "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+  ) {
+    return "docx";
+  }
+  return null;
+}
+
+// Decode a base64 data URL to bytes. Returns null if it isn't a base64 data URL.
+export function decodeDataUrl(content: string): Uint8Array | null {
+  const comma = content.indexOf(",");
+  if (comma < 0 || !/^data:[^,]*;base64$/i.test(content.slice(0, comma))) {
+    return null;
+  }
+  try {
+    return new Uint8Array(Buffer.from(content.slice(comma + 1), "base64"));
+  } catch {
+    return null;
+  }
+}
+
+// Convert docx bytes to HTML. The HTML still passes through sanitizeDocument.
+export async function docxToHtml(bytes: Uint8Array): Promise<string> {
+  const mammoth = (await import("mammoth")).default;
+  const result = await mammoth.convertToHtml({ buffer: Buffer.from(bytes) });
+  return result.value;
+}
+
+// Byte length of a UTF-8 string (matches what R2 stores, not JS char count).
+export function byteLength(s: string): number {
+  return new TextEncoder().encode(s).length;
+}
+
 export function detectFormat(raw: string, sourceType: SourceType): DocFormat {
   if (/^data:image\//i.test(raw.trim())) return "image";
   if (sourceType === "html" || looksHtml(raw)) return "html";

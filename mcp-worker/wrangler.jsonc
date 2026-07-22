@@ -17,5 +17,22 @@
     "bindings": [{ "name": "MCP_OBJECT", "class_name": "IlolinkMCP" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["IlolinkMCP"] }],
+  // OAuth provider token/grant/client store (workers-oauth-provider requires it).
+  // Shared data bindings — same D1/R2/KV/Analytics as the app + content worker.
+  "kv_namespaces": [
+    { "binding": "OAUTH_KV", "id": "2e3c66d708284f9f91c6163817c536b6" },
+    { "binding": "KV", "id": "b3b0ebce3b0842afa429cfa3372483e8" }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ilolink",
+      "database_id": "342cf013-28a3-4fb7-b5a6-650102fad933"
+    }
+  ],
+  "r2_buckets": [{ "binding": "DOCS", "bucket_name": "ilolink-docs" }],
+  "analytics_engine_datasets": [
+    { "binding": "EVENTS", "dataset": "ilolink_events" }
+  ],
   "observability": { "enabled": true }
 }

@@ -25,5 +25,12 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".open-next", "test", "vitest.config.ts"]
+  "exclude": [
+    "node_modules",
+    ".open-next",
+    "test",
+    "vitest.config.ts",
+    "content-worker",
+    "mcp-worker"
+  ]
 }

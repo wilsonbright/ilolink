@@ -35,52 +35,16 @@ export function isSourceType(v: unknown): v is SourceType {
   return v === "md" || v === "html" || v === "pdf";
 }
 
-// Binary uploads (pdf, docx) are far larger than text; base64 in a data URL
-// also inflates ~33%. Cap the DECODED byte size here.
-export const MAX_BINARY_BYTES = 15 * 1024 * 1024; // 15 MB
-
-// Detect a binary upload from its data-URL MIME. The server re-derives this from
-// the content itself — it never trusts the client's declared sourceType.
-export function detectUpload(content: string): "pdf" | "docx" | null {
-  const head = content.slice(0, 120).toLowerCase();
-  if (head.startsWith("data:application/pdf")) return "pdf";
-  if (
-    head.startsWith(
-      "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    )
-  ) {
-    return "docx";
-  }
-  return null;
-}
-
-// Decode a base64 data URL to bytes. Returns null if it isn't a base64 data URL.
-export function decodeDataUrl(content: string): Uint8Array | null {
-  const comma = content.indexOf(",");
-  if (comma < 0 || !/^data:[^,]*;base64$/i.test(content.slice(0, comma))) {
-    return null;
-  }
-  try {
-    return new Uint8Array(Buffer.from(content.slice(comma + 1), "base64"));
-  } catch {
-    return null;
-  }
-}
-
-// Convert docx bytes to HTML (headings, bold/italic, lists, tables, inline
-// images as data URLs). The HTML still passes through sanitizeDocument upstream.
-export async function docxToHtml(bytes: Uint8Array): Promise<string> {
-  const mammoth = (await import("mammoth")).default;
-  const result = await mammoth.convertToHtml({
-    buffer: Buffer.from(bytes),
-  });
-  return result.value;
-}
-
-// Byte length of a UTF-8 string (matches what R2 stores, not JS char count).
-export function byteLength(s: string): number {
-  return new TextEncoder().encode(s).length;
-}
+// Binary/format helpers moved to the pure formats module (shared with the MCP
+// worker). Re-exported here so existing app imports from @/lib/publish/pipeline
+// keep working.
+export {
+  MAX_BINARY_BYTES,
+  detectUpload,
+  decodeDataUrl,
+  docxToHtml,
+  byteLength,
+} from "@/lib/publish/formats";
 
 export interface RenderResult {
   html: string;
