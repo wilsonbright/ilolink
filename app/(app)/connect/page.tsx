@@ -38,34 +38,39 @@ export default function ConnectPage() {
     <section className="max-w-prose">
       <h1 className="text-2xl font-semibold text-ink">Connect ilolink to your AI</h1>
       <p className="mt-3 text-ink-soft">
-        Publish to ilolink from inside your chat — no account. A private workspace
-        is created for you on first connect.
+        Publish to ilolink from inside your chat — Claude, Grok, ChatGPT, and other
+        MCP-compatible assistants. No account; a private workspace is created for you
+        on first connect.
       </p>
 
-      <h2 className="mt-10 text-lg font-medium text-ink">Claude</h2>
+      <h2 className="mt-10 text-lg font-medium text-ink">
+        Claude, Grok &amp; other MCP assistants
+      </h2>
       <p className="mt-2 text-ink-soft">
-        In Claude, open <span className="text-ink">Settings → Connectors</span> →{" "}
-        <span className="text-ink">Add custom connector</span>, name it{" "}
-        <span className="text-ink">ilolink</span>, and paste this URL:
+        Any assistant that supports remote MCP connectors with OAuth (Claude, Grok,
+        and others) uses the same URL. Add it as a custom connector — name it{" "}
+        <span className="text-ink">ilolink</span> — and paste:
       </p>
       <CopyRow value={SERVER_URL} />
       <ol className="mt-4 list-decimal space-y-2 pl-5 text-ink-soft">
-        <li>Click <span className="text-ink">Add</span>, then <span className="text-ink">Connect</span>.</li>
+        <li>
+          Open your assistant&rsquo;s connectors settings (e.g.{" "}
+          <span className="text-ink">Settings → Connectors → Add custom connector</span> in
+          Claude, or <span className="text-ink">Skills &amp; Connectors</span> in Grok),
+          then <span className="text-ink">Add</span> / <span className="text-ink">Connect</span>.
+        </li>
         <li>
           On the ilolink screen, click <span className="text-ink">Authorize</span> —
           that creates your private, anonymous workspace. No password.
         </li>
-        <li>
-          In any chat, open <span className="text-ink">+ → Connectors</span> and turn{" "}
-          <span className="text-ink">ilolink</span> on for that conversation.
-        </li>
+        <li>Turn <span className="text-ink">ilolink</span> on for a conversation.</li>
         <li>
           Say: <em>&ldquo;Publish this as an ilolink page and give me the link.&rdquo;</em>{" "}
-          Claude returns your share URL plus your private dashboard link.
+          You get a share URL plus your private dashboard link.
         </li>
       </ol>
       <p className="mt-4 text-sm text-ink-faint">
-        Your dashboard link needs no login — the link is the key. Ask Claude{" "}
+        Your dashboard link needs no login — the link is the key. Ask{" "}
         <em>&ldquo;what&rsquo;s my ilolink dashboard link?&rdquo;</em> anytime, and keep it private.
       </p>
 

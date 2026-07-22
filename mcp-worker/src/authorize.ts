@@ -1,14 +1,15 @@
-// OAuth defaultHandler (Claude path). Renders the Authorize page and, on approve,
-// SILENTLY provisions an anonymous workspace — no email, no password — then
-// completes the grant. The provider injects env.OAUTH_PROVIDER (the OAuth
-// helpers) before calling this handler. See mcp-worker/PINNED.md.
+// OAuth defaultHandler. Renders the Authorize page for ANY MCP client (Claude,
+// Grok, and other MCP-compatible assistants) and, on approve, SILENTLY provisions
+// an anonymous workspace — no email, no password — then completes the grant. The
+// provider injects env.OAUTH_PROVIDER (the OAuth helpers). See mcp-worker/PINNED.md.
 
 import type { Env } from "./agent";
 import { getOrCreateByOauthSubject } from "./workspace";
 
 // The provider augments env with this helpers object at runtime (env.OAUTH_PROVIDER).
 interface OAuthHelpers {
-  parseAuthRequest(request: Request): Promise<{ scope?: string[] } & Record<string, unknown>>;
+  parseAuthRequest(request: Request): Promise<{ clientId?: string; scope?: string[] } & Record<string, unknown>>;
+  lookupClient(clientId: string): Promise<{ clientName?: string } | null>;
   completeAuthorization(o: {
     request: unknown;
     userId: string;
@@ -22,7 +23,16 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function page(stateB64: string): string {
+// The connecting app's own name (from OAuth client registration), or a neutral
+// fallback so the page never wrongly says "Claude" for Grok/others.
+function appName(raw?: string | null): string {
+  const n = (raw ?? "").trim();
+  if (!n || n.length > 40) return "your AI assistant";
+  return n;
+}
+
+function page(stateB64: string, client: string): string {
+  const app = esc(client);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Authorize ilolink</title>
@@ -37,18 +47,18 @@ ul{color:var(--soft);text-align:left;line-height:1.7;margin:0 auto 1.5rem;max-wi
 button{width:100%;padding:.8rem 1rem;font-size:1rem;font-weight:560;color:#fff;background:var(--accent);border:0;border-radius:9px;cursor:pointer}
 .fine{font-size:.82rem;color:var(--faint);margin-top:1.25rem}
 </style></head><body><div class="card">
-<h1>Connect ilolink to Claude</h1>
+<h1>Connect ilolink to ${app}</h1>
 <p>Approve to create a private, anonymous ilolink workspace. No account, no password.</p>
 <ul>
 <li>Publish documents to a shareable link, right from your chat.</li>
 <li>See views, scroll depth, and comments on a private dashboard.</li>
-<li>Ask Claude for your dashboard link anytime — it needs no login, so keep it private.</li>
+<li>Ask for your dashboard link anytime — it needs no login, so keep it private.</li>
 </ul>
 <form method="POST" action="/authorize">
 <input type="hidden" name="state" value="${esc(stateB64)}" />
 <button type="submit">Authorize</button>
 </form>
-<p class="fine">ilolink has no accounts. Approving creates a workspace tied to this Claude connection.</p>
+<p class="fine">ilolink has no accounts. Approving creates a workspace tied to this connection.</p>
 </div></body></html>`;
 }
 
@@ -62,8 +72,11 @@ export const authorizeHandler = {
       // etc.) and render the consent page, carrying the request forward as state.
       if (request.method === "GET") {
         const oauthReq = await helpers.parseAuthRequest(request);
+        const client = oauthReq.clientId
+          ? await helpers.lookupClient(oauthReq.clientId).catch(() => null)
+          : null;
         const state = btoa(JSON.stringify(oauthReq));
-        return new Response(page(state), {
+        return new Response(page(state, appName(client?.clientName)), {
           headers: { "content-type": "text/html; charset=utf-8" },
         });
       }

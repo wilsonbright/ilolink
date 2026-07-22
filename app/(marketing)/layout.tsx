@@ -78,6 +78,14 @@ export default function MarketingLayout({
                 </li>
                 <li>
                   <Link
+                    href="/connect"
+                    className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                  >
+                    Connect to Claude, Grok &amp; more
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/guides"
                     className="text-ink-soft transition-colors duration-150 hover:text-accent"
                   >
