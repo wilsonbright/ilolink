@@ -33,7 +33,15 @@ date, what was asked, what was done, files touched.
   - **Token rotation** `/api/connect/rotate` — migrates a leaked workspace to a fresh id (old connector + dashboard URLs die); dashboard rotate control.
   - **Quota** — per-workspace `quota_docs` enforced in publish-core.
 - **VERIFIED live end-to-end:** all 9 tools over MCP (publish/list/search/fetch/analytics/update/unpublish); ChatGPT mint→publish→dashboard→rotate (old URLs 404, docs migrated); signed OAuth dashboard token verifies cross-service, tampered sig → 404; unpublished slug 404s while still-published 200. Worker tsc clean; app 43 tests + build clean.
-- **Still open:** abuse scanning (queue a phishing/malware check on publish) + abuse-report route — deferred. Directory submission = Phase 4 (needs Team/Enterprise org). Live Claude "Add to Claude" click-through still needs the user's account.
+- **Directory submission = Phase 4 (needs Team/Enterprise org). Live Claude "Add to Claude" click-through still needs the user's account.**
+
+## 2026-07-22 — MCP connector: abuse scanning + report route (spec §7)
+- **Inline content scan** `lib/abuse/scan.ts` — precision heuristic: `block` only when a credential-capture STRUCTURE (password field / external form) coincides with phishing/crypto/brand phrasing; single softer signals `flag`. Wired into **MCP publish** (block rejects; flag increments `workspaces.abuse_flags`, auto-suspend at 5) and **web publish** (block only — no workspace to flag). 6 unit tests.
+- **Viewer report route** — content worker `POST /_report` (honeypot + IP rate-limit + per-reporter dedupe via salted hash); **3 distinct reports auto-unpublish** the doc + flag the owning workspace (suspend at 5). `/_report` reverse-proxied through `ilolink.com`. **"⚑ Report" link** (nonce'd) on every published page.
+- **Suspension** — suspended workspaces rejected at publish (token path + publish-core check); suspending takes all a workspace's docs offline (reversible: rows + R2 stay, KV slugs dropped).
+- migration 0005: `reports` table + `workspaces.abuse_flags`.
+- **VERIFIED live:** MCP block rejected a phishing page; flag published + incremented; 3 reports → doc 404s (`unpublished_at` set); suspended workspace rejected; report link renders. 49 tests; both workers tsc clean; app build clean.
+- **Deferred:** external malware/URL reputation scanning (heuristic only for now); a moderation queue/review UI; email alerts on suspension.
 - **Files:** `mcp-worker/src/{agent,docs,publish-core,workspace}.ts`, `lib/mcp/dashboard-token.ts`, `app/(app)/connect/page.tsx`, `app/(app)/w/[token]/{page,rotate}.tsx`, `app/api/connect/{route,rotate/route}.ts`, `migrations/0004_unpublish.sql`.
 - **Files:** `mcp-worker/{PINNED.md,wrangler.jsonc,tsconfig.json,src/{agent,index}.ts}`, `lib/publish/store-core.ts`, `lib/{r2/store,db/documents,publish/pipeline}.ts`, `migrations/0003_workspaces.sql`, `test/store-core.test.ts`, `docs/superpowers/plans/2026-07-22-mcp-connector.md`.
 
