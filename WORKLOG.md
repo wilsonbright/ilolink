@@ -5,6 +5,13 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — Fix: dashboard comments + reactions not loading (CORS) — branch `fix/comments-cors`
+- **Asked:** comments not loading for a doc (pxw5j9) though the dashboard shows a count (3 comments).
+- **Root cause (systematic-debugging, verified live):** the dashboard on `ilolink.com` fetches `${VIEW_ORIGIN}/_comments` and `/_feedback` **cross-origin** from `view.ilolink.com`. The worker returned 200 with the data but **no `Access-Control-Allow-Origin`**, so the browser dropped the body (`fetch` rejects → "Couldn't load comments"). The count still showed because it comes from a same-origin app query, not the view origin. Confirmed: D1 has 3 `status='visible'` comments; direct curl returns all 3; headless cross-origin `fetch` → `BLOCKED: Failed to fetch`.
+- **Fix:** `content-worker` `jsonResponse()` now sets `access-control-allow-origin: https://ilolink.com` + `Vary: Origin`. Simple GETs (no custom headers/credentials) need no preflight. Scoped to the app origin, not `*`. Fixes reactions (`/_feedback`) too.
+- **Verified:** worker `tsc` clean; deployed content worker; **CDP-drove real `https://ilolink.com` origin** → cross-origin fetch now returns `comments=3` (was `BLOCKED` pre-fix).
+- **Deployed:** content worker redeployed (version `1d2167c5`). Independent of the trusted-HTML work; split onto its own branch off `main` for fast merge.
+
 ## 2026-07-22 — MCP connector: research + plan + Phase 0 (branch `mcp-connector`)
 - **Asked:** "implement this spec next: ilolink-mcp-connector-spec.md" (ultracode). Then: don't show base64, show filename (done first — see chip commit `c6f1ed9` on main).
 - **Research (workflow, 10 agents = 5 topics + 5 adversarial critiques):** current APIs for Cloudflare Agents SDK `McpAgent`, `@cloudflare/workers-oauth-provider`, Claude connector OAuth, ChatGPT `search`/`fetch`, MCP tool contract. Critiques caught fabrications (a fake `@modelcontextprotocol/server` v2 split, `ctx.mcpReq.elicitInput`) → **Task 1 pinned every signature against installed node_modules** (`agents@0.17.4`, `@modelcontextprotocol/sdk@1.29.0`, `workers-oauth-provider@0.8.2`). See `mcp-worker/PINNED.md`.
