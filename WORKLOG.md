@@ -5,6 +5,19 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — MCP connector: research + plan + Phase 0 (branch `mcp-connector`)
+- **Asked:** "implement this spec next: ilolink-mcp-connector-spec.md" (ultracode). Then: don't show base64, show filename (done first — see chip commit `c6f1ed9` on main).
+- **Research (workflow, 10 agents = 5 topics + 5 adversarial critiques):** current APIs for Cloudflare Agents SDK `McpAgent`, `@cloudflare/workers-oauth-provider`, Claude connector OAuth, ChatGPT `search`/`fetch`, MCP tool contract. Critiques caught fabrications (a fake `@modelcontextprotocol/server` v2 split, `ctx.mcpReq.elicitInput`) → **Task 1 pinned every signature against installed node_modules** (`agents@0.17.4`, `@modelcontextprotocol/sdk@1.29.0`, `workers-oauth-provider@0.8.2`). See `mcp-worker/PINNED.md`.
+- **Plan:** `docs/superpowers/plans/2026-07-22-mcp-connector.md` — Phases 0–3, Global Constraints (pin versions, no `env()` in worker, one publish impl, sanitize always).
+- **Done + committed (on branch, NOT main):**
+  - **Storage refactor** (`c965044`): new pure `lib/publish/store-core.ts` — SQL/R2/KV parameterized by explicit `{DB,DOCS,KV}` bindings, no `@/lib/cf`. App wrappers delegate with `env()` defaults; MCP worker will pass its own bindings. 40 tests unchanged + 3 new. Build clean.
+  - **Migration 0003** (applied to remote D1): `workspaces` table + `documents.workspace_id`. Additive; running app unaffected.
+  - **Phase 0 skeleton** (`61be36e`): `mcp-worker/` McpAgent + `ping` tool. **VERIFIED LIVE** on `*.workers.dev` via Streamable-HTTP JSON-RPC: `initialize`→ilolink 1.0.0, `tools/list`→[ping] w/ annotations, `tools/call ping`→pong.
+  - **Custom domain** (`da20f1c`): `mcp.ilolink.com` provisioned by wrangler (DNS propagating).
+  - **Bundling confirmed:** tsconfig `paths` alias resolves `@/lib/*` in the worker bundle (so it can import `formats.ts`/`store-core`).
+- **NEXT (Phase 1, needs your Claude account for the flagship test):** `workspace.ts` (mint/resolve), OAuth wrap + anonymous-Authorize page, `publish_document` on the shared pipeline, "Add to Claude" UI + help H1. Then Phase 2 (ChatGPT token path + search/fetch), Phase 3 (read tools + dashboard + safety).
+- **Files:** `mcp-worker/{PINNED.md,wrangler.jsonc,tsconfig.json,src/{agent,index}.ts}`, `lib/publish/store-core.ts`, `lib/{r2/store,db/documents,publish/pipeline}.ts`, `migrations/0003_workspaces.sql`, `test/store-core.test.ts`, `docs/superpowers/plans/2026-07-22-mcp-connector.md`.
+
 ## 2026-07-22 — PDF + DOCX support (binary uploads)
 - **Asked:** "add pdf and docx support next" (ultracode). Chosen approach for PDF: native iframe (full fidelity).
 - **Built (two distinct data paths):**
