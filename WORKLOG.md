@@ -24,6 +24,17 @@ date, what was asked, what was done, files touched.
   - `/connect` page (app) with the Claude connect steps + server URL. Live.
 - **YOUR STEP:** add the connector in Claude (Settings → Connectors → Add custom connector → `https://mcp.ilolink.com/mcp` → Authorize), then "Publish this as an ilolink page." That confirms the one-click flagship live.
 - **NEXT:** Phase 2 (ChatGPT `/connect` token minting UI + `search`/`fetch`), Phase 3 (read tools + login-free dashboard route + quotas/rotate/abuse).
+
+## 2026-07-22 — MCP connector Phase 2 + Phase 3
+- **Phase 2 (ChatGPT):** `/api/connect` mints an anonymous tokenized workspace (connector + dashboard URLs); `/connect` page "Create my ChatGPT workspace" button. `search` + `fetch` tools (structuredContent + stringified content; `fetch` returns a stats summary, never the raw body).
+- **Phase 3 (read tools + dashboard + safety):**
+  - Tools: `list_documents`, `get_analytics` (views via cross-script ViewCounter DO, comments from D1), `update_document` (new version, stable link, preserves password/expiry), `unpublish_document` (soft/reversible, `destructiveHint`; migration 0004 `documents.unpublished_at` + drops KV slug).
+  - **Login-free dashboard** `/w/<token>`: verifies a bare token (ChatGPT) or an HMAC-signed token (Claude OAuth) via shared `lib/mcp/dashboard-token.ts` + shared `DASHBOARD_SECRET` on both workers; renders the workspace's live docs.
+  - **Token rotation** `/api/connect/rotate` — migrates a leaked workspace to a fresh id (old connector + dashboard URLs die); dashboard rotate control.
+  - **Quota** — per-workspace `quota_docs` enforced in publish-core.
+- **VERIFIED live end-to-end:** all 9 tools over MCP (publish/list/search/fetch/analytics/update/unpublish); ChatGPT mint→publish→dashboard→rotate (old URLs 404, docs migrated); signed OAuth dashboard token verifies cross-service, tampered sig → 404; unpublished slug 404s while still-published 200. Worker tsc clean; app 43 tests + build clean.
+- **Still open:** abuse scanning (queue a phishing/malware check on publish) + abuse-report route — deferred. Directory submission = Phase 4 (needs Team/Enterprise org). Live Claude "Add to Claude" click-through still needs the user's account.
+- **Files:** `mcp-worker/src/{agent,docs,publish-core,workspace}.ts`, `lib/mcp/dashboard-token.ts`, `app/(app)/connect/page.tsx`, `app/(app)/w/[token]/{page,rotate}.tsx`, `app/api/connect/{route,rotate/route}.ts`, `migrations/0004_unpublish.sql`.
 - **Files:** `mcp-worker/{PINNED.md,wrangler.jsonc,tsconfig.json,src/{agent,index}.ts}`, `lib/publish/store-core.ts`, `lib/{r2/store,db/documents,publish/pipeline}.ts`, `migrations/0003_workspaces.sql`, `test/store-core.test.ts`, `docs/superpowers/plans/2026-07-22-mcp-connector.md`.
 
 ## 2026-07-22 — PDF + DOCX support (binary uploads)
