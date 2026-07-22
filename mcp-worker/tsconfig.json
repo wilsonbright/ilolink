@@ -3,6 +3,8 @@
   // from @cloudflare/workers-types; the agents SDK + MCP SDK bring their own.
   "compilerOptions": {
     "target": "ES2022",
+    "baseUrl": ".",
+    "paths": { "@/*": ["../*"] },
     "lib": ["ES2022"],
     "module": "esnext",
     "moduleResolution": "bundler",
