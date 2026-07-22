@@ -15,7 +15,15 @@ date, what was asked, what was done, files touched.
   - **Phase 0 skeleton** (`61be36e`): `mcp-worker/` McpAgent + `ping` tool. **VERIFIED LIVE** on `*.workers.dev` via Streamable-HTTP JSON-RPC: `initialize`→ilolink 1.0.0, `tools/list`→[ping] w/ annotations, `tools/call ping`→pong.
   - **Custom domain** (`da20f1c`): `mcp.ilolink.com` provisioned by wrangler (DNS propagating).
   - **Bundling confirmed:** tsconfig `paths` alias resolves `@/lib/*` in the worker bundle (so it can import `formats.ts`/`store-core`).
-- **NEXT (Phase 1, needs your Claude account for the flagship test):** `workspace.ts` (mint/resolve), OAuth wrap + anonymous-Authorize page, `publish_document` on the shared pipeline, "Add to Claude" UI + help H1. Then Phase 2 (ChatGPT token path + search/fetch), Phase 3 (read tools + dashboard + safety).
+- **Phase 1 DONE + verified (except the live Claude click-through, which needs your account):**
+  - `workspace.ts` — mint/resolve anonymous workspaces + HMAC-signed login-free dashboard URLs.
+  - OAuth wrap (`workers-oauth-provider`) on `/mcp`: anonymous workspace auto-provisioned on Authorize, `props`→`this.props`. **Verified:** `.well-known/oauth-authorization-server` (S256) + unauthenticated `/mcp` → 401 `WWW-Authenticate: ...resource_metadata=.../oauth-protected-resource/mcp` (Claude's requirement).
+  - Token path `/w_XXXX/mcp` resolves the workspace, injects `ctx.props`. Unknown token → friendly re-mint message.
+  - `publish_document` + `get_dashboard_url` tools on the shared pipeline. **VERIFIED end-to-end over MCP:** published a markdown doc via `tools/call` on the token path → rendered sanitized on `view.ilolink.com`, owned by `workspace_id` in D1.
+  - `mcp.ilolink.com` custom domain LIVE (resolves globally; returns issuer).
+  - `/connect` page (app) with the Claude connect steps + server URL. Live.
+- **YOUR STEP:** add the connector in Claude (Settings → Connectors → Add custom connector → `https://mcp.ilolink.com/mcp` → Authorize), then "Publish this as an ilolink page." That confirms the one-click flagship live.
+- **NEXT:** Phase 2 (ChatGPT `/connect` token minting UI + `search`/`fetch`), Phase 3 (read tools + login-free dashboard route + quotas/rotate/abuse).
 - **Files:** `mcp-worker/{PINNED.md,wrangler.jsonc,tsconfig.json,src/{agent,index}.ts}`, `lib/publish/store-core.ts`, `lib/{r2/store,db/documents,publish/pipeline}.ts`, `migrations/0003_workspaces.sql`, `test/store-core.test.ts`, `docs/superpowers/plans/2026-07-22-mcp-connector.md`.
 
 ## 2026-07-22 — PDF + DOCX support (binary uploads)
