@@ -103,11 +103,13 @@ export default function Page() {
           page at <code>ilolink.com/&lt;slug&gt;</code> that anyone opens in a
           browser — no download, no login, no conversation attached. It renders
           the way a page should: responsive on a phone, selectable text, working
-          links. Because pasted AI HTML is untrusted, it&apos;s sanitized on
-          ingest — scripts are dropped, interactive JavaScript is frozen to
-          static, CSS is kept — and served from the isolated{" "}
+          links. By default, pasted AI HTML is treated as untrusted and
+          sanitized on ingest — scripts are dropped, interactive JavaScript is
+          frozen to static, CSS is kept — and served from the isolated{" "}
           <code>view.ilolink.com</code> origin under a strict CSP, so a mockup
-          you didn&apos;t write is still safe to send.
+          you didn&apos;t write is still safe to send. If you mark an HTML doc as
+          trusted at publish time, it&apos;s kept as-is and its own scripts run,
+          contained inside a sandboxed frame on that same isolated origin.
         </p>
         <p>
           Then it adds the part a screenshot, a file, and a chat link all miss:
@@ -120,8 +122,9 @@ export default function Page() {
         <Callout title="What you don't get, honestly">
           <p>
             A hosted page isn&apos;t a full web host. Each doc caps at 2 MB, live
-            JavaScript apps won&apos;t run (they&apos;re frozen to static), and
-            there&apos;s no audio or video hosting. Analytics are aggregate and
+            JavaScript apps won&apos;t run by default (they&apos;re frozen to
+            static unless you mark the doc trusted), and there&apos;s no audio or
+            video hosting. Analytics are aggregate and
             cookieless — you see totals and approximate uniques, never a named
             list of who read it. If you need a running app or per-person
             tracking, this isn&apos;t that.

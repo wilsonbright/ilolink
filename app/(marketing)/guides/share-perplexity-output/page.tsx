@@ -119,10 +119,12 @@ export default function Page() {
           content-security policy (<code>default-src &apos;none&apos;</code>).
           Markdown renders straight to clean HTML, so a Perplexity answer is a
           natural fit — headings, lists, and links come across as written. If
-          you paste HTML instead, it&apos;s sanitized on the way in: scripts are
-          dropped and no arbitrary JavaScript runs, so any interactive JS is{" "}
+          you paste HTML instead, by default it&apos;s sanitized on the way in:
+          scripts are dropped, so any interactive JS is{" "}
           <strong>frozen to its static state</strong> while the layout and CSS
-          render. Keep styling as inline CSS and images as absolute{" "}
+          render. If you mark the doc as <strong>trusted</strong> at publish
+          time, it&apos;s kept as-is and its own scripts run inside a sandboxed
+          frame on the isolated origin. Keep styling as inline CSS and images as absolute{" "}
           <code>https:</code> or <code>data:</code> URLs — relative asset paths
           and <code>http:</code> images won&apos;t load. The cap is 2 MB per
           doc. If you started from raw Markdown, see{" "}
@@ -190,7 +192,7 @@ export default function Page() {
           },
           {
             q: "What if my content has interactive JavaScript?",
-            a: "It's frozen to static. Scripts don't run, so any interactive behavior is shown in its static state. A Markdown answer from Perplexity has no scripts anyway, so it renders exactly as written.",
+            a: "Not by default — it's frozen to static, so scripts don't run and any interactive behavior is shown in its static state. But if you mark the HTML doc as trusted at publish time, it runs as-is inside a sandboxed frame on the isolated origin. A Markdown answer from Perplexity has no scripts anyway, so it renders exactly as written.",
           },
           {
             q: "Can I password-protect it?",

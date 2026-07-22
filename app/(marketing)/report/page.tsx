@@ -79,9 +79,11 @@ export default function Page() {
         </ul>
         <p>
           Pages are served under a strict content policy on the isolated{" "}
-          <code>view.ilolink.com</code> origin — no arbitrary JavaScript runs and
-          uploaded HTML is sanitized on ingest — so a report is about the{" "}
-          <em>content</em> of a page, not code executing on your machine.
+          <code>view.ilolink.com</code> origin. By default uploaded HTML is
+          sanitized on ingest and its scripts are frozen to static; a doc the
+          publisher marks trusted runs its own scripts as-is, but sandboxed on
+          that same isolated origin — so either way a report is about the{" "}
+          <em>content</em> of a page, not code touching your machine.
         </p>
 
         <h2>File a DMCA takedown</h2>

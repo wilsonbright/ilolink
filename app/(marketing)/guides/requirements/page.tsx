@@ -120,10 +120,12 @@ export default function Page() {
             <strong>build first</strong> and share the static HTML it produces.
           </li>
           <li>
-            <strong>Interactive JS.</strong> Scripts are frozen to static on
-            ingest, so anything driven by JavaScript won&apos;t run. Export or
-            build to <strong>static HTML</strong> and the layout, styling, and
-            content come through.
+            <strong>Interactive JS.</strong> By default, scripts are frozen to
+            static on ingest, so anything driven by JavaScript won&apos;t run —
+            unless you mark the doc <strong>trusted</strong> at publish time, in
+            which case it runs as-is inside a sandboxed frame on the isolated
+            origin. Otherwise, export or build to <strong>static HTML</strong>{" "}
+            and the layout, styling, and content come through.
           </li>
           <li>
             <strong>Oversized files.</strong> Over 2 MB won&apos;t upload —{" "}
@@ -155,7 +157,7 @@ export default function Page() {
           },
           {
             q: "Can I publish a React app?",
-            a: "Not the source directory. Build it to a static HTML file first, then share that. Interactive JS is frozen to static on ingest, so anything JS-driven won't run — static HTML renders fully.",
+            a: "Not the source directory. Build it to a static HTML file first, then share that. By default, interactive JS is frozen to static on ingest, so anything JS-driven won't run — unless you mark the doc trusted at publish time, which runs its scripts as-is inside a sandboxed frame on the isolated origin. Static HTML renders fully either way.",
           },
           {
             q: "What file types can I share?",

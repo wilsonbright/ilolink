@@ -24,8 +24,40 @@ export function buildDocCsp(opts?: {
   // pdf documents embed a same-origin <iframe src="/raw/…"> served as the
   // browser's native PDF viewer. Only same-origin framing is permitted.
   allowFrame?: boolean;
+  // Opt-in trusted docs (migration 0006): the author vouched for the raw HTML,
+  // so its own inline/external scripts must run. This drops the nonce-source and
+  // opens script/style/connect/frame. Origin isolation (view.ilolink.com) and
+  // frame-ancestors 'none' still contain it. NEVER set for unvouched content.
+  trusted?: boolean;
 }): DocCspResult {
+  // A nonce is still minted so readerShell's signature is unchanged; on trusted
+  // docs the policy carries no nonce-source, so the attribute is simply ignored
+  // (and the first-party scripts run under 'unsafe-inline' like everything else).
   const nonce = makeNonce();
+
+  if (opts?.trusted) {
+    const directives = [
+      "default-src 'none'",
+      // Author's scripts run: inline handlers/<script> (no nonce-source, so
+      // 'unsafe-inline' is honoured), eval-based frameworks, and same/https src.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+      "style-src 'self' 'unsafe-inline' https:",
+      "img-src https: data: blob:",
+      "font-src 'self' data: https:",
+      "connect-src 'self' https:",
+      "media-src 'self' https: data: blob:",
+      // Still no plugins. Framing is opened (embeds), including own /raw pdf.
+      "object-src 'none'",
+      "frame-src 'self' https:",
+      // Kept strict: the doc still cannot be embedded elsewhere (anti-clickjack)
+      // and cannot hijack the document base URL.
+      "frame-ancestors 'none'",
+      "base-uri 'none'",
+      "form-action 'self' https:",
+    ];
+    return { nonce, header: directives.join("; ") };
+  }
+
   const script = opts?.trackerSrc
     ? `'nonce-${nonce}' ${opts.trackerSrc}`
     : `'nonce-${nonce}'`;

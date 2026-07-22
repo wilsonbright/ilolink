@@ -120,7 +120,9 @@ export default function Page() {
           a strict content-security policy. Untrusted AI HTML is sanitized on the
           way in — scripts don&apos;t run, interactive JavaScript is frozen to
           its static state, and the CSS is kept, so a static mockup renders as
-          designed.
+          designed. That&apos;s the default; if you deliberately mark an HTML doc
+          as trusted at publish time, it&apos;s served as-is and its own scripts
+          run — sandboxed in an opaque-origin frame on that same isolated origin.
         </p>
         <p>
           The part that makes it <em>hosting for AI output</em> specifically, not
@@ -157,7 +159,7 @@ export default function Page() {
           },
           {
             q: "What can't it host?",
-            a: "It hosts one self-contained document up to 2 MB, not a multi-file project or an app that needs a running server. Interactive JavaScript is frozen to static rather than executed, and there's no audio or video hosting.",
+            a: "It hosts one self-contained document up to 2 MB, not a multi-file project or an app that needs a running server. By default, interactive JavaScript is frozen to static rather than executed — unless you mark the HTML doc as trusted at publish time, in which case its scripts run inside a sandboxed frame on the isolated origin — and there's no audio or video hosting.",
           },
         ]}
       />

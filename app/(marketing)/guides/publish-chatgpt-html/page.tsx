@@ -121,10 +121,13 @@ export default function Page() {
           content-security policy (<code>default-src &apos;none&apos;</code>).
           Untrusted AI HTML is sanitized on the way in:{" "}
           <code>javascript:</code>, <code>data:</code>, and{" "}
-          <code>vbscript:</code> URLs are dropped, and no arbitrary JavaScript
-          runs. A static landing-page mockup renders exactly as designed — the
-          CSS is kept. An interactive JS app is shown <strong>frozen</strong> to
-          its static state rather than executing. The cap is 2 MB per doc. For
+          <code>vbscript:</code> URLs are dropped, and by default no arbitrary
+          JavaScript runs. A static landing-page mockup renders exactly as
+          designed — the CSS is kept. By default an interactive JS app is shown{" "}
+          <strong>frozen</strong> to its static state rather than executing; if
+          you mark the doc <strong>trusted</strong> at publish time it runs
+          as-is inside a sandboxed frame on that isolated origin. The cap is 2 MB
+          per doc. For
           the wider view of getting AI output onto the web, see{" "}
           <a href="/guides/share-ai-output">share AI output as a real link</a> and{" "}
           <a href="/guides/best-way-to-share-ai-html">
@@ -174,8 +177,9 @@ export default function Page() {
       <Callout title="One honest limit">
         Docs are immutable — one version per link. There&apos;s no version
         history or rollback yet. If the HTML changes, you publish a new doc and
-        share the new link. Sanitizing is strict on purpose: an interactive
-        canvas app renders frozen, not running.
+        share the new link. Sanitizing is strict by default: an interactive
+        canvas app renders frozen, not running — unless you mark the doc trusted,
+        in which case it runs sandboxed on the isolated origin.
       </Callout>
 
       <Faq
@@ -186,7 +190,7 @@ export default function Page() {
           },
           {
             q: "Will my interactive canvas app run?",
-            a: "No. Untrusted AI HTML is sanitized on ingest and no arbitrary JavaScript runs, so an interactive app is shown frozen to its static state. A static landing-page mockup keeps its CSS and renders exactly as designed.",
+            a: "Not by default. Untrusted AI HTML is sanitized on ingest, so an interactive app is shown frozen to its static state. But if you mark the doc trusted at publish time, it runs as-is inside a sandboxed, opaque-origin frame on the isolated render origin — so its own scripts execute while still walled off from cookies, storage, and other docs. A static landing-page mockup keeps its CSS and renders exactly as designed.",
           },
           {
             q: "Is it free?",

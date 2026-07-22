@@ -62,8 +62,23 @@ describe("store-core (binding-parameterized)", () => {
     expect(row.slug).toBe("abc123");
     const insert = sql.find((s) => s.text.includes("INSERT INTO documents"));
     expect(insert).toBeDefined();
-    // workspace_id is the last bound param.
-    expect(insert!.params[insert!.params.length - 1]).toBe("w_test");
+    // Bound params end with workspace_id then trusted (0 by default).
+    const params = insert!.params;
+    expect(params[params.length - 2]).toBe("w_test");
+    expect(params[params.length - 1]).toBe(0);
+    expect(row.trusted).toBe(false);
+  });
+
+  it("createDocumentWith persists the trusted flag as 1 when opted in", async () => {
+    const { bindings, sql } = fakeBindings();
+    const row = await createDocumentWith(bindings.DB, {
+      slug: "trust1",
+      source_type: "html",
+      trusted: true,
+    });
+    expect(row.trusted).toBe(true);
+    const insert = sql.find((s) => s.text.includes("INSERT INTO documents"));
+    expect(insert!.params[insert!.params.length - 1]).toBe(1);
   });
 
   it("storeVersionWith writes raw + rendered bodies to the given R2 bucket", async () => {

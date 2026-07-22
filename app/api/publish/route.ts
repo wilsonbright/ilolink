@@ -26,6 +26,7 @@ import {
   isSourceType,
   isVisibility,
   renderAndSanitize,
+  renderTrusted,
   storeVersion,
   storeBinaryVersion,
   detectUpload,
@@ -54,6 +55,9 @@ interface PublishInput {
   customSlug?: string;
   title?: string;
   turnstileToken?: string;
+  // Publisher opt-in: store + serve this HTML raw (unsanitized) so its own
+  // scripts run. Honoured only for text HTML (never md/pdf/docx). Default false.
+  trusted?: boolean;
 }
 
 function asString(v: FormDataEntryValue | null | undefined): string | undefined {
@@ -103,6 +107,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
   let customSlug: string | undefined;
   let title: string | undefined;
   let turnstileToken: string | undefined;
+  let trusted = false;
 
   if (contentType.includes("multipart/form-data")) {
     let form: FormData;
@@ -142,6 +147,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     customSlug = asString(form.get("customSlug"));
     title = asString(form.get("title"));
     turnstileToken = asString(form.get("turnstileToken"));
+    trusted = asString(form.get("trusted")) === "true";
   } else {
     let body: unknown;
     try {
@@ -165,6 +171,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     title = typeof b.title === "string" ? b.title : undefined;
     turnstileToken =
       typeof b.turnstileToken === "string" ? b.turnstileToken : undefined;
+    trusted = b.trusted === true;
   }
 
   if (content.trim().length === 0) {
@@ -205,6 +212,9 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     customSlug,
     title: title?.trim() ? title.trim() : undefined,
     turnstileToken,
+    // Only text HTML can be trusted — md renders safe markdown, and pdf/docx are
+    // binary/converted with no author scripts to run.
+    trusted: trusted && !upload && sourceTypeRaw === "html",
   };
 }
 
@@ -295,7 +305,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       store = (docId) => storeVersion(docId, converted, html, "html");
     }
   } else {
-    const { html, title: t } = renderAndSanitize(input.content, input.sourceType);
+    // Trusted HTML bypasses the sanitizer (publisher opt-in); everything else
+    // goes through the sanitize boundary as usual. Either way the rendered body
+    // is stored and later served under a CSP matched to `trusted`.
+    const { html, title: t } = input.trusted
+      ? renderTrusted(input.content)
+      : renderAndSanitize(input.content, input.sourceType);
     title = input.title ?? t ?? "Untitled";
     scanHtml = html;
     store = (docId) => storeVersion(docId, input.content, html, input.sourceType);
@@ -325,6 +340,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     password_hash: passwordHash,
     manage_token_hash: manageTokenHash,
     expires_at: expiresAt,
+    trusted: input.trusted,
   });
 
   const version = await store(doc.id);
@@ -338,6 +354,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     password_hash: passwordHash,
     expires_at: expiresAt,
     source_type: sourceType,
+    trusted: input.trusted,
   });
 
   return NextResponse.json(

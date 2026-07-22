@@ -64,11 +64,13 @@ export default function Page() {
         <p>
           The look survives the cleanup. CSS is kept, so a landing-page mockup, a
           styled report, or a pricing table renders exactly as designed —
-          that&apos;s the whole point of publishing AI output as a page. What
-          gets frozen is behavior: interactive JavaScript is frozen to static, so
-          the markup and CSS show at the state they shipped in, but scripts,
-          click handlers, and fetch calls don&apos;t run. For most AI output that
-          static render is what you wanted anyway.
+          that&apos;s the whole point of publishing AI output as a page. By
+          default, what gets frozen is behavior: interactive JavaScript is frozen
+          to static, so the markup and CSS show at the state they shipped in, but
+          scripts, click handlers, and fetch calls don&apos;t run. For most AI
+          output that static render is what you wanted anyway. If you mark an HTML
+          doc as trusted at publish time, it runs as-is inside a sandboxed frame
+          on the isolated origin.
         </p>
 
         <h2>See how it was read</h2>
@@ -188,7 +190,7 @@ export default function Page() {
           },
           {
             q: "Will my styled landing page render, or just plain text?",
-            a: "It renders styled. CSS is kept, so mockups, reports, and pricing tables look as designed. What's frozen is interactive JavaScript — the layout and styling show, but scripts and handlers don't run.",
+            a: "It renders styled. CSS is kept, so mockups, reports, and pricing tables look as designed. By default interactive JavaScript is frozen — the layout and styling show, but scripts and handlers don't run. If you mark the doc as trusted at publish time, its scripts run inside a sandboxed frame on the isolated origin.",
           },
           {
             q: "What isn't live yet?",

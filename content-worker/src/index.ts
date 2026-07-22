@@ -239,6 +239,20 @@ function pdfIframe(slug: string): string {
   return `<iframe src="/raw/${s}" title="PDF document" style="border:0;width:100%;height:100vh;display:block"></iframe>`;
 }
 
+// Trusted (raw, unsanitized) docs run their own scripts, but must NOT do so with
+// view.ilolink.com's authority — otherwise a trusted doc's JS could make
+// credentialed same-origin requests to /raw, /_unlock, /_collect, etc. and read
+// or forge OTHER docs on the shared origin (confused deputy). We contain it in a
+// sandboxed iframe WITHOUT allow-same-origin, so the frame gets a fresh opaque
+// origin: scripts run (allow-scripts), forms/popups/modals work, but it cannot
+// touch this origin's cookies, storage, or endpoints. The srcdoc document
+// inherits this page's (permissive) CSP, which is what lets its inline scripts
+// execute. Escape for the double-quoted srcdoc attribute.
+function trustedFrame(rawHtml: string): string {
+  const srcdoc = rawHtml.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  return `<iframe title="Published page" sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads" srcdoc="${srcdoc}" style="border:0;position:fixed;inset:0;width:100vw;height:100vh"></iframe>`;
+}
+
 // Access gate shared by the doc page and the /raw byte stream: enforces expiry
 // and the password cookie. Returns a blocking Response, or null when access is
 // allowed. (The doc page renders the gate UI itself; /raw just refuses.)
@@ -1018,18 +1032,24 @@ export default {
     // are shown via a same-origin <iframe> (needs frame-src 'self'). Everything
     // else fetches its sanitized rendered HTML.
     const isPdf = rec.source_type === "pdf";
+    // Trusted docs run their own scripts; contain them in an opaque-origin sandbox
+    // so they cannot act with this shared origin's authority (see trustedFrame).
+    const trusted = rec.trusted === true && !isPdf;
     let body: string;
     if (isPdf) {
       body = pdfIframe(slug);
     } else {
       const object = await env.DOCS.get(rec.rendered_r2_key);
       if (!object) return notFoundPage();
-      body = await object.text();
+      const raw = await object.text();
+      body = trusted ? trustedFrame(raw) : raw;
     }
 
     // Per-response CSP + nonce. Tracker is same-origin (/tracker.js), so the
-    // nonce alone admits it; default-src 'none' blocks everything else.
-    const csp = buildDocCsp({ allowFrame: isPdf });
+    // nonce alone admits it; default-src 'none' blocks everything else. Trusted
+    // docs (publisher opt-in) instead get the permissive CSP so their own
+    // scripts run; origin isolation + frame-ancestors 'none' still contain them.
+    const csp = buildDocCsp({ allowFrame: isPdf || trusted, trusted });
     const html = readerShell({
       title: isPdf ? "PDF document" : titleFromBody(body),
       body,

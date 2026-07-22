@@ -82,10 +82,13 @@ export default function Page() {
             it&apos;s explicitly allowed.
           </li>
           <li>
-            <strong>Sanitized on ingest.</strong> Scripts are dropped,
+            <strong>Sanitized by default.</strong> Scripts are dropped,
             interactive JavaScript is frozen to static, forms are made inert, and
-            your CSS is kept. What renders is the layout and styling, with
-            nothing executable behind it.
+            your CSS is kept — so what renders is the layout and styling, with
+            nothing executable behind it. If you mark an HTML doc as trusted at
+            publish time, it&apos;s kept as-is and its own scripts run, sandboxed
+            in an opaque-origin frame on this same isolated origin — still walled
+            off from cookies, storage, and other docs.
           </li>
         </ul>
 
@@ -148,7 +151,7 @@ export default function Page() {
           },
           {
             q: "Is my content isolated?",
-            a: "Yes. Every doc is served on a separate origin, view.ilolink.com, under a strict content-security policy (default-src 'none'). Scripts are dropped and interactive JS is frozen to static on ingest.",
+            a: "Yes. Every doc is served on a separate origin, view.ilolink.com, under a strict content-security policy (default-src 'none'). By default scripts are dropped and interactive JS is frozen to static; if you mark a doc trusted, its scripts run sandboxed in an opaque-origin frame on that same isolated origin.",
           },
           {
             q: "Can you tell who read my page?",

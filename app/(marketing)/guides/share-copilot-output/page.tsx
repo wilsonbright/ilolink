@@ -168,8 +168,10 @@ export default function Page() {
       <Callout title="One honest limit">
         Docs are immutable — one version per link. There&apos;s no version
         history or rollback yet. If the output changes, you publish a new doc and
-        share the new link. Sanitizing is strict on purpose: any interactive
-        JavaScript in Copilot&apos;s HTML renders frozen, not running.
+        share the new link. Sanitizing is strict by default: any interactive
+        JavaScript in Copilot&apos;s HTML renders frozen, not running — unless you
+        mark the doc trusted at publish time, when it runs as-is inside a
+        sandboxed frame on the isolated origin.
       </Callout>
 
       <Faq
@@ -184,7 +186,7 @@ export default function Page() {
           },
           {
             q: "Will interactive JavaScript from Copilot run?",
-            a: "No. Untrusted AI HTML is sanitized on ingest and scripts are stripped, so any interactive JavaScript is frozen to static — the layout and CSS render, but nothing executes. Text and Markdown render exactly as written.",
+            a: "Not by default. Untrusted AI HTML is sanitized on ingest and scripts are stripped, so interactive JavaScript is frozen to static — the layout and CSS render, but nothing executes. If you mark the HTML doc as trusted at publish time, it is kept as-is and its own scripts run inside a sandboxed frame on the isolated origin. Text and Markdown render exactly as written.",
           },
           {
             q: "Can I password-protect it?",

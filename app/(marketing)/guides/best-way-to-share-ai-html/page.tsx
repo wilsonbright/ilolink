@@ -133,10 +133,12 @@ export default function Page() {
 
         <Callout title="Be honest about ilolink's limits">
           <p>
-            ilolink caps each doc at 2 MB of raw body or file. Interactive
-            JavaScript apps are frozen to static on ingest — the layout and CSS
-            render, but scripts do not run, so a live React app won&apos;t stay
-            interactive. Media hosting (audio, video) isn&apos;t shipped. There
+            ilolink caps each doc at 2 MB of raw body or file. By default,
+            interactive JavaScript apps are frozen to static on ingest — the
+            layout and CSS render, but scripts don&apos;t run, so a live React app
+            won&apos;t stay interactive unless you mark the doc trusted, which
+            runs it as-is inside a sandboxed frame on the isolated origin. Media
+            hosting (audio, video) isn&apos;t shipped. There
             are no custom domains and no paid tiers to quote. If you need any of
             those, a static host is the better fit.
           </p>
@@ -172,7 +174,7 @@ export default function Page() {
           },
           {
             q: "Can it host a whole framework app?",
-            a: "No. Interactive JavaScript is frozen to static on ingest, so a live React or Vue app won't run. Build it to a static HTML file first, then share that — the layout and CSS render fine.",
+            a: "Not by default. Interactive JavaScript is frozen to static on ingest, so a live React or Vue app won't run — build it to a static HTML file first, then share that. But if you mark the doc trusted at publish time, it runs as-is inside a sandboxed frame on the isolated origin.",
           },
           {
             q: "Is pasted AI HTML safe to share?",

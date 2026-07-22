@@ -99,6 +99,19 @@ describe("CSP builders", () => {
     expect(buildDocCsp().nonce).not.toBe(buildDocCsp().nonce);
   });
 
+  it("trusted CSP runs author scripts but keeps origin isolation", () => {
+    const { header } = buildDocCsp({ trusted: true });
+    // Author inline handlers/<script> must run: unsafe-inline, no nonce-source
+    // (a nonce-source would make browsers ignore unsafe-inline).
+    expect(header).toContain("'unsafe-inline'");
+    expect(header).not.toContain("'nonce-");
+    expect(header).toMatch(/script-src[^;]*'unsafe-inline'/);
+    // Still contained: cannot be framed elsewhere, no base hijack, no plugins.
+    expect(header).toContain("frame-ancestors 'none'");
+    expect(header).toContain("base-uri 'none'");
+    expect(header).toContain("object-src 'none'");
+  });
+
   it("chrome CSP allows the gate form to POST but no scripts", () => {
     const csp = buildChromeCsp();
     expect(csp).toContain("form-action 'self'");

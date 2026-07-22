@@ -193,7 +193,7 @@ export default function Page() {
           },
           {
             q: "Is pasted AI HTML safe to share on ilolink?",
-            a: "Yes. Untrusted HTML is sanitized on ingest — javascript:, data:, and vbscript: URLs are dropped, forms are made inert, scripts are frozen to static — and every doc is served under default-src 'none' on an isolated origin. CSS is kept so mockups still render.",
+            a: "Yes. By default, HTML is sanitized on ingest — javascript:, data:, and vbscript: URLs are dropped, forms are made inert, scripts are frozen to static — and served under default-src 'none' on an isolated origin. CSS is kept so mockups still render. If you explicitly mark a doc as trusted at publish time, it runs as-is inside a sandboxed frame on that same isolated origin.",
           },
         ]}
       />

@@ -96,8 +96,11 @@ export default function Page() {
         <ul>
           <li>
             <strong>The document you publish.</strong> The Markdown, HTML, or
-            file you paste or drop, up to 2 MB per doc. Untrusted AI HTML is
-            sanitized on ingest before it is stored or served.
+            file you paste or drop, up to 2 MB per doc. By default, uploaded
+            HTML is sanitized on ingest before it is stored or served. If you
+            explicitly mark a document as trusted at publish time, it is stored
+            and served unsanitized inside a sandboxed frame on the isolated
+            origin; you are responsible for content you publish as trusted.
           </li>
           <li>
             <strong>Visibility settings you choose.</strong> Public, unlisted,

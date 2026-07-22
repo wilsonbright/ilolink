@@ -57,9 +57,10 @@ export default function Page() {
         <p>
           Anything that could run code in a reader&apos;s browser. On ingest,{" "}
           <code>javascript:</code>, <code>data:</code>, and{" "}
-          <code>vbscript:</code> URLs are dropped, and no arbitrary JavaScript
-          runs — inline <code>&lt;script&gt;</code>, event handlers, and imported
-          scripts don&apos;t execute. Forms are made inert (
+          <code>vbscript:</code> URLs are dropped, and by default no arbitrary
+          JavaScript runs — inline <code>&lt;script&gt;</code>, event handlers,
+          and imported scripts don&apos;t execute unless you mark the doc trusted
+          at publish time. Forms are made inert (
           <code>form-action &apos;none&apos;</code>), so a pasted mockup
           can&apos;t post credentials anywhere. The reason is simple: you often
           publish HTML an AI wrote, not you, and it loads on a domain readers
@@ -75,11 +76,15 @@ export default function Page() {
 
         <h2>Will my interactive app work?</h2>
         <p>
-          No — not as a running app. JavaScript is frozen to static. The markup
-          and CSS render, so the app looks right at the state it shipped in, but
-          nothing executes: no click handlers, no fetch calls, no state changes,
-          no live charts. A counter won&apos;t count; a form won&apos;t submit; a
-          tab won&apos;t switch.
+          Not by default — it renders frozen to static. JavaScript isn&apos;t
+          executed, so the app looks right at the state it shipped in, but
+          nothing runs: no click handlers, no fetch calls, no state changes, no
+          live charts. A counter won&apos;t count; a form won&apos;t submit; a
+          tab won&apos;t switch. If you mark the HTML doc as trusted at publish
+          time, it&apos;s kept as-is and its own scripts do run — contained in a
+          sandboxed, opaque-origin iframe on the isolated{" "}
+          <code>view.ilolink.com</code> origin, so the app works while still
+          unable to touch cookies, storage, or other docs.
         </p>
         <p>
           If you need interaction, build or export to static first. Pre-render
@@ -146,8 +151,9 @@ export default function Page() {
       </Prose>
 
       <Callout title="The hard limits, in one place">
-        No arbitrary JavaScript runs — interactive apps render frozen to static.
-        2 MB per doc (raw body or file). Docs are immutable: no rollback or
+        By default no arbitrary JavaScript runs — interactive apps render frozen
+        to static, unless you mark the doc trusted, which runs its scripts in a
+        sandboxed frame on the isolated origin. 2 MB per doc (raw body or file). Docs are immutable: no rollback or
         version history. No audio/video hosting and no format-specific
         (per-slide, per-page) metrics — those are roadmap. No custom domains. CSS
         is kept, so styled mockups look right.
@@ -157,7 +163,7 @@ export default function Page() {
         items={[
           {
             q: "Why doesn't my JavaScript run?",
-            a: "By design. Untrusted AI HTML is sanitized on ingest and no arbitrary JavaScript executes, so a page you didn't write can't run code on a domain readers trust. Interactive apps render frozen to their static state — the markup and CSS show, the scripts don't run.",
+            a: "By design. By default, uploaded HTML is sanitized on ingest and no arbitrary JavaScript executes, so a page you didn't write can't run code on a domain readers trust. Interactive apps render frozen to their static state — the markup and CSS show, the scripts don't run — unless you mark the doc trusted at publish time, in which case it runs as-is inside a sandboxed frame on the isolated origin.",
           },
           {
             q: "What's the maximum doc size?",
@@ -169,7 +175,7 @@ export default function Page() {
           },
           {
             q: "Is it safe to publish HTML an AI wrote?",
-            a: "Yes. It's sanitized on ingest — javascript:, data:, and vbscript: URLs dropped, no arbitrary JS, forms inert — and served isolated on view.ilolink.com under a strict CSP (default-src 'none'), reached via a 302 redirect so it never runs on the main domain.",
+            a: "Yes. By default it's sanitized on ingest — javascript:, data:, and vbscript: URLs dropped, no arbitrary JS, forms inert — and served isolated on view.ilolink.com under a strict CSP (default-src 'none'), reached via a 302 redirect so it never runs on the main domain. If you mark a doc trusted, it runs as-is inside a sandboxed frame on that same isolated origin.",
           },
           {
             q: "Can I host a video or track per-slide views?",

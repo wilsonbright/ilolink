@@ -5,7 +5,7 @@ import { Article, Breadcrumbs, PageHeader, Prose, Callout, Faq, Cta } from "../_
 export const metadata: Metadata = {
   title: "Acceptable-use policy — ilolink",
   description:
-    "What you can and can't host on ilolink, and how content is moderated. Scripts are stripped on ingest and every doc renders sandboxed on view.ilolink.com.",
+    "What you can and can't host on ilolink, and how content is moderated. Scripts are stripped by default and every doc renders sandboxed on view.ilolink.com.",
   alternates: { canonical: "/acceptable-use" },
 };
 
@@ -61,8 +61,8 @@ export default function Page() {
           <li>
             <strong>Malware and phishing.</strong> No pages built to steal
             credentials, impersonate a login, install software, or trick a
-            reader. Scripts never execute, but a static page can still deceive —
-            that is banned regardless.
+            reader. Scripts never execute by default, but a static page can
+            still deceive — that is banned regardless.
           </li>
           <li>
             <strong>Illegal content.</strong> No child sexual abuse material, no
@@ -124,7 +124,7 @@ export default function Page() {
           },
           {
             q: "Can a hosted page run code against a reader?",
-            a: "No. Every doc renders on the isolated origin view.ilolink.com under a strict CSP with default-src 'none', no JavaScript executes, and forms are inert. A static mockup can still try to deceive, which is why phishing is banned outright.",
+            a: "Not by default. Every doc renders on the isolated origin view.ilolink.com under a strict CSP with default-src 'none', so uploaded JavaScript is frozen to static and forms are inert. If you mark an HTML doc trusted at publish time, its own scripts run — but sandboxed inside an opaque-origin frame on that same isolated origin, so they still can't touch cookies, storage, or other docs. A static mockup can still try to deceive, which is why phishing is banned outright.",
           },
           {
             q: "What happens to a doc that breaks the rules?",

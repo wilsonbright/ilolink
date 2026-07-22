@@ -82,6 +82,8 @@ export function PublishForm() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [source, setSource] = useState<SourceType>("md");
   const [sourceLocked, setSourceLocked] = useState(false);
+  // Opt-in: publish this HTML raw so its own scripts run (default off = sanitized).
+  const [trusted, setTrusted] = useState(false);
 
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [password, setPassword] = useState("");
@@ -228,6 +230,7 @@ export function PublishForm() {
           ...(visibility === "password" ? { password } : {}),
           ...(visibility === "expiring" ? { expiresAt: expiresMs } : {}),
           ...(wantSlug ? { customSlug: wantSlug } : {}),
+          ...(source === "html" && trusted ? { trusted: true } : {}),
         }),
       });
       const data: unknown = await res.json().catch(() => ({}));
@@ -606,6 +609,32 @@ export function PublishForm() {
           </button>
         )}
       </section>
+
+      {/* Trusted HTML (disclosure) — only meaningful for HTML source ────────── */}
+      {source === "html" && (
+        <section className="space-y-2">
+          <label htmlFor="trusted" className="flex items-start gap-3">
+            <input
+              id="trusted"
+              type="checkbox"
+              checked={trusted}
+              onChange={(e) => setTrusted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-accent"
+            />
+            <span className="text-sm">
+              <span className="font-medium text-ink">
+                Run this page&rsquo;s scripts (trusted HTML)
+              </span>
+              <span className="mt-0.5 block text-ink-faint">
+                Keep interactive HTML working — buttons, tabs, toggles. The page
+                is published <span className="text-ink-soft">as-is, not
+                sanitized</span>, so only turn this on for HTML you wrote or
+                trust. Leave off and scripts are stripped for safety.
+              </span>
+            </span>
+          </label>
+        </section>
+      )}
       </div>
       )}
     </form>

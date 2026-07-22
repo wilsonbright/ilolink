@@ -161,10 +161,12 @@ export default function Page() {
 
         <Callout title="Be honest about the trade-offs">
           <p>
-            ilolink caps each doc at 2 MB of raw body or file. Interactive
-            JavaScript is frozen to static on ingest — layout and CSS render, but
-            scripts don&apos;t run, so a live React app won&apos;t stay
-            interactive. And there are no custom domains yet; your link lives under{" "}
+            ilolink caps each doc at 2 MB of raw body or file. By default,
+            interactive JavaScript is frozen to static on ingest — layout and CSS
+            render, but scripts don&apos;t run, so a live React app won&apos;t stay
+            interactive unless you mark the doc trusted, in which case it runs
+            as-is inside a sandboxed frame on the isolated origin. And there are no
+            custom domains yet; your link lives under{" "}
             <code>ilolink.com/&lt;slug&gt;</code>. If you need a big upload, a live
             JS app, or your own domain, a pure host like tiiny.host may suit you
             better — and that&apos;s a fair reason to stay.
@@ -188,7 +190,7 @@ export default function Page() {
           },
           {
             q: "Is pasted AI HTML safe to share?",
-            a: "Yes. Untrusted HTML is sanitized on ingest — javascript:, data:, and vbscript: URLs are dropped, scripts are frozen to static, forms are made inert — and every doc is served from view.ilolink.com under default-src 'none'. CSS is kept so mockups still look right.",
+            a: "Yes. By default, uploaded HTML is sanitized on ingest — javascript:, data:, and vbscript: URLs are dropped, scripts are frozen to static, forms are made inert — and every doc is served from view.ilolink.com under default-src 'none'. CSS is kept so mockups still look right. If you deliberately mark a doc as trusted at publish time, it's kept as-is and its own scripts run inside a sandboxed frame on that same isolated origin.",
           },
         ]}
       />
