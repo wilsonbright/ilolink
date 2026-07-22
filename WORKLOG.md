@@ -35,6 +35,12 @@ date, what was asked, what was done, files touched.
 - **VERIFIED live end-to-end:** all 9 tools over MCP (publish/list/search/fetch/analytics/update/unpublish); ChatGPT mint→publish→dashboard→rotate (old URLs 404, docs migrated); signed OAuth dashboard token verifies cross-service, tampered sig → 404; unpublished slug 404s while still-published 200. Worker tsc clean; app 43 tests + build clean.
 - **Directory submission = Phase 4 (needs Team/Enterprise org). Live Claude "Add to Claude" click-through still needs the user's account.**
 
+## 2026-07-22 — Moderation review UI + drag-and-drop design
+- **Moderation UI** `/admin/moderation?key=<ADMIN_SECRET>` (gated, constant-time; not linked anywhere): open reports grouped by doc (count + reasons), suspended workspaces, flagged-but-active workspaces. One-click actions via `/api/admin/action` (`x-admin-key` header): unpublish / **restore** (rebuilds the KV slug from the current version) / dismiss reports / suspend / unsuspend. `ADMIN_SECRET` set as an app secret.
+- **Drag & drop** on the publish composer: flicker-free depth counter (dragenter/leave), a full drop overlay ("Drop your file to upload" + format list, dashed accent border), and a resting "⬆ Drag & drop a file, or Choose a file" affordance.
+- **VERIFIED live (Playwright):** moderation gated (404 without key, 401 API), renders seeded reports/suspended/flagged, Unsuspend flips status→active + resets flags; drag overlay shows on file dragenter (screenshot) and clears on leave; resting hint present.
+- **Files:** `app/admin/moderation/{page,actions}.tsx`, `app/api/admin/action/route.ts`, `lib/admin/gate.ts`, `app/(app)/publish/publish-form.tsx`.
+
 ## 2026-07-22 — MCP connector: abuse scanning + report route (spec §7)
 - **Inline content scan** `lib/abuse/scan.ts` — precision heuristic: `block` only when a credential-capture STRUCTURE (password field / external form) coincides with phishing/crypto/brand phrasing; single softer signals `flag`. Wired into **MCP publish** (block rejects; flag increments `workspaces.abuse_flags`, auto-suspend at 5) and **web publish** (block only — no workspace to flag). 6 unit tests.
 - **Viewer report route** — content worker `POST /_report` (honeypot + IP rate-limit + per-reporter dedupe via salted hash); **3 distinct reports auto-unpublish** the doc + flag the owning workspace (suspend at 5). `/_report` reverse-proxied through `ilolink.com`. **"⚑ Report" link** (nonce'd) on every published page.
