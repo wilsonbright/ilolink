@@ -92,6 +92,9 @@ export function PublishForm() {
   const [showOptions, setShowOptions] = useState(false);
 
   const [dragging, setDragging] = useState(false);
+  // Depth counter so dragging over child nodes doesn't flicker the overlay:
+  // dragenter/leave fire per element, so track nesting and only clear at zero.
+  const dragDepth = useRef(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PublishResult | null>(null);
@@ -148,12 +151,29 @@ export function PublishForm() {
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
+      dragDepth.current = 0;
       setDragging(false);
       const file = e.dataTransfer.files?.[0];
       if (file) void loadFile(file);
     },
     [loadFile],
   );
+
+  const onDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (Array.from(e.dataTransfer.types).includes("Files")) {
+      dragDepth.current += 1;
+      setDragging(true);
+    }
+  }, []);
+
+  const onDragLeave = useCallback(() => {
+    dragDepth.current -= 1;
+    if (dragDepth.current <= 0) {
+      dragDepth.current = 0;
+      setDragging(false);
+    }
+  }, []);
 
   const canSubmit = content.trim().length > 0 && !submitting;
 
@@ -284,16 +304,36 @@ export function PublishForm() {
           Your document
         </label>
         <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
+          onDragEnter={onDragEnter}
+          onDragOver={(e) => e.preventDefault()}
+          onDragLeave={onDragLeave}
           onDrop={onDrop}
-          className={`rounded-lg border bg-surface transition-colors duration-150 ${
-            dragging ? "border-accent" : "border-hairline"
+          className={`relative rounded-lg border bg-surface transition-colors duration-150 ${
+            dragging ? "border-accent ring-2 ring-accent/30" : "border-hairline"
           }`}
         >
+          {dragging ? (
+            <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-accent bg-accent-soft/85 text-center backdrop-blur-[1px]">
+              <svg
+                className="h-8 w-8 text-accent"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M12 16V4" />
+                <path d="m6 10 6-6 6 6" />
+                <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              <p className="text-sm font-medium text-accent">Drop your file to upload</p>
+              <p className="text-xs text-ink-faint">
+                PDF, DOCX, Markdown, HTML, images, JSON, CSV
+              </p>
+            </div>
+          ) : null}
           {content.startsWith("data:") ? (
             // Binary/data uploads: the content is a base64 data URL — never show
             // that wall of text. Show a friendly file chip instead.
@@ -345,6 +385,23 @@ export function PublishForm() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-faint">
+          <span className="flex items-center gap-1.5">
+            <svg
+              className="h-4 w-4 text-ink-faint"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M12 16V4" />
+              <path d="m6 10 6-6 6 6" />
+              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+            </svg>
+            Drag &amp; drop a file, or
+          </span>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
