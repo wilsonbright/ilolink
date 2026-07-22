@@ -62,6 +62,36 @@ export const PILLARS = {
   },
 } as const satisfies Record<string, SitePage>;
 
+// ── Format how-tos (Group C10 format axis — only what's actually supported) ─
+// Live formats: PDF (native viewer), DOCX (→ HTML, full analytics), CSV/TSV
+// (→ table). Slides/diagram/audio/video are NOT built — no pages for them.
+export const FORMAT_GUIDES = {
+  pdf: {
+    path: "/guides/share-pdf",
+    title: "How to share a PDF as a link",
+    blurb:
+      "Publish a PDF (up to 15 MB) as a page that opens in the browser — and see that it was opened.",
+    group: "guide",
+    priority: 0.7,
+  },
+  docx: {
+    path: "/guides/share-docx",
+    title: "How to share a Word (.docx) document as a page",
+    blurb:
+      "Turn a .docx into a clean web page with full read analytics — scroll depth, heatmaps, and comments.",
+    group: "guide",
+    priority: 0.7,
+  },
+  spreadsheet: {
+    path: "/guides/share-spreadsheet",
+    title: "How to share a spreadsheet or CSV as a table",
+    blurb:
+      "Publish CSV or TSV as a readable table and see how far people scrolled through it.",
+    group: "guide",
+    priority: 0.7,
+  },
+} as const satisfies Record<string, SitePage>;
+
 // ── Getting started (Groups A1/A3 foundations, C7/C8 setup) ──────────────
 // Top-of-funnel definition + why + the fast path + prerequisites. High intent;
 // these link down into the source how-tos and up to the pillars.
@@ -485,6 +515,7 @@ export const LEGAL = {
 export const ALL_PAGES: SitePage[] = [
   ...Object.values(PILLARS),
   ...Object.values(GETTING_STARTED),
+  ...Object.values(FORMAT_GUIDES),
   ...Object.values(HOW_TOS),
   ...Object.values(DEEP_GUIDES),
   ...Object.values(PAIN_POINTS),

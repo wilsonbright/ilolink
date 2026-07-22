@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   PILLARS,
   GETTING_STARTED,
+  FORMAT_GUIDES,
   HOW_TOS,
   DEEP_GUIDES,
   PAIN_POINTS,
@@ -82,6 +83,11 @@ export default function GuidesIndex() {
       <Section
         heading="Share output from a specific tool"
         pages={Object.values(HOW_TOS)}
+        size="sm"
+      />
+      <Section
+        heading="Share a specific file type"
+        pages={Object.values(FORMAT_GUIDES)}
         size="sm"
       />
       <Section
