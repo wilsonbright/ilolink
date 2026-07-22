@@ -174,6 +174,19 @@ function titleFromBody(html: string): string {
   return text ? `${text.slice(0, 120)} — ilolink` : "Document — ilolink";
 }
 
+// A short plain-text excerpt for the OG/Twitter description (tags stripped).
+function descriptionFromBody(html: string): string {
+  const text = html
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return "";
+  return text.length > 180 ? `${text.slice(0, 177).trimEnd()}…` : text;
+}
+
 // Design tokens shared by both shells (and the injected feedback/comments widget).
 const SHELL_TOKENS = `:root {
   color-scheme: light;
@@ -288,6 +301,9 @@ function readerShell(opts: {
   nonce: string;
   noindex: boolean;
   docId: string;
+  slug: string;
+  format?: string; // source_type, drives the OG-card badge
+  description?: string;
   html?: boolean; // true => full-bleed (author controls styling)
 }): string {
   const robots = opts.noindex
@@ -298,6 +314,28 @@ function readerShell(opts: {
   const bodyInner = opts.html
     ? opts.body
     : `<main class="doc">\n${opts.body}\n</main>`;
+
+  // Open Graph / Twitter cards so shared links preview everywhere. The image is
+  // a branded per-doc card rendered by the app at /api/og.
+  const ogTitle = opts.title.replace(/\s+—\s+ilolink$/, "").slice(0, 140) || "ilolink";
+  const shareUrl = `https://ilolink.com/${opts.slug}`;
+  const ogDesc =
+    (opts.description && opts.description.trim()) ||
+    "Shared on ilolink — see how people read it: views, scroll depth, and comments.";
+  const ogImg = `https://ilolink.com/api/og?t=${encodeURIComponent(ogTitle)}&f=${encodeURIComponent(opts.format ?? "")}`;
+  const og = `<meta property="og:type" content="article" />
+<meta property="og:site_name" content="ilolink" />
+<meta property="og:title" content="${escapeHtml(ogTitle)}" />
+<meta property="og:description" content="${escapeHtml(ogDesc)}" />
+<meta property="og:url" content="${escapeHtml(shareUrl)}" />
+<meta property="og:image" content="${escapeHtml(ogImg)}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeHtml(ogTitle)}" />
+<meta name="twitter:description" content="${escapeHtml(ogDesc)}" />
+<meta name="twitter:image" content="${escapeHtml(ogImg)}" />
+<link rel="canonical" href="${escapeHtml(shareUrl)}" />`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -306,6 +344,7 @@ function readerShell(opts: {
 ${robots}
 <meta name="ilo:doc" content="${escapeHtml(opts.docId)}" />
 <title>${escapeHtml(opts.title)}</title>
+${og}
 <style>
 ${SHELL_TOKENS}
 ${css}
@@ -1036,12 +1075,14 @@ export default {
     // so they cannot act with this shared origin's authority (see trustedFrame).
     const trusted = rec.trusted === true && !isPdf;
     let body: string;
+    let textForMeta = ""; // real doc text (for title + OG description), even when trusted/wrapped
     if (isPdf) {
       body = pdfIframe(slug);
     } else {
       const object = await env.DOCS.get(rec.rendered_r2_key);
       if (!object) return notFoundPage();
       const raw = await object.text();
+      textForMeta = raw;
       body = trusted ? trustedFrame(raw) : raw;
     }
 
@@ -1051,11 +1092,16 @@ export default {
     // scripts run; origin isolation + frame-ancestors 'none' still contain them.
     const csp = buildDocCsp({ allowFrame: isPdf || trusted, trusted });
     const html = readerShell({
-      title: isPdf ? "PDF document" : titleFromBody(body),
+      title: isPdf ? "PDF document — ilolink" : titleFromBody(textForMeta),
       body,
       nonce: csp.nonce,
       noindex: rec.visibility === "unlisted",
       docId: rec.doc_id,
+      slug,
+      format: rec.source_type,
+      description: isPdf
+        ? "A PDF shared on ilolink."
+        : descriptionFromBody(textForMeta),
       html: rec.source_type === "html" || isPdf, // full-bleed
     });
 
