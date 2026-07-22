@@ -9,6 +9,9 @@
   "compatibility_flags": ["nodejs_compat"],
   "account_id": "a8ec57aa9f4b6a49e48e60b1aa2a306e",
   "workers_dev": true,
+  // Branded MCP endpoint. ilolink.com is on Cloudflare, so wrangler provisions
+  // the custom domain + cert on deploy.
+  "routes": [{ "pattern": "mcp.ilolink.com", "custom_domain": true }],
   // The McpAgent runs as a SQLite-backed Durable Object.
   "durable_objects": {
     "bindings": [{ "name": "MCP_OBJECT", "class_name": "IlolinkMCP" }]
