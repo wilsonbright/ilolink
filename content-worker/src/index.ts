@@ -1017,8 +1017,10 @@ export default {
     }
 
     // Per-response CSP + nonce. Tracker is same-origin (/tracker.js), so the
-    // nonce alone admits it; default-src 'none' blocks everything else.
-    const csp = buildDocCsp({ allowFrame: isPdf });
+    // nonce alone admits it; default-src 'none' blocks everything else. Trusted
+    // docs (publisher opt-in) instead get the permissive CSP so their own
+    // scripts run; origin isolation + frame-ancestors 'none' still contain them.
+    const csp = buildDocCsp({ allowFrame: isPdf, trusted: rec.trusted === true });
     const html = readerShell({
       title: isPdf ? "PDF document" : titleFromBody(body),
       body,

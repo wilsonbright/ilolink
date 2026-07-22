@@ -64,6 +64,9 @@ export interface CreateDocumentInput {
   // Set on the MCP path so the doc is owned by a workspace. Optional/null on the
   // web path. The column is added by migration 0003.
   workspace_id?: string | null;
+  // Opt-in: store + serve this HTML raw (unsanitized) under the permissive CSP.
+  // Default false. The column is added by migration 0006.
+  trusted?: boolean;
 }
 
 export async function createDocumentWith(
@@ -84,13 +87,14 @@ export async function createDocumentWith(
     published_at: now,
     created_at: now,
     updated_at: now,
+    trusted: input.trusted ?? false,
   };
   await DB.prepare(
     `INSERT INTO documents
       (id, slug, title, source_type, visibility, password_hash,
        manage_token_hash, current_version_id, expires_at, published_at,
-       created_at, updated_at, workspace_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       created_at, updated_at, workspace_id, trusted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       row.id,
@@ -106,6 +110,7 @@ export async function createDocumentWith(
       row.created_at,
       row.updated_at,
       input.workspace_id ?? null,
+      row.trusted ? 1 : 0,
     )
     .run();
   return row;

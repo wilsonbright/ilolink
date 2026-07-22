@@ -105,3 +105,13 @@ export function sanitizeDocument(dirtyHtml: string): SanitizeResult {
   const html = sanitizeHtml(dirtyHtml, OPTIONS);
   return { html, title };
 }
+
+// Opt-in trusted path (migration 0006): the publisher vouched for this HTML, so
+// it is stored and served RAW — the sole deliberate bypass of the sanitize
+// boundary above. It is served under the permissive-but-origin-isolated trusted
+// CSP (lib/sanitize/csp.ts buildDocCsp({trusted})). The title is still extracted
+// through the same text-only sanitize pass, so no attribute markup is trusted.
+// Callers MUST gate this behind an explicit publisher opt-in.
+export function renderTrustedDocument(rawHtml: string): SanitizeResult {
+  return { html: rawHtml, title: extractTitle(rawHtml) };
+}

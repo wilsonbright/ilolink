@@ -20,6 +20,11 @@ export interface DocumentRow {
   published_at: number | null;
   created_at: number;
   updated_at: number;
+  // Opt-in escape hatch: when true the doc's HTML was stored RAW (not sanitized)
+  // and is served under a permissive CSP so its own scripts run. Default false —
+  // the sanitize-on-ingest boundary is the norm. Set only when the publisher
+  // explicitly vouches for the content. Added by migration 0006.
+  trusted: boolean;
 }
 
 export interface DocumentVersion {
@@ -44,6 +49,11 @@ export interface SlugRecord {
   // Chooses the serving shell: "html" renders full-bleed (author controls all
   // styling); "md" renders in the zen reading shell. Optional for old records.
   source_type?: SourceType;
+  // When true, the rendered body is the author's RAW (unsanitized) HTML and the
+  // worker serves it under the permissive trusted CSP so its scripts run. The
+  // worker reads this straight from KV — no D1 hit on the hot path — so it MUST
+  // be written here at publish time. Optional/absent on old records => false.
+  trusted?: boolean;
 }
 
 // Result of the sanitize step: safe HTML plus the extracted title.

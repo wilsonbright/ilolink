@@ -5,6 +5,7 @@
 import { env } from "@/lib/cf";
 import { storeVersionWith, storeBinaryVersionWith } from "@/lib/publish/store-core";
 import { renderContent } from "@/lib/publish/formats";
+import { renderTrustedDocument } from "@/lib/sanitize/html";
 import type { DocumentVersion, SourceType, Visibility } from "@/lib/types";
 
 // The app's bindings, from OpenNext env(). The MCP worker calls store-core's
@@ -56,6 +57,13 @@ export interface RenderResult {
 // single security boundary. Never store `raw` rendered directly.
 export function renderAndSanitize(raw: string, sourceType: SourceType): RenderResult {
   return renderContent(raw, sourceType);
+}
+
+// Opt-in trusted HTML: bypass the sanitizer and keep the raw markup verbatim
+// (title still extracted safely). Only reachable when the publisher explicitly
+// vouches for the content; the doc is then served under the trusted CSP.
+export function renderTrusted(raw: string): RenderResult {
+  return renderTrustedDocument(raw);
 }
 
 

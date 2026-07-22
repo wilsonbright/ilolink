@@ -5,6 +5,20 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-22 — Per-doc opt-in "trusted" (raw, unsanitized) HTML
+- **Asked:** an uploaded interactive HTML file (`clema_prompt_evolution.html`, expand/collapse via inline `onclick`) is dead on ilolink.com/w3p3bd. "Don't sanitize, accept as is."
+- **Root cause (systematic-debugging):** the file's interactivity is inline `onclick` only (no `<script>`). ilolink's sanitizer strips ALL `on*` attributes on ingest (`lib/sanitize/html.ts`) and the doc CSP is `default-src 'none'` + nonce-only `script-src` (`lib/sanitize/csp.ts`), so nothing runs. By design, not a bug.
+- **Decision (asked user):** scope = **per-doc opt-in raw**, NOT global. Default stays sanitized.
+- **Done:** added a `trusted` flag that rides publish → D1 → KV `SlugRecord` → content-worker:
+  - `migrations/0006_trusted.sql` — `documents.trusted INTEGER DEFAULT 0` (additive).
+  - `lib/types.ts` (`DocumentRow.trusted`, `SlugRecord.trusted`), `lib/publish/store-core.ts` (insert column).
+  - `lib/sanitize/html.ts` `renderTrustedDocument()` + `lib/publish/pipeline.ts` `renderTrusted()` — bypass sanitize, keep raw, still extract title safely.
+  - `app/api/publish/route.ts` — parse `trusted`, honoured ONLY for text `sourceType:"html"` (never md/pdf/docx); abuse scan still runs.
+  - `lib/sanitize/csp.ts` `buildDocCsp({trusted})` — permissive `script-src 'unsafe-inline' 'unsafe-eval'` with NO nonce-source (a nonce-source makes browsers ignore unsafe-inline), keeps `frame-ancestors 'none'`/`base-uri 'none'`/`object-src 'none'` + view-origin isolation. Wired at `content-worker/src/index.ts` serve.
+  - `app/(app)/publish/publish-form.tsx` — "Run this page's scripts (trusted HTML)" checkbox (HTML source only) + request field.
+- **Verified:** `tsc --noEmit` clean; `vitest` 51/51 (updated store-core param test, added trusted-CSP test). **Observed in real headless Chrome** under the exact trusted CSP: clicking the file's own `.col-header` toggled `.open` (before=false→after=true, glyph→`−`) — inline scripts AND inline `onclick` both execute.
+- **NOT done / follow-ups:** (1) deploy — apply migration 0006 to remote D1 + redeploy Next app AND content-worker; (2) the existing w3p3bd was published sanitized — must be re-published with the box checked to become interactive; (3) ~20 marketing/guide pages + Terms + Privacy still state "scripts always stripped" — now inaccurate for opt-in trusted docs, needs copy/legal edit.
+
 ## 2026-07-22 — MCP connector: research + plan + Phase 0 (branch `mcp-connector`)
 - **Asked:** "implement this spec next: ilolink-mcp-connector-spec.md" (ultracode). Then: don't show base64, show filename (done first — see chip commit `c6f1ed9` on main).
 - **Research (workflow, 10 agents = 5 topics + 5 adversarial critiques):** current APIs for Cloudflare Agents SDK `McpAgent`, `@cloudflare/workers-oauth-provider`, Claude connector OAuth, ChatGPT `search`/`fetch`, MCP tool contract. Critiques caught fabrications (a fake `@modelcontextprotocol/server` v2 split, `ctx.mcpReq.elicitInput`) → **Task 1 pinned every signature against installed node_modules** (`agents@0.17.4`, `@modelcontextprotocol/sdk@1.29.0`, `workers-oauth-provider@0.8.2`). See `mcp-worker/PINNED.md`.
