@@ -175,8 +175,11 @@ function titleFromBody(html: string): string {
 }
 
 // A short plain-text excerpt for the OG/Twitter description (tags stripped).
+// Start after the first <h1> so the title (already the og:title) isn't repeated.
 function descriptionFromBody(html: string): string {
-  const text = html
+  const h1End = html.search(/<\/h1>/i);
+  const src = h1End >= 0 ? html.slice(h1End + 5) : html;
+  const text = src
     .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/gi, " ")
