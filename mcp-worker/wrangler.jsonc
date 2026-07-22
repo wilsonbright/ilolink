@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // ilolink MCP connector (companion spec). A SEPARATE Worker on mcp.ilolink.com
+  // running a Cloudflare Agents SDK McpAgent (SQLite Durable Object per session).
+  // Phase 0 ships on *.workers.dev; the custom domain is wired in Phase 1.
+  "name": "ilolink-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "a8ec57aa9f4b6a49e48e60b1aa2a306e",
+  "workers_dev": true,
+  // The McpAgent runs as a SQLite-backed Durable Object.
+  "durable_objects": {
+    "bindings": [{ "name": "MCP_OBJECT", "class_name": "IlolinkMCP" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["IlolinkMCP"] }],
+  "observability": { "enabled": true }
+}
