@@ -183,6 +183,27 @@ export const HOW_TOS = {
     group: "guide",
     priority: 0.7,
   },
+  mistral: {
+    path: "/guides/share-mistral-output",
+    title: "How to share Mistral Le Chat output as a page",
+    blurb: "Turn Le Chat HTML, Markdown, or a Canvas into a shareable page with analytics.",
+    group: "guide",
+    priority: 0.7,
+  },
+  lovable: {
+    path: "/guides/share-lovable-output",
+    title: "How to share a Lovable app as a page",
+    blurb: "Publish a Lovable build as a static preview — layout and styles render; interactivity is frozen.",
+    group: "guide",
+    priority: 0.7,
+  },
+  bolt: {
+    path: "/guides/share-bolt-output",
+    title: "How to share a Bolt.new site as a page",
+    blurb: "Export a Bolt.new build to a static file and share it as a link with read analytics.",
+    group: "guide",
+    priority: 0.7,
+  },
 } as const satisfies Record<string, SitePage>;
 
 // ── Pain-point pages (Groups E14, D12) ────────────────────────────────────
@@ -286,6 +307,22 @@ export const PERSONAS = {
     title: "ilolink for teachers",
     blurb:
       "Share handouts and lessons as a link and see how far students read — in aggregate, never per-student.",
+    group: "persona",
+    priority: 0.6,
+  },
+  developer: {
+    path: "/for/developers",
+    title: "ilolink for developers",
+    blurb:
+      "Share a README, API doc, or spec as a clean page — no repo, no build — and see if teammates read it.",
+    group: "persona",
+    priority: 0.6,
+  },
+  writer: {
+    path: "/for/writers",
+    title: "ilolink for writers",
+    blurb:
+      "Share a draft as a link and see how far readers got, plus notes and comments in place.",
     group: "persona",
     priority: 0.6,
   },
