@@ -1,33 +1,24 @@
 import { env } from "@/lib/cf";
+import { putBodyWith, getBodyWith } from "@/lib/publish/store-core";
 
 // Doc bodies live in R2 under "docs/<docId>/<versionId>/{raw,rendered}".
-// Keys are built by callers; helpers here just move string payloads in and out.
+// Key builders + the binding-parameterized put/get live in the pure store-core;
+// these are the app's env()-bound wrappers (the MCP worker calls store-core
+// directly with its own bindings). See lib/publish/store-core.ts.
+export { rawKey, renderedKey } from "@/lib/publish/store-core";
 
-export function rawKey(docId: string, versionId: string): string {
-  return `docs/${docId}/${versionId}/raw`;
-}
-
-export function renderedKey(docId: string, versionId: string): string {
-  return `docs/${docId}/${versionId}/rendered`;
-}
-
-// Store a body at `key` with the given content type. Accepts text or binary
-// (PDF bytes are stored as a Uint8Array/ArrayBuffer).
+// Store a body at `key` with the given content type. Accepts text or binary.
 export async function putBody(
   key: string,
   body: string | ArrayBuffer | Uint8Array,
   contentType: string,
 ): Promise<void> {
-  await env().DOCS.put(key, body, {
-    httpMetadata: { contentType },
-  });
+  await putBodyWith(env().DOCS, key, body, contentType);
 }
 
 // Read a string body; null when the object does not exist.
-export async function getBody(key: string): Promise<string | null> {
-  const obj = await env().DOCS.get(key);
-  if (!obj) return null;
-  return obj.text();
+export function getBody(key: string): Promise<string | null> {
+  return getBodyWith(env().DOCS, key);
 }
 
 // Delete every object under a key prefix (all versions of one doc). Paginates

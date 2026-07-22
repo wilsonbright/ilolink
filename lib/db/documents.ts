@@ -1,74 +1,29 @@
-import { nanoid } from "nanoid";
 import { env } from "@/lib/cf";
-import { queryFirst, execute } from "@/lib/db/client";
-import { rawKey, renderedKey } from "@/lib/r2/store";
-import type {
-  DocumentRow,
-  DocumentVersion,
-  SlugRecord,
-  SourceType,
-  Visibility,
-} from "@/lib/types";
+import { queryFirst } from "@/lib/db/client";
+import {
+  createDocumentWith,
+  createVersionWith,
+  setCurrentVersionWith,
+  writeSlugRecordWith,
+  readSlugRecordWith,
+  getDocumentBySlugWith,
+} from "@/lib/publish/store-core";
+import type { DocumentRow, DocumentVersion, SlugRecord } from "@/lib/types";
 
-// Fields a caller supplies at publish time; the rest (id, timestamps, current
-// version) are derived here. No owner — ownership is the manage token hash.
-export interface CreateDocumentInput {
-  slug: string;
-  source_type: SourceType;
-  title?: string | null;
-  visibility?: Visibility;
-  password_hash?: string | null;
-  manage_token_hash?: string | null;
-  expires_at?: number | null;
+// CreateDocumentInput now lives with the pure core (shared by app + MCP worker).
+export type { CreateDocumentInput } from "@/lib/publish/store-core";
+import type { CreateDocumentInput } from "@/lib/publish/store-core";
+
+// App-side wrappers: bind the current OpenNext env() and delegate to the pure
+// store-core. The MCP worker calls the *With functions directly with its own
+// bindings — one implementation, two front doors. See lib/publish/store-core.ts.
+
+export function createDocument(input: CreateDocumentInput): Promise<DocumentRow> {
+  return createDocumentWith(env().DB, input);
 }
 
-// Insert a document shell (no version yet) and return the row.
-export async function createDocument(
-  input: CreateDocumentInput,
-): Promise<DocumentRow> {
-  const now = Date.now();
-  const row: DocumentRow = {
-    id: nanoid(),
-    slug: input.slug,
-    title: input.title ?? null,
-    source_type: input.source_type,
-    visibility: input.visibility ?? "public",
-    password_hash: input.password_hash ?? null,
-    manage_token_hash: input.manage_token_hash ?? null,
-    current_version_id: null,
-    expires_at: input.expires_at ?? null,
-    published_at: now,
-    created_at: now,
-    updated_at: now,
-  };
-  await execute(
-    `INSERT INTO documents
-      (id, slug, title, source_type, visibility, password_hash,
-       manage_token_hash, current_version_id, expires_at, published_at,
-       created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    row.id,
-    row.slug,
-    row.title,
-    row.source_type,
-    row.visibility,
-    row.password_hash,
-    row.manage_token_hash,
-    row.current_version_id,
-    row.expires_at,
-    row.published_at,
-    row.created_at,
-    row.updated_at,
-  );
-  return row;
-}
-
-// Fetch by public slug; null if not found.
 export function getDocumentBySlug(slug: string): Promise<DocumentRow | null> {
-  return queryFirst<DocumentRow>(
-    "SELECT * FROM documents WHERE slug = ?",
-    slug,
-  );
+  return getDocumentBySlugWith(env().DB, slug);
 }
 
 // Fetch by primary key; null if not found.
@@ -76,48 +31,19 @@ export function getDocumentById(id: string): Promise<DocumentRow | null> {
   return queryFirst<DocumentRow>("SELECT * FROM documents WHERE id = ?", id);
 }
 
-// Append a version row. R2 keys default to the docs/<docId>/<versionId>/…
-// convention when the caller does not pass explicit keys.
-export async function createVersion(
+export function createVersion(
   docId: string,
   rawR2Key?: string,
   renderedR2Key?: string,
 ): Promise<DocumentVersion> {
-  const version: DocumentVersion = {
-    id: nanoid(),
-    document_id: docId,
-    raw_r2_key: rawR2Key ?? "",
-    rendered_r2_key: renderedR2Key ?? "",
-    created_at: Date.now(),
-  };
-  if (!version.raw_r2_key) version.raw_r2_key = rawKey(docId, version.id);
-  if (!version.rendered_r2_key) {
-    version.rendered_r2_key = renderedKey(docId, version.id);
-  }
-  await execute(
-    `INSERT INTO document_versions
-      (id, document_id, raw_r2_key, rendered_r2_key, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
-    version.id,
-    version.document_id,
-    version.raw_r2_key,
-    version.rendered_r2_key,
-    version.created_at,
-  );
-  return version;
+  return createVersionWith(env().DB, docId, rawR2Key, renderedR2Key);
 }
 
-// Point a document at a given version and bump updated_at.
-export async function setCurrentVersion(
+export function setCurrentVersion(
   docId: string,
   versionId: string,
 ): Promise<void> {
-  await execute(
-    "UPDATE documents SET current_version_id = ?, updated_at = ? WHERE id = ?",
-    versionId,
-    Date.now(),
-    docId,
-  );
+  return setCurrentVersionWith(env().DB, docId, versionId);
 }
 
 // Hard-delete a document and everything hanging off it (comments, feedback,
@@ -136,16 +62,14 @@ export async function deleteDocumentCascade(docId: string): Promise<void> {
 // --- KV slug lookup (hot content-origin path) ---
 
 // Write the slug -> doc lookup record at key `slug:<slug>`.
-export async function writeSlugRecord(
+export function writeSlugRecord(
   slug: string,
   record: SlugRecord,
 ): Promise<void> {
-  await env().KV.put(`slug:${slug}`, JSON.stringify(record));
+  return writeSlugRecordWith(env().KV, slug, record);
 }
 
 // Read the slug lookup record; null if absent.
-export async function readSlugRecord(
-  slug: string,
-): Promise<SlugRecord | null> {
-  return env().KV.get<SlugRecord>(`slug:${slug}`, "json");
+export function readSlugRecord(slug: string): Promise<SlugRecord | null> {
+  return readSlugRecordWith(env().KV, slug);
 }

@@ -2,10 +2,14 @@
 // append a version → point the document at it. Documents are immutable, so each
 // has exactly one version; the pipeline still routes through the sanitize boundary.
 
-import { putBody } from "@/lib/r2/store";
-import { createVersion, setCurrentVersion } from "@/lib/db/documents";
+import { env } from "@/lib/cf";
+import { storeVersionWith, storeBinaryVersionWith } from "@/lib/publish/store-core";
 import { renderContent } from "@/lib/publish/formats";
 import type { DocumentVersion, SourceType, Visibility } from "@/lib/types";
+
+// The app's bindings, from OpenNext env(). The MCP worker calls store-core's
+// *With functions with its own bindings instead.
+const appBindings = () => ({ DB: env().DB, DOCS: env().DOCS, KV: env().KV });
 
 // Upload ceiling for both raw bodies and file uploads.
 export const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -90,37 +94,27 @@ export function renderAndSanitize(raw: string, sourceType: SourceType): RenderRe
   return renderContent(raw, sourceType);
 }
 
-const rawContentType = (t: SourceType): string =>
-  t === "md" ? "text/markdown; charset=utf-8" : "text/html; charset=utf-8";
 
 // Append a new version: store raw + rendered bodies in R2, then set the
 // document's current_version_id (history is preserved — old versions stay).
-export async function storeVersion(
+export function storeVersion(
   docId: string,
   raw: string,
   html: string,
   sourceType: SourceType,
 ): Promise<DocumentVersion> {
-  const version = await createVersion(docId);
-  await putBody(version.raw_r2_key, raw, rawContentType(sourceType));
-  await putBody(version.rendered_r2_key, html, "text/html; charset=utf-8");
-  await setCurrentVersion(docId, version.id);
-  return version;
+  return storeVersionWith(appBindings(), docId, raw, html, sourceType);
 }
 
 // Store a binary version (pdf): raw key holds the bytes, served by the worker's
 // /raw/<slug> route. The rendered key holds a marker only — the worker builds the
 // <iframe> viewer shell at serve time, so no rendered HTML is needed.
-export async function storeBinaryVersion(
+export function storeBinaryVersion(
   docId: string,
   bytes: Uint8Array,
   contentType: string,
 ): Promise<DocumentVersion> {
-  const version = await createVersion(docId);
-  await putBody(version.raw_r2_key, bytes, contentType);
-  await putBody(version.rendered_r2_key, "<!-- binary -->", "text/html; charset=utf-8");
-  await setCurrentVersion(docId, version.id);
-  return version;
+  return storeBinaryVersionWith(appBindings(), docId, bytes, contentType);
 }
 
 // The shareable link is on the branded apex; it redirects to the render origin.
