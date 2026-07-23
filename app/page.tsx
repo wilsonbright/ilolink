@@ -31,8 +31,14 @@ export default function Home() {
           <p className="text-sm font-medium tracking-wide text-accent">ilolink</p>
           <nav className="flex items-center gap-4 text-sm text-ink-soft sm:gap-5">
             <Link
-              href="/guides"
+              href="/connect"
               className="transition-colors duration-150 hover:text-ink"
+            >
+              Connect
+            </Link>
+            <Link
+              href="/guides"
+              className="hidden transition-colors duration-150 hover:text-ink sm:inline"
             >
               Guides
             </Link>
@@ -92,7 +98,55 @@ export default function Home() {
         ))}
       </ul>
 
-      <footer className="mt-auto border-t border-hairline pt-12">
+      {/* Publish straight from an AI chat via the MCP connector. This was buried
+          in the footer; give it a real section — it's the fastest way to publish. */}
+      <section className="mt-16 rounded-2xl border border-hairline bg-accent-soft/40 p-8 sm:p-10">
+        <p className="text-xs font-medium uppercase tracking-wide text-accent">
+          New · MCP connector
+        </p>
+        <h2 className="mt-2 max-w-[24ch] text-2xl font-semibold leading-tight text-ink sm:text-3xl">
+          Publish straight from your AI chat
+        </h2>
+        <p className="mt-4 max-w-[56ch] text-ink-soft">
+          Add ilolink as a connector in{" "}
+          <span className="text-ink">Claude</span>,{" "}
+          <span className="text-ink">Grok</span>,{" "}
+          <span className="text-ink">ChatGPT</span>, or any MCP-compatible
+          assistant. Then just say <em>&ldquo;publish this as an ilolink page&rdquo;</em> —
+          you get a share link and a private analytics dashboard without leaving
+          the chat. No account, no copy-paste.
+        </p>
+        <ul className="mt-6 grid gap-3 text-sm text-ink-soft sm:grid-cols-3">
+          <li className="rounded-lg border border-hairline bg-surface px-4 py-3">
+            <span className="font-medium text-ink">Claude</span>
+            <br />
+            One-click — add connector, Authorize.
+          </li>
+          <li className="rounded-lg border border-hairline bg-surface px-4 py-3">
+            <span className="font-medium text-ink">Grok</span>
+            <br />
+            Skills &amp; Connectors → add the URL.
+          </li>
+          <li className="rounded-lg border border-hairline bg-surface px-4 py-3">
+            <span className="font-medium text-ink">ChatGPT</span>
+            <br />
+            Developer Mode → mint a workspace.
+          </li>
+        </ul>
+        <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+          <Link
+            href="/connect"
+            className="inline-flex items-center rounded-md bg-accent px-5 py-2.5 font-medium text-canvas transition-opacity duration-150 hover:opacity-90"
+          >
+            Connect an assistant →
+          </Link>
+          <span className="text-ink-faint">
+            Works with any MCP-compatible assistant.
+          </span>
+        </div>
+      </section>
+
+      <footer className="mt-24 border-t border-hairline pt-12">
         <div className="grid gap-8 sm:grid-cols-3">
           <div>
             <p className="text-sm font-medium text-ink">Guides</p>
