@@ -5,6 +5,20 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-01 — Phase 4 close-out + Phase 5: PATs, URL-token retirement, plugin bundle
+- **Asked:** "yes" (close out Phase 4, then Phase 5).
+- **Migration:** `0013_api_tokens.sql`.
+- **Retired `w_<id>/mcp`.** The workspace id was itself the bearer secret *and* sat in a URL — leaking into browser history, stored connector config, referrer chains, and this worker's own request logs (`observability: true`) — *and* doubled as the dashboard key, so one leak gave away publishing + analytics together. Now returns a JSON-RPC reconnect error rather than a 404 an agent can't interpret.
+- **Deleted `app/api/connect`** (minted a workspace row on any unauthenticated POST) and `/api/connect/rotate`; removed the `/w/<token>` rotate control with the path it protected. Replacement `POST /api/tokens` requires a session, verifies the caller can publish into the named teamspace, and returns the raw token **once** — only SHA-256 stored. `ilo_pat_` prefix so a leak is greppable/scannable; presented as an Authorization header, never a URL.
+- **Phase 5 plugin bundle:** `.claude-plugin/{plugin,marketplace}.json` + `skills/ilolink-publish/` + `skills/ilolink-skill-registry/` + `docs/plugin.md`. Boundary documented: **local plugin = stable and generic (how to talk to ilolink); everything project-specific lives server-side in the registry**, editable without a plugin release.
+- **Verified end-to-end against a real `wrangler dev` of the MCP worker** (`--persist-to .wrangler/state` so it shares the app's local D1 — separate state was why the first attempt failed): retired `w_` path returns the reconnect error; bogus PAT refused; real PAT initializes a session and the **server `instructions` ship** with the treat-skills-as-data warning; `skills_put` → v1, `skills_list` returns it, **`skills_get` returns the full provenance preamble** (author/teamspace/version) ahead of the body; stale `if_version=99` refused with the current version. **And the load-bearing one: deleting the caller's teamspace membership MID-SESSION immediately failed the next tool call in the same warm Durable Object, then succeeded again on restore** — the props-carry-identity/D1-carries-authority rule observed, not asserted.
+- App side: `/api/connect` + `/api/connect/rotate` **404**; token mint anon **401**; signed-in returns `ilo_pat_…` whose stored hash matches its SHA-256, and **zero rows hold a raw token**.
+- **Caught by cross-checking docs against code:** the shipped skill promised a `skills_search` tool that was never implemented. Corrected the doc to point at `skills_list`'s `query` param rather than adding a redundant tool. Added that check (every tool name in `skills/*/SKILL.md` must exist in `agent.ts`) to the validation run.
+- **Verified:** vitest **113/113**, tsc clean on root + both workers, build clean.
+- **Files:** commits `bcf12a6` (PATs + retirement), `bcbd2d6` (plugin bundle).
+- **Note:** the alice@example.com sign-in hit "Too many sign-in emails for that address" mid-testing — the 5/hour per-email limiter working as designed.
+- **Pending:** rotate `RESEND_API_KEY`; `wrangler secret put` RESEND_API_KEY/EMAIL_FROM/SITE_ORIGIN/TURNSTILE_SECRET/**MCP_HANDOFF_SECRET (both `ilolink` and `ilolink-mcp`)**; apply 0007–0013 + backfill to remote D1; deploy 3 workers (content first). Comment widget composer swap still unexercised in a real browser against a published doc.
+
 ## 2026-08-01 — Phase 4 (first pass): MCP OAuth handoff, per-call authority, skill registry
 - **Asked:** "star phase 4."
 - **Migration:** `0012_skills.sql` (skills + skill_versions).
