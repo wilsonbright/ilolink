@@ -16,9 +16,22 @@ import {
   decodeDataUrl,
   docxToHtml,
   MAX_BINARY_BYTES,
+  byteLength,
 } from "@/lib/publish/formats";
+import { scanContent } from "@/lib/abuse/scan";
 import type { SourceType } from "@/lib/types";
-import { PublishError } from "./publish-core";
+import { PublishError, MAX_TEXT_BYTES } from "./publish-core";
+
+// A benign doc that passed publish's block scan must not be swappable into a
+// phishing page via update (audit HIGH #2): re-run the same block backstop on
+// every new version.
+function assertNotAbusive(text: string, html: string): void {
+  if (scanContent(text, html).verdict === "block") {
+    throw new PublishError(
+      "This content looks like a phishing or credential-capture page, so it can't be published.",
+    );
+  }
+}
 
 export interface DocRow {
   id: string;
@@ -180,13 +193,18 @@ export async function updateDoc(
         throw new PublishError("Could not read that .docx file.");
       });
       const r = renderContent(html, "html");
+      assertNotAbusive(html, r.html);
       await putBodyWith(b.DOCS, version.raw_r2_key, html, "text/html; charset=utf-8");
       await putBodyWith(b.DOCS, version.rendered_r2_key, r.html, "text/html; charset=utf-8");
     }
   } else {
     // Keep the original interpretation (md vs html) from the doc.
     sourceType = doc.source_type === "html" ? "html" : "md";
+    if (byteLength(raw) > MAX_TEXT_BYTES) {
+      throw new PublishError("Content exceeds the 2 MB text limit — attach a file or trim it.");
+    }
     const r = renderContent(raw, sourceType);
+    assertNotAbusive(raw, r.html);
     const rawCt = sourceType === "md" ? "text/markdown; charset=utf-8" : "text/html; charset=utf-8";
     await putBodyWith(b.DOCS, version.raw_r2_key, raw, rawCt);
     await putBodyWith(b.DOCS, version.rendered_r2_key, r.html, "text/html; charset=utf-8");

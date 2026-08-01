@@ -1,7 +1,8 @@
 "use client";
 
-// One moderation action button: POSTs to /api/admin/action with the admin key,
-// then refreshes the server component to reflect the new state.
+// One moderation action button: POSTs to /api/admin/action, then refreshes the
+// server component to reflect the new state. Auth rides the HttpOnly `ilo_admin`
+// cookie (sent automatically same-origin) — the key is never in JS or the URL.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -9,13 +10,11 @@ export function ActionButton({
   op,
   target,
   label,
-  adminKey,
   danger,
 }: {
   op: string;
   target: string;
   label: string;
-  adminKey: string;
   danger?: boolean;
 }) {
   const router = useRouter();
@@ -28,7 +27,7 @@ export function ActionButton({
     try {
       const res = await fetch("/api/admin/action", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-admin-key": adminKey },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ op, target }),
       });
       if (!res.ok) throw new Error();

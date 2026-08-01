@@ -586,12 +586,15 @@ type CommentAnchor =
   | { type: "region"; x: number; y: number; w: number; h: number; label: string };
 
 // --- Abuse reports (spec §7) ---
-const REPORT_LIMIT = 3; // distinct reporters before a doc is auto-unpublished
-const WS_REPORT_FLAG_LIMIT = 5; // workspace flags before auto-suspension
+// Distinct reporter IPs (NOT UA-derived — see reporter_hash below) before a doc
+// is auto-unpublished. Kept high and IP-diverse so a single actor cannot cheaply
+// take a doc offline; everything below this stays 'open' for human moderation.
+// Anonymous reports NEVER auto-suspend a whole workspace — that is a human call.
+const REPORT_LIMIT = 10;
 
 // POST /_report — a viewer flags a published page. Honeypot + IP rate-limit +
-// per-reporter dedupe. At REPORT_LIMIT distinct reporters the doc is taken
-// offline; repeated hits suspend the owning workspace.
+// per-IP dedupe. Reports accumulate as 'open' for the moderation queue; at
+// REPORT_LIMIT distinct IPs the single doc is auto-unpublished (reversible).
 async function postReport(request: Request, env: Env): Promise<Response> {
   let data: Record<string, unknown>;
   try {
@@ -614,8 +617,11 @@ async function postReport(request: Request, env: Env): Promise<Response> {
     return jsonResponse({ error: "not found" }, 404);
   }
 
-  const ua = request.headers.get("user-agent") ?? "";
-  const rh = await visitorHash(ip, ua, docId, saltSecret(env));
+  // Dedupe reporters by client IP ONLY. The User-Agent is fully attacker-
+  // controlled, so folding it in let one IP mint unlimited "distinct" reporters
+  // and cheaply trip the auto-takedown (audit HIGH #1). IP is not freely
+  // rotatable, so COUNT(DISTINCT reporter_hash) now approximates distinct IPs.
+  const rh = await visitorHash(ip, "", docId, saltSecret(env));
 
   const existing = await env.DB.prepare(
     "SELECT id FROM reports WHERE document_id = ? AND reporter_hash = ?",
@@ -641,14 +647,18 @@ async function postReport(request: Request, env: Env): Promise<Response> {
   return jsonResponse({ ok: true });
 }
 
-// Take a reported doc offline and flag/suspend its workspace. Reversible: the
-// D1 row + R2 bodies stay; only the KV slug records are dropped so links 404.
+// Take a SINGLE reported doc offline once REPORT_LIMIT distinct IPs have flagged
+// it. Reversible: the D1 row + R2 bodies stay; only the KV slug record is dropped
+// so the link 404s. Deliberately does NOT touch the owning workspace — anonymous
+// reports must never cascade into a whole-workspace suspension (audit HIGH #1);
+// that decision stays with a human via the moderation queue. Reports remain in
+// D1 (marked 'actioned') so the review surface keeps the audit trail.
 async function autoActionDoc(env: Env, docId: string): Promise<void> {
   const doc = await env.DB.prepare(
-    "SELECT slug, workspace_id, unpublished_at FROM documents WHERE id = ?",
+    "SELECT slug, unpublished_at FROM documents WHERE id = ?",
   )
     .bind(docId)
-    .first<{ slug: string; workspace_id: string | null; unpublished_at: number | null }>();
+    .first<{ slug: string; unpublished_at: number | null }>();
   if (!doc || doc.unpublished_at) return;
 
   await env.DB.prepare("UPDATE documents SET unpublished_at = ? WHERE id = ?")
@@ -658,30 +668,6 @@ async function autoActionDoc(env: Env, docId: string): Promise<void> {
   await env.DB.prepare("UPDATE reports SET status = 'actioned' WHERE document_id = ?")
     .bind(docId)
     .run();
-
-  if (!doc.workspace_id) return;
-  await env.DB.prepare("UPDATE workspaces SET abuse_flags = abuse_flags + 1 WHERE id = ?")
-    .bind(doc.workspace_id)
-    .run();
-  const w = await env.DB.prepare("SELECT abuse_flags FROM workspaces WHERE id = ?")
-    .bind(doc.workspace_id)
-    .first<{ abuse_flags: number }>();
-  if ((w?.abuse_flags ?? 0) >= WS_REPORT_FLAG_LIMIT) {
-    const others = await env.DB.prepare(
-      "SELECT slug FROM documents WHERE workspace_id = ? AND unpublished_at IS NULL",
-    )
-      .bind(doc.workspace_id)
-      .all<{ slug: string }>();
-    await env.DB.prepare("UPDATE workspaces SET status = 'suspended' WHERE id = ?")
-      .bind(doc.workspace_id)
-      .run();
-    await env.DB.prepare(
-      "UPDATE documents SET unpublished_at = ? WHERE workspace_id = ? AND unpublished_at IS NULL",
-    )
-      .bind(Date.now(), doc.workspace_id)
-      .run();
-    await Promise.all(others.results.map((d) => env.KV.delete(`slug:${d.slug}`)));
-  }
 }
 
 function frac(v: unknown): number | null {

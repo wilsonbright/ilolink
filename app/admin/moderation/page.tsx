@@ -1,12 +1,13 @@
-// Moderation review surface (admin-only). Gated by ?key=<ADMIN_SECRET>. Shows
-// open abuse reports (grouped by doc), suspended workspaces, and flagged
-// workspaces, with one-click actions. Not linked from anywhere; the key is the
-// gate. See lib/admin/gate.ts + /api/admin/action.
+// Moderation review surface (admin-only). Gated by the HttpOnly `ilo_admin`
+// cookie (set via POST /api/admin/login); shows a key prompt until it's present.
+// Lists open abuse reports (grouped by doc), suspended workspaces, and flagged
+// workspaces, with one-click actions. See lib/admin/gate.ts + /api/admin/action.
 
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { env } from "@/lib/cf";
-import { verifyAdmin } from "@/lib/admin/gate";
+import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin/gate";
 import { ActionButton } from "./actions";
+import { AdminLogin } from "./login";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,14 +28,9 @@ interface Ws {
   docs?: number;
 }
 
-export default async function ModerationPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ key?: string }>;
-}) {
-  const { key } = await searchParams;
-  if (!verifyAdmin(key)) notFound();
-  const adminKey = key as string;
+export default async function ModerationPage() {
+  const jar = await cookies();
+  if (!verifyAdmin(jar.get(ADMIN_COOKIE)?.value)) return <AdminLogin />;
   const db = env().DB;
 
   const reports = (
@@ -105,13 +101,13 @@ export default async function ModerationPage({
               </div>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 {r.unpublished_at ? (
-                  <ActionButton op="restore" target={r.document_id} label="Restore" adminKey={adminKey} />
+                  <ActionButton op="restore" target={r.document_id} label="Restore" />
                 ) : (
-                  <ActionButton op="unpublish" target={r.document_id} label="Unpublish" adminKey={adminKey} danger />
+                  <ActionButton op="unpublish" target={r.document_id} label="Unpublish" danger />
                 )}
-                <ActionButton op="dismiss" target={r.document_id} label="Dismiss reports" adminKey={adminKey} />
+                <ActionButton op="dismiss" target={r.document_id} label="Dismiss reports" />
                 {r.workspace_id ? (
-                  <ActionButton op="suspend" target={r.workspace_id} label="Suspend workspace" adminKey={adminKey} danger />
+                  <ActionButton op="suspend" target={r.workspace_id} label="Suspend workspace" danger />
                 ) : null}
               </div>
             </li>
@@ -132,7 +128,7 @@ export default async function ModerationPage({
                   {w.origin} · {w.abuse_flags} flags · {w.docs ?? 0} docs
                 </p>
               </div>
-              <ActionButton op="unsuspend" target={w.id} label="Unsuspend" adminKey={adminKey} />
+              <ActionButton op="unsuspend" target={w.id} label="Unsuspend" />
             </li>
           ))}
         </ul>
@@ -151,7 +147,7 @@ export default async function ModerationPage({
                   {w.origin} · {w.abuse_flags} flags
                 </p>
               </div>
-              <ActionButton op="suspend" target={w.id} label="Suspend" adminKey={adminKey} danger />
+              <ActionButton op="suspend" target={w.id} label="Suspend" danger />
             </li>
           ))}
         </ul>

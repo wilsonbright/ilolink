@@ -7,6 +7,7 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { publishForWorkspace, PublishError } from "./publish-core";
+import { enforceMcpRate } from "./ratelimit";
 import { signedDashboardUrl, touchLastSeen } from "./workspace";
 import {
   listDocuments,
@@ -117,6 +118,8 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       async (input) => {
         try {
           const wsId = this.workspaceId();
+          // Publish is the heaviest tool (render + docx + R2). Cap per workspace.
+          await enforceMcpRate(this.env.KV, wsId, "publish", 10, 60);
           const b = { DB: this.env.DB, DOCS: this.env.DOCS, KV: this.env.KV };
           const res = await publishForWorkspace(b, wsId, input);
           void touchLastSeen(this.env.DB, wsId).catch(() => {});
@@ -230,6 +233,9 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       async ({ document_id, content, file_base64, filename }) => {
         try {
           const ws = this.workspaceId();
+          // Update has no doc-count quota, so the rate limit is the only ceiling
+          // on a multi-MB rewrite loop (audit HIGH #2).
+          await enforceMcpRate(this.env.KV, ws, "update", 15, 60);
           const b = { DB: this.env.DB, DOCS: this.env.DOCS, KV: this.env.KV };
           const res = await updateDoc(b, ws, document_id, { content, file_base64, filename });
           return textResult(`Updated. Same link: ${res.share_url}`, {
@@ -254,6 +260,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       async ({ document_id }) => {
         try {
           const ws = this.workspaceId();
+          await enforceMcpRate(this.env.KV, ws, "unpublish", 20, 60);
           const slug = await unpublishDoc(this.env.DB, this.env.KV, ws, document_id);
           return textResult(`Unpublished. ${shareUrl(slug)} now returns 404. Reverse it from your dashboard.`, {
             document_id,

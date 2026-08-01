@@ -6,11 +6,41 @@ import type { NextConfig } from "next";
 // only slug-shaped paths and the doc's own asset/beacon paths are forwarded.
 const CONTENT = "https://view.ilolink.com";
 
+// App-origin security headers (audit MEDIUM #9). The isolated content worker
+// already sets a strict per-doc CSP; the app origin previously sent none, so the
+// token-bearing dashboards (/w/*) and the admin surface could be framed and had
+// no HSTS. frame-ancestors 'self' (not 'none') is deliberate: pdf documents are
+// shown in a same-origin iframe. strict-origin-when-cross-origin keeps the
+// path-embedded /w token out of cross-origin Referer headers (only the bare
+// origin is sent off-site).
+const SECURITY_HEADERS = [
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+];
+
 const nextConfig: NextConfig = {
   // Required by @opennextjs/cloudflare: produces .next/standalone for the adapter.
   output: "standalone",
   poweredByHeader: false,
   cleanDistDir: true,
+  async headers() {
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      // Token/secret-bearing surfaces must never be stored by a shared cache.
+      {
+        source: "/admin/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
+      },
+      {
+        source: "/w/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
+      },
+    ];
+  },
   async rewrites() {
     return {
       beforeFiles: [

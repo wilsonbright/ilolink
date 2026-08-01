@@ -1,10 +1,11 @@
-// POST /api/admin/action — moderation actions. Gated by the ADMIN_SECRET in the
-// x-admin-key header. Ops: unpublish/restore a doc, dismiss its reports,
-// suspend/unsuspend a workspace.
+// POST /api/admin/action — moderation actions. Gated by the ADMIN_SECRET held in
+// the HttpOnly `ilo_admin` cookie (set via /api/admin/login). Ops:
+// unpublish/restore a doc, dismiss its reports, suspend/unsuspend a workspace.
 
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { env } from "@/lib/cf";
-import { verifyAdmin } from "@/lib/admin/gate";
+import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin/gate";
 import type { SlugRecord } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -74,7 +75,8 @@ async function suspendWorkspace(wsId: string): Promise<void> {
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!verifyAdmin(req.headers.get("x-admin-key"))) return bad("Unauthorized.", 401);
+  const jar = await cookies();
+  if (!verifyAdmin(jar.get(ADMIN_COOKIE)?.value)) return bad("Unauthorized.", 401);
 
   let body: { op?: unknown; target?: unknown };
   try {
