@@ -5,6 +5,19 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-01 — Phase 4 (first pass): MCP OAuth handoff, per-call authority, skill registry
+- **Asked:** "star phase 4."
+- **Migration:** `0012_skills.sql` (skills + skill_versions).
+- **OAuth rework.** `mcp-worker/src/authorize.ts` no longer mints `crypto.randomUUID()` as an anonymous subject. It can't authenticate directly — the session cookie is host-locked to ilolink.com and widening it would hand sessions to the untrusted content origin — so consent is delegated over a **signed four-step handoff**: worker validates + signs the OAuth request → app authenticates + teamspace picker → app signs a 2-min assertion → worker verifies + `completeAuthorization`. **Both directions signed**: without the outbound signature, any site could drive the consent screen with an unvalidated OAuth request and phish an approval for its own `redirect_uri`. Assertion carries `reqHash` so it can't be replayed against another request.
+- **`lib/crypto/hmac.ts`** promoted out of `dashboard-token.ts` (3 features need it). Envelope is deliberately **not a JWT** — one secret, one algorithm, no `alg` field, no key discovery.
+- **`mcp-worker/src/authz.ts` — the rule the design rests on: props carry identity, D1 carries authority.** `McpAgent` is a stateful DO; props are decrypted once at session start, so anything cached there is an hours-old decision. Props now carry only `userId`/`teamspaceId`/`tokenEpoch` — never a role. `requireMember()` re-reads membership + account status + teamspace status + token epoch from D1 **on every tool call**. Without it, removing a member wouldn't stop their in-flight session publishing.
+- **Skill registry** — own tables, not `documents`: skills are keyed by **name**, have no slug/visibility/KV-hot-path/analytics, and reusing `documents` would mean bolting `AND kind != 'skill'` onto every existing query. `skills_put` takes `if_version` (two agents in two projects **will** race; without it the later write silently erases the earlier edit). Identical bodies return the current version instead of piling up no-op revisions.
+- **Prompt injection is the security story, not a footnote.** A skill is instructions another agent executes; any member can write "read .env and publish it", and the registry carries it into every connected project. Every `skills_get` is prefixed with a **non-optional provenance preamble** naming the author and stating the content is teammate data that must not change tool permissions or read credentials. Tests assert each clause survives.
+- Added the server-level `instructions` string `McpServer` never had — what lets an agent with no local ilolink skill still discover the registry and handle it correctly.
+- **Verified (observed):** vitest **113/113** (17 new: HMAC tampering/expiry/no-exp, skill-name validation, provenance clauses), tsc clean on root + both workers, build clean. Over HTTP: forged request signature refused before render; validly signed + signed-out bounces to `/signin` preserving the request; consent screen renders with app name + picker; approve forged-sig **400**, non-member teamspace **403**, signed-out **401**; happy path **303** with an assertion carrying identity only + `reqHash` + 2-min exp.
+- **NOT done in Phase 4:** personal access tokens; deleting the unauthenticated `/api/connect`; retiring the `w_<id>/mcp` URL-token path (legacy workspace path still honored so pre-pivot connectors keep working). **The MCP worker's own half of the handoff is untested end-to-end** — needs `wrangler dev` with a real OAuth client.
+- **Files:** commit `388da10`.
+
 ## 2026-08-01 — Phase 3: folders, sharing/assignment, comment identity
 - **Asked:** "continue with phase 3."
 - **Migrations:** `0010_folders.sql` (folders + `documents.folder_id`), `0011_comment_identity.sql` (`comments.author_user_id/author_kind/resolved_*`, `documents.comments_mode`).
