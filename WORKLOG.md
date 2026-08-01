@@ -5,6 +5,23 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-01 — Phase 1: passwordless accounts (Resend sign-in codes + magic links + sessions)
+- **Asked:** "here is the resend api key… get started and implement."
+- **Done — migration `0007_accounts.sql`:** `users` (re-created after `0002_accountless.sql` dropped it; adds `email_norm` lookup key, `status`, `is_staff`, `token_epoch`), `sessions`, `auth_challenges`.
+- **New modules:** `lib/crypto/token.ts` (promoted `hashToken`/`verifyToken` out of `lib/manage-token.ts`), `lib/auth/{cookies,otp,redirect,challenge,session,current-user,config}.ts`, `lib/email/{send,templates}.ts`. `sendEmail` takes its config as an argument rather than reading `env()`, following the `lib/publish/store-core.ts` convention, so `mcp-worker` can import it in Phase 4.
+- **Routes:** `POST /api/auth/request`, `POST /api/auth/verify`, `POST /api/auth/logout`, `GET /auth/callback`; UI at `/signin` (`app/(app)/signin/`).
+- **Design calls, with reasons:**
+  - **6-digit code primary, magic link secondary.** `publish-form.tsx` holds up to a 15 MB `File` in React state; a link opens a new tab and destroys the draft. Codes also survive corporate link scanners that consume single-use links.
+  - **Code hashed with PBKDF2, not SHA-256** — 10^6 possibilities is brute-forceable from a stolen dump. Link/session tokens are nanoid(32) ≈ 190 bits, so plain SHA-256 is right for those.
+  - **`__Host-ilo_session` cookie.** Corrects an error in the plan: `ilolink.com` and `view.ilolink.com` are **same-site** (shared registrable domain), so `SameSite=Lax` protects nothing between them and a `Domain=.ilolink.com` cookie *would* reach the untrusted content origin. The `__Host-` prefix makes the browser refuse the cookie unless it is Secure + `Path=/` + Domain-less, so host-locking is enforced, not remembered. Unit test asserts no `Domain=` is ever emitted.
+  - **Sessions in D1, not KV/JWT** — KV is eventually consistent (a revoked session lingering ~60s is unacceptable once membership drives access); JWT would need a denylist, which is a session table with extra steps.
+  - `safeRedirect()` constrains the emailed `next` param: rejects absolute URLs, `//host`, backslash variants, control chars.
+- **Verified (observed, not inferred):** vitest **73/73** (22 new), `tsc --noEmit` clean on root + `content-worker` + `mcp-worker`, `next build` clean. Against a local dev server: wrong code → 401; correct code → cookie set with `__Host-…; HttpOnly; Secure; SameSite=Lax; Path=/` and no `Domain`; challenge replay → 400; magic link → 302 + session, reuse → `/signin?e=consumed`; forged cookie does not authenticate; logout revokes server-side (cookie stops working); all three open-redirect payloads fall back to `/dashboard`; D1 confirms `code_hash` is `pbkdf2$600000$…` and `link_hash` is 64-hex. Browser-driven the full two-step form, light **and** dark. **Real Resend delivery confirmed** — `status=delivered` to wilson@blocksurvey.org after ilolink.com was verified mid-session.
+- **Also fixed:** `.dev.vars.example` had never been committed — `.gitignore:15` (`.dev.vars.*`) swallowed it, so a fresh checkout had no record of the required secrets. Added `!.dev.vars.example`, mirroring the existing `!.env.example`.
+- **Files touched:** 20 new/modified, commit `17fc475`. Real key lives only in gitignored `.dev.vars`; a staged-diff scan confirmed it is not in the commit.
+- **Incidents:** (1) cleaning up dev servers I ran `pkill -9 -f "next dev"`, which matched broadly and killed an unrelated **clema-lp** dev server — a scope violation; match on the port instead. (2) Earlier, `git checkout next.config.ts` discarded 30 lines of uncommitted security work; restored verbatim and verified.
+- **Pending:** rotate `RESEND_API_KEY` (it was pasted in a chat transcript); `wrangler secret put` for RESEND_API_KEY/EMAIL_FROM/SITE_ORIGIN before deploy; apply `0007` to remote D1; deploy the 3 workers. Phase 2 (teamspaces + ownership) is next.
+
 ## 2026-08-01 — v2 plan (accounts/teamspaces/skills) + Step 0: commit security work, prove the cookie leak
 - **Asked:** plan teamspaces with member collaboration, email sign-up/sign-in via Resend, invites, named comments, assign/share documents, folders, and a cross-project agent skill folder over MCP that agents can also write to.
 - **Decisions (user):** accounts required for everything (full pivot off the accountless model); Owner/Member roles only; build now, launch later; ship *both* a local Claude Code plugin bundle and server-side skill-registry MCP tools.
