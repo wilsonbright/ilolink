@@ -5,6 +5,17 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-01 — v2 plan (accounts/teamspaces/skills) + Step 0: commit security work, prove the cookie leak
+- **Asked:** plan teamspaces with member collaboration, email sign-up/sign-in via Resend, invites, named comments, assign/share documents, folders, and a cross-project agent skill folder over MCP that agents can also write to.
+- **Decisions (user):** accounts required for everything (full pivot off the accountless model); Owner/Member roles only; build now, launch later; ship *both* a local Claude Code plugin bundle and server-side skill-registry MCP tools.
+- **Planned:** `~/.claude/plans/lively-mapping-gem.md` — 6 phases, migrations 0007–0011, MCP OAuth signed handoff replacing the anonymous `crypto.randomUUID()` subject, skills as their own name-keyed table reusing `store-core.ts` R2 helpers.
+- **Production sizing (read-only D1 query):** 21 docs (17 web / 4 MCP), 19 workspaces, 8 comments — all founder test data. No user base, so the ownership migration needs no claim/grandfather flow; backfill to one founder account.
+- **Verified the cross-origin cookie question (the plan's biggest risk):** ran `next dev` with `CONTENT_ORIGIN` pointed at a local echo server and curled the proxied paths. **Both rewrite tiers forward `Cookie` and `Authorization` verbatim to the content origin** (`/abc123` via afterFiles, `/_comments` and `/widget.js` via beforeFiles). So introducing a session cookie at `path=/` would hand sessions to `view.ilolink.com`, defeating the two-origin split. Plan updated: scope `ilo_session` to explicit app path prefixes. Caveat — measured under `next dev`, not the OpenNext production runtime; re-confirm before Phase 1 ships.
+- **Step 0 done:** branched `fix/pre-launch-security`; committed the previously-uncommitted PH security work as `72ed6c0` (H1 report-flood, H2 unmetered MCP writes, M9 app-origin headers, admin secret out of URL) and `77486a4` (launch docs). Verified vitest 51/51, `tsc --noEmit` clean on root + `content-worker` + `mcp-worker`, `next build` clean.
+- **Incident:** while reverting a one-line test edit I ran `git checkout next.config.ts`, which discarded all 30 lines of uncommitted security-headers work in that file rather than just my edit. Restored verbatim from the copy read earlier in-session and confirmed the diff returned to exactly `30 insertions(+)` with tsc clean. Use `git stash` or a targeted revert for this next time.
+- **Files touched:** `WORKLOG.md`; commits above cover `content-worker/src/index.ts`, `mcp-worker/src/{agent,docs,publish-core,ratelimit}.ts`, `next.config.ts`, `lib/admin/gate.ts`, `app/api/admin/{login,action}/`, `app/admin/moderation/*`, `docs/launch/*`.
+- **Pending (user-owned):** deploy 3 workers (content first) + re-run audit repros before Phase 1 starts.
+
 ## 2026-07-25 — Product Hunt launch prep: Phase 0 security fixes + listing/assets/playbook
 - **Asked:** execute the approved PH launch plan (`~/.claude/plans/concurrent-toasting-papert.md`).
 - **Phase 0 — security (blocking) — code done, locally verified:**
