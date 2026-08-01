@@ -7,7 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { ChallengeError, redeemLink } from "@/lib/auth/challenge";
-import { createSession, getOrCreateUser } from "@/lib/auth/session";
+import { completeSignIn } from "@/lib/auth/signin";
 import { serializeSessionCookie } from "@/lib/auth/cookies";
 import { safeRedirect } from "@/lib/auth/redirect";
 import { siteOrigin } from "@/lib/auth/config";
@@ -31,8 +31,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     return NextResponse.redirect(`${origin}/signin?e=${reason}`, 302);
   }
 
-  const user = await getOrCreateUser(redeemed.emailNorm, redeemed.emailNorm);
-  const raw = await createSession(user.id, req);
+  const { sessionToken: raw } = await completeSignIn(redeemed.emailNorm, req);
 
   const res = NextResponse.redirect(
     `${origin}${safeRedirect(redeemed.redirectTo ?? next)}`,

@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { ChallengeError, redeemCode } from "@/lib/auth/challenge";
-import { createSession, getOrCreateUser } from "@/lib/auth/session";
+import { completeSignIn } from "@/lib/auth/signin";
 import { serializeSessionCookie } from "@/lib/auth/cookies";
 import { DEFAULT_REDIRECT, safeRedirect } from "@/lib/auth/redirect";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
@@ -55,8 +55,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     throw e;
   }
 
-  const user = await getOrCreateUser(redeemed.emailNorm, redeemed.emailNorm);
-  const raw = await createSession(user.id, req);
+  const { user, sessionToken: raw } = await completeSignIn(redeemed.emailNorm, req);
 
   const res = NextResponse.json({
     ok: true,
