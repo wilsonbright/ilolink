@@ -8,7 +8,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { publishForWorkspace, PublishError } from "./publish-core";
 import { enforceMcpRate } from "./ratelimit";
-import { signedDashboardUrl, touchLastSeen } from "./workspace";
+import {
+  getOrCreateForTeamspace,
+  signedDashboardUrl,
+  touchLastSeen,
+} from "./workspace";
 import {
   listDocuments,
   searchDocuments,
@@ -96,16 +100,24 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
     },
   );
 
-  // Legacy accessor: the workspace-scoped storage id. New sessions carry a
-  // teamspace instead, and the workspace row now points at one.
-  private workspaceId(): string {
-    const id = this.props?.workspaceId;
-    if (!id) {
-      throw new PublishError(
-        "This connection predates ilolink accounts. Reconnect ilolink from your assistant's connector settings to continue.",
-      );
-    }
-    return id;
+  // The workspace-scoped storage id the document tools are still keyed by.
+  //
+  // Modern connections carry {userId, teamspaceId} and NOTHING sets
+  // props.workspaceId — so reading it directly, as this used to, made all eight
+  // document tools throw "this connection predates ilolink accounts" on
+  // connections created seconds earlier. Resolve from the teamspace instead,
+  // and keep the raw prop only as the pre-accounts fallback it was meant to be.
+  private async workspaceId(): Promise<string> {
+    const legacy = this.props?.workspaceId;
+    if (legacy) return legacy;
+
+    const caller = await this.caller();
+    const ws = await getOrCreateForTeamspace(
+      this.env.DB,
+      caller.teamspaceId,
+      caller.userId,
+    );
+    return ws.id;
   }
 
   // Authority, re-read from D1 on every call. Falls back to the legacy
@@ -241,11 +253,15 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       },
       async (input) => {
         try {
-          const wsId = this.workspaceId();
+          const caller = await this.caller();
+          const wsId = await this.workspaceId();
           // Publish is the heaviest tool (render + docx + R2). Cap per workspace.
           await enforceMcpRate(this.env.KV, wsId, "publish", 10, 60);
           const b = { DB: this.env.DB, DOCS: this.env.DOCS, KV: this.env.KV };
-          const res = await publishForWorkspace(b, wsId, input);
+          const res = await publishForWorkspace(b, wsId, input, {
+            teamspaceId: caller.teamspaceId,
+            userId: caller.userId,
+          });
           void touchLastSeen(this.env.DB, wsId).catch(() => {});
           const dashboard_url = await this.dashboardUrl(wsId);
           // Naming the destination matters once a user has more than one
@@ -276,7 +292,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       },
       async () => {
         try {
-          const url = await this.dashboardUrl(this.workspaceId());
+          const url = await this.dashboardUrl(await this.workspaceId());
           return textResult(`Your dashboard: ${url}`, { dashboard_url: url });
         } catch (e) {
           const msg = e instanceof PublishError ? e.message : "Could not build the dashboard link.";
@@ -296,7 +312,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       },
       async ({ limit }) => {
         try {
-          const ws = this.workspaceId();
+          const ws = await this.workspaceId();
           const rows = await listDocuments(this.env.DB, ws, limit ?? 20);
           const documents = await Promise.all(
             rows.map(async (d) => ({
@@ -325,7 +341,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       },
       async ({ document_id }) => {
         try {
-          const ws = this.workspaceId();
+          const ws = await this.workspaceId();
           const doc = await getOwnedDoc(this.env.DB, ws, document_id);
           const [views, comments, dashboard_url] = await Promise.all([
             docViews(this.env.VIEW_COUNTER, doc.id),
@@ -362,7 +378,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       },
       async ({ document_id, content, file_base64, filename }) => {
         try {
-          const ws = this.workspaceId();
+          const ws = await this.workspaceId();
           // Update has no doc-count quota, so the rate limit is the only ceiling
           // on a multi-MB rewrite loop (audit HIGH #2).
           await enforceMcpRate(this.env.KV, ws, "update", 15, 60);
@@ -389,7 +405,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       },
       async ({ document_id }) => {
         try {
-          const ws = this.workspaceId();
+          const ws = await this.workspaceId();
           await enforceMcpRate(this.env.KV, ws, "unpublish", 20, 60);
           const slug = await unpublishDoc(this.env.DB, this.env.KV, ws, document_id);
           return textResult(`Unpublished. ${shareUrl(slug)} now returns 404. Reverse it from your dashboard.`, {
@@ -414,7 +430,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       },
       async ({ query }) => {
         try {
-          const ws = this.workspaceId();
+          const ws = await this.workspaceId();
           const rows = await searchDocuments(this.env.DB, ws, query);
           return jsonResult({
             results: rows.map((d) => ({
@@ -440,7 +456,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       },
       async ({ id }) => {
         try {
-          const ws = this.workspaceId();
+          const ws = await this.workspaceId();
           const doc = await getOwnedDoc(this.env.DB, ws, id);
           const [views, comments] = await Promise.all([
             docViews(this.env.VIEW_COUNTER, doc.id),

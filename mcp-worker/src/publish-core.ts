@@ -119,10 +119,16 @@ async function resolveSlug(
   throw new PublishError("Could not allocate a link — please retry.");
 }
 
+// `owner` stamps the document with the teamspace and the person who published
+// it. Without it an MCP-published document carries only workspace_id, so it is
+// invisible to the dashboard (which lists by teamspace membership) and
+// resolveDocAccess sees no owner at all — the doc exists and nobody can manage
+// it. Optional so pre-accounts connections, which have no teamspace, still work.
 export async function publishForWorkspace(
   b: PublishBindings,
   workspaceId: string,
   input: PublishToolInput,
+  owner?: { teamspaceId: string; userId: string },
 ): Promise<PublishResult> {
   // 0. Workspace status + quota.
   const q = await b.DB.prepare(
@@ -234,9 +240,11 @@ export async function publishForWorkspace(
     title,
     visibility,
     password_hash: passwordHash,
-    manage_token_hash: null, // MCP docs are owned by the workspace, not a token
+    manage_token_hash: null, // MCP docs are owned by the teamspace, not a token
     expires_at: expiresAt,
     workspace_id: workspaceId,
+    teamspace_id: owner?.teamspaceId ?? null,
+    created_by: owner?.userId ?? null,
   });
   const version = await store(doc.id);
   await writeSlugRecordWith(b.KV, slug, {

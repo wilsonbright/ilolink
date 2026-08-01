@@ -95,6 +95,60 @@ export async function createWorkspace(
   return ws;
 }
 
+// Resolve the workspace that backs a teamspace, creating one on first use.
+//
+// WHY THIS EXISTS. The document tools are still scoped by workspace_id — the
+// pre-accounts ownership key — while every modern connection carries only
+// {userId, teamspaceId}. When the OAuth props changed in Phase 4, nothing was
+// left to populate props.workspaceId, so all eight document tools threw
+// "this connection predates ilolink accounts" on connections created seconds
+// earlier. This bridges the two models until documents are keyed by teamspace
+// outright.
+//
+// One workspace per teamspace. The Phase 2 backfill already created exactly one
+// per legacy workspace, so this only ever inserts for teamspaces made since.
+export async function getOrCreateForTeamspace(
+  DB: D1Database,
+  teamspaceId: string,
+  userId: string,
+): Promise<Workspace> {
+  const existing = await DB.prepare(
+    "SELECT * FROM workspaces WHERE teamspace_id = ? AND status = 'active' ORDER BY created_at ASC LIMIT 1",
+  )
+    .bind(teamspaceId)
+    .first<Workspace>();
+  if (existing) return existing;
+
+  const now = Date.now();
+  const id = mintWorkspaceId();
+  // Quota comes from the teamspace, not the anonymous default: a real account's
+  // limit should not be the 50 an anonymous workspace was given.
+  const ts = await DB.prepare(
+    "SELECT quota_docs FROM teamspaces WHERE id = ?",
+  )
+    .bind(teamspaceId)
+    .first<{ quota_docs: number }>();
+
+  await DB.prepare(
+    `INSERT INTO workspaces
+       (id, created_at, last_seen_at, origin, oauth_subject, claimed_by,
+        plan, quota_docs, status, user_id, teamspace_id)
+     VALUES (?, ?, ?, 'claude_oauth', NULL, NULL, 'team', ?, 'active', ?, ?)`,
+  )
+    .bind(id, now, now, ts?.quota_docs ?? 200, userId, teamspaceId)
+    .run();
+
+  // Re-read rather than construct: a concurrent first call may have won, and
+  // returning the row that actually exists keeps two sessions on one workspace.
+  const row = await DB.prepare(
+    "SELECT * FROM workspaces WHERE teamspace_id = ? AND status = 'active' ORDER BY created_at ASC LIMIT 1",
+  )
+    .bind(teamspaceId)
+    .first<Workspace>();
+  if (!row) throw new Error("Failed to resolve a workspace for this teamspace.");
+  return row;
+}
+
 // Best-effort last-seen bump (fire-and-forget from tools).
 export async function touchLastSeen(DB: D1Database, id: string): Promise<void> {
   await DB.prepare("UPDATE workspaces SET last_seen_at = ? WHERE id = ?")
