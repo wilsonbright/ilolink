@@ -10,7 +10,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/current-user";
-import { listDashboardDocs, listTeamspacesForUser } from "@/lib/teamspace/store";
+import {
+  listDashboardDocs,
+  listTeamspacesForUser,
+  type DashboardDoc,
+} from "@/lib/teamspace/store";
 import { ClaimBanner } from "./claim-banner";
 
 export const runtime = "nodejs";
@@ -40,6 +44,19 @@ export default async function DashboardPage() {
   ]);
 
   const live = docs.filter((d) => !d.unpublished_at);
+  // Group by folder, root first. Folders exist per teamspace, so two teamspaces
+  // may each have one called "Drafts"; keying by id keeps them apart while the
+  // heading shows the name.
+  const groups = new Map<string, { name: string | null; docs: typeof live }>();
+  for (const d of live) {
+    const key = d.folder_id ?? "";
+    if (!groups.has(key)) groups.set(key, { name: d.folder_name, docs: [] });
+    groups.get(key)!.docs.push(d);
+  }
+  const rootGroup = groups.get("");
+  const folderGroups = [...groups.entries()]
+    .filter(([k]) => k !== "")
+    .sort((a, b) => (a[1].name ?? "").localeCompare(b[1].name ?? ""));
   const unpublished = docs.filter((d) => d.unpublished_at);
   // Only worth naming teamspaces once there is more than the personal one —
   // a solo user should never meet the concept.
@@ -72,8 +89,56 @@ export default async function DashboardPage() {
           </p>
         </div>
       ) : (
-        <ul>
-          {live.map((d) => (
+        <>
+          {rootGroup && <DocList docs={rootGroup.docs} showTeamspace={showTeamspace} />}
+          {folderGroups.map(([id, g]) => (
+            <section key={id} className="mt-8">
+              <h2 className="mb-1 text-sm font-medium text-ink-soft">
+                {g.name}
+                <span className="ml-2 tabular-nums text-ink-faint">
+                  {g.docs.length}
+                </span>
+              </h2>
+              <DocList docs={g.docs} showTeamspace={showTeamspace} />
+            </section>
+          ))}
+        </>
+      )}
+
+      {unpublished.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-sm font-medium text-ink-soft">Unpublished</h2>
+          <ul>
+            {unpublished.map((d) => (
+              <li
+                key={d.id}
+                className="border-b border-hairline py-4 last:border-b-0"
+              >
+                <Link
+                  href={`/dashboard/${d.slug}`}
+                  className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                >
+                  {d.title || d.slug}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function DocList({
+  docs,
+  showTeamspace,
+}: {
+  docs: DashboardDoc[];
+  showTeamspace: boolean;
+}) {
+  return (
+    <ul>
+      {docs.map((d) => (
             <li
               key={d.id}
               className="border-b border-hairline py-5 last:border-b-0"
@@ -103,31 +168,8 @@ export default async function DashboardPage() {
                   open
                 </a>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {unpublished.length > 0 && (
-        <section className="mt-10">
-          <h2 className="mb-3 text-sm font-medium text-ink-soft">Unpublished</h2>
-          <ul>
-            {unpublished.map((d) => (
-              <li
-                key={d.id}
-                className="border-b border-hairline py-4 last:border-b-0"
-              >
-                <Link
-                  href={`/dashboard/${d.slug}`}
-                  className="text-ink-soft transition-colors duration-150 hover:text-accent"
-                >
-                  {d.title || d.slug}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </div>
+        </li>
+      ))}
+    </ul>
   );
 }
