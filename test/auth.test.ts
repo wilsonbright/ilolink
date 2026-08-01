@@ -16,6 +16,7 @@ import {
 } from "@/lib/auth/otp";
 import { signInEmail } from "@/lib/email/templates";
 import { displayNameFromEmail, looksLikeEmail } from "@/lib/email/display";
+import { hashPassword, verifyPassword } from "@/lib/crypto/password";
 
 // The cookie is the security boundary between the app origin and the untrusted
 // content origin they share a registrable domain with. These assertions are the
@@ -196,5 +197,31 @@ describe("public display names never carry an address", () => {
     expect(displayNameFromEmail("nobody")).toBe("nobody");
     // Leading @ would otherwise slice to an empty string.
     expect(displayNameFromEmail("@example.com")).toBe("@example.com");
+  });
+});
+
+// Cloudflare Workers' WebCrypto refuses PBKDF2 above 100,000 iterations. The
+// repo shipped 600,000, which threw on every call in production — unnoticed
+// because the only caller (password-protected documents) was never exercised.
+// Sign-in codes now depend on this working, so pin it.
+describe("PBKDF2 stays within the Workers platform limit", () => {
+  it("hashes and verifies a round trip", async () => {
+    const stored = await hashPassword("correct horse");
+    expect(await verifyPassword("correct horse", stored)).toBe(true);
+    expect(await verifyPassword("wrong horse", stored)).toBe(false);
+  });
+
+  it("never emits an iteration count Workers would reject", async () => {
+    const stored = await hashPassword("x");
+    const iterations = Number(stored.split("$")[1]);
+    expect(iterations).toBeLessThanOrEqual(100_000);
+    expect(iterations).toBeGreaterThan(0);
+  });
+
+  it("returns false, rather than throwing, for a legacy over-limit hash", async () => {
+    // A 600k hash written before the cap can never be verified on Workers.
+    // The caller must see "wrong password", not a 500.
+    const legacy = "pbkdf2$600000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    await expect(verifyPassword("anything", legacy)).resolves.toBe(false);
   });
 });

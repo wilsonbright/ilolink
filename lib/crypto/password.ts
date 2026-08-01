@@ -4,7 +4,17 @@
 //
 // Stored format: "pbkdf2$<iterations>$<saltB64>$<hashB64>"
 
-const ITERATIONS = 600_000; // OWASP current guidance for PBKDF2-HMAC-SHA256
+// Cloudflare Workers' WebCrypto REFUSES PBKDF2 above 100,000 iterations:
+//   NotSupportedError: iteration counts above 100000 are not supported
+// This was set to 600,000 (OWASP guidance for server-side PBKDF2) and would
+// throw on every call in production. It was never noticed because the only
+// caller was password-protected documents, a feature nobody had exercised;
+// putting sign-in codes on the same primitive is what surfaced it.
+//
+// 100k is the platform ceiling, not a preference. Anything needing a stronger
+// KDF than the platform allows should not be using PBKDF2 here.
+const ITERATIONS = 100_000;
+const MAX_SUPPORTED_ITERATIONS = 100_000;
 const SALT_BYTES = 16;
 const HASH_BYTES = 32; // 256-bit derived key
 const PREFIX = "pbkdf2";
@@ -62,6 +72,10 @@ export async function verifyPassword(pw: string, stored: string): Promise<boolea
   if (parts.length !== 4 || parts[0] !== PREFIX) return false;
   const iterations = Number(parts[1]);
   if (!Number.isInteger(iterations) || iterations < 1) return false;
+  // A hash stored with a higher count than the platform supports can never be
+  // verified here. Return false rather than letting deriveBits throw, so the
+  // caller sees "wrong password" instead of a 500.
+  if (iterations > MAX_SUPPORTED_ITERATIONS) return false;
 
   let salt: Uint8Array<ArrayBuffer>;
   let expected: Uint8Array<ArrayBuffer>;
