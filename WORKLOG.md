@@ -5,6 +5,18 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-01 — DEPLOYED to production (accounts / teamspaces / skills release)
+- **Asked:** "deploy all changes." (Reverses the earlier commit-only choice.)
+- **Refused to deploy code first.** Checked state before acting: remote D1 had **none** of the 9 new tables and 7 unapplied migrations, and only 4 of 9 secrets were set. Deploying code first would have been a full outage, not a degradation — `app/(app)/layout.tsx` calls `currentUser()` (queries `sessions`), and `content-worker`'s comment read path now `LEFT JOIN`s `users`, so **every existing published document's comments would have broken too**.
+- **Order executed:** migrations → backfill → secrets → content worker → mcp worker → app.
+- **Migrations 0007–0013 applied to remote D1.** All 11 tables created; `docs:23 ws:20 comments:8` unchanged before/after.
+- **Backfill:** 20 shadow teamspaces (one per workspace), 5 MCP docs re-homed, 20 workspaces linked, **18 web docs deliberately left unclaimed** — their ownership isn't knowable server-side.
+- **Secrets set:** generated a fresh `MCP_HANDOFF_SECRET` and set it on **both** `ilolink` and `ilolink-mcp`; plus `SITE_ORIGIN`, `MCP_ORIGIN`, `EMAIL_FROM`, `APP_ORIGIN` (mcp). `RESEND_API_KEY` set at user's instruction using the transcript-exposed value — **user to rotate immediately**.
+- **PRODUCTION BUG FOUND AND FIXED MID-DEPLOY — `NotSupportedError: Pbkdf2 failed: iteration counts above 100000 are not supported (requested 600000)`.** `lib/crypto/password.ts` has used 600k since it was written; **Cloudflare Workers caps PBKDF2 at 100k**. Pre-existing — password-protected docs would always have failed — but never surfaced because that feature has **zero rows** in production. Sign-in codes on the same primitive exposed it: `/api/auth/request` returned an unhandled 500, so **nobody could sign in at all**. Capped at 100k; `verifyPassword` now returns `false` (not throws) for an over-limit legacy hash. Nothing to migrate. Commit `d8f1a6e`-adjacent; redeployed app + content.
+- **Why local tests didn't catch it:** Node's WebCrypto has no such cap, so vitest passes either way. **Found by deploying and reading `wrangler tail`, not by reasoning.** Worth remembering: the test environment and the runtime diverge on crypto limits.
+- **Verified live:** `/`, `/signin`, `/privacy`, `/terms` 200; `/dashboard` 307 (auth); existing docs serve 200 both direct and apex-proxied; retired `w_` path returns the reconnect error; bogus PAT rejected; anon publish **401**; `/api/connect` **404**; `/dashboard` keeps `X-Frame-Options: SAMEORIGIN` while `/embed/comment` sends **none** plus `frame-ancestors 'self' https://view.ilolink.com`; **real sign-in email `status=delivered` via Resend** from `auth@ilolink.com`.
+- **Still open:** rotate `RESEND_API_KEY` (exposed in transcript, now live in prod); rotate `ADMIN_SECRET` + CF API token; ~123 lines of accountless-era marketing copy (`docs/launch/copy-sweep.md`); comment widget composer swap still unrendered in a real browser against a published doc; security-audit repros H1/H2 not re-run against live.
+
 ## 2026-08-01 — Phase 6: pre-launch copy correction, CI worker type-checks, deploy runbook
 - **Asked:** "launch phase 6."
 - **Scope split stated up front:** deploying, rotating secrets, and re-running audit repros against live are user-owned (commit-only was chosen in Step 0). This entry covers everything else.
