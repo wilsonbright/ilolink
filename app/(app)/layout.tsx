@@ -2,11 +2,15 @@
 // <html>/<body> here — just a quiet header over the routed content.
 //
 // The header is session-aware: signed out it offers a way in, signed in it
-// shows who you are and where your teamspaces live. Teamspace links only appear
-// once there is a shared one, so a solo user never meets the concept.
+// shows who you are and where your teamspaces live.
+//
+// This used to render one link per shared teamspace and hide the concept
+// entirely from anyone who had none. That was a closed loop: the only way to
+// get a shared teamspace is to create one, and the only page that creates one
+// was the page you could not see. A single link to /t breaks it, and it drops
+// the per-render teamspace query the old nav needed.
 import Link from "next/link";
 import { currentUser } from "@/lib/auth/current-user";
-import { listTeamspacesForUser } from "@/lib/teamspace/store";
 import { SignOutButton } from "./sign-out";
 
 export default async function AppLayout({
@@ -15,8 +19,6 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const user = await currentUser();
-  const teamspaces = user ? await listTeamspacesForUser(user.id) : [];
-  const shared = teamspaces.filter((t) => !t.is_personal);
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -29,15 +31,14 @@ export default async function AppLayout({
             ilolink
           </Link>
           <nav className="flex items-center gap-4">
-            {shared.map((t) => (
+            {user && (
               <Link
-                key={t.id}
-                href={`/t/${t.id}`}
+                href="/t"
                 className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"
               >
-                {t.name}
+                Teamspaces
               </Link>
-            ))}
+            )}
             <Link
               href="/publish"
               className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"

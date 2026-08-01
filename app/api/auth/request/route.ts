@@ -19,6 +19,21 @@ import { clientIp, rateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
+// Two independent ceilings, tuned so a real person retrying never meets them.
+//
+// The window is short on purpose. rateLimit() re-puts the counter with a fresh
+// TTL on every allowed hit, so the window runs from the LAST send, not the
+// first — an hour-long window meant one distracted burst locked an address out
+// for a full hour from its final attempt. Fifteen minutes keeps the same burst
+// ceiling while making the lockout something you can wait out.
+const EMAIL_SEND_LIMIT = 8;
+const EMAIL_SEND_WINDOW = 15 * 60;
+// Per-IP is the enumeration ceiling, so it stays hourly and stays the tighter
+// of the two in practice: it is the one an attacker walking a list of addresses
+// actually runs into. An office or campus NAT shares one IP, hence the headroom.
+const IP_SEND_LIMIT = 40;
+const IP_SEND_WINDOW = 60 * 60;
+
 export async function POST(req: Request): Promise<NextResponse> {
   let body: { email?: unknown; next?: unknown };
   try {
@@ -39,17 +54,38 @@ export async function POST(req: Request): Promise<NextResponse> {
     typeof body.next === "string" ? body.next : null,
   );
 
-  // Two independent ceilings: one stops hammering a single mailbox, the other
-  // stops one host walking a list of addresses. The email key is hashed so the
-  // KV keyspace holds no plaintext addresses.
+  // One ceiling stops hammering a single mailbox, the other stops one host
+  // walking a list of addresses. The email key is hashed so the KV keyspace
+  // holds no plaintext addresses.
+  //
+  // The wait is derived from the window rather than written into the string —
+  // the old copy hardcoded "an hour" and would have started lying the moment
+  // anyone retuned the limit.
   const emailKey = (await hashToken(emailNorm)).slice(0, 32);
-  if (!(await rateLimit(`auth:send:email:${emailKey}`, 5, 3600))) {
+  if (
+    !(await rateLimit(
+      `auth:send:email:${emailKey}`,
+      EMAIL_SEND_LIMIT,
+      EMAIL_SEND_WINDOW,
+    ))
+  ) {
     return NextResponse.json(
-      { error: "Too many sign-in emails for that address. Try again in an hour." },
+      {
+        error:
+          `Too many sign-in emails for that address. ` +
+          `Try again in ${Math.round(EMAIL_SEND_WINDOW / 60)} minutes, ` +
+          `or use the most recent code we sent you — it may still be valid.`,
+      },
       { status: 429 },
     );
   }
-  if (!(await rateLimit(`auth:send:ip:${clientIp(req)}`, 20, 3600))) {
+  if (
+    !(await rateLimit(
+      `auth:send:ip:${clientIp(req)}`,
+      IP_SEND_LIMIT,
+      IP_SEND_WINDOW,
+    ))
+  ) {
     return NextResponse.json(
       { error: "Too many sign-in attempts from this network." },
       { status: 429 },
