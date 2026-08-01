@@ -5,6 +5,21 @@
 export const SITE_URL = "https://ilolink.com";
 export const SITE_NAME = "ilolink";
 
+// The default <title>/<meta description> for any page that doesn't set its own
+// — in practice the home page, since every marketing page declares its own.
+// Kept here rather than inline in app/layout.tsx so the positioning has one
+// home alongside the rest of the SEO registry.
+//
+// These lead with the artifact registry because that is what the product is.
+// The publishing line stays in the description on purpose: it is still a real,
+// shipped capability and it is what the ~60 guide pages are about, so dropping
+// it would leave the site's largest content surface describing something the
+// homepage no longer claims.
+export const SITE_TITLE =
+  "ilolink — a shared artifact registry for your team's AI agents";
+export const SITE_DESCRIPTION =
+  "Push skills, specs, design docs, plans, workflows and session handoffs from any repo over MCP. Every teammate's agent pulls the same versioned set, with admin review before a change becomes team policy. Publish any document as a link, too.";
+
 // The live conversion surface. Publishing now needs a free account; the
 // composer is still the
 // signup, so every marketing CTA points here rather than at a /pricing page.

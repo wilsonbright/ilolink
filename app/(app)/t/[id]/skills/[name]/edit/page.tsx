@@ -55,10 +55,10 @@ export default async function EditSkillPage({
     <div>
       <div className="mb-2 flex items-baseline justify-between gap-4">
         <h1 className="font-mono text-2xl font-medium text-ink">
-          {found.skill.name}
+          {found.artifact.name}
         </h1>
         <Link
-          href={`/t/${id}/skills/${encodeURIComponent(found.skill.name)}`}
+          href={`/t/${id}/skills/${encodeURIComponent(found.artifact.name)}`}
           className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
         >
           Cancel
@@ -72,8 +72,8 @@ export default async function EditSkillPage({
       <SkillEditor
         teamspaceId={id}
         initial={{
-          name: found.skill.name,
-          description: found.skill.description,
+          name: found.artifact.name,
+          description: found.artifact.description,
           body: found.body,
           version: found.version,
         }}

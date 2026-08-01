@@ -8,8 +8,29 @@
 // token or a workspace id. Adding a third model (teamspaces) to nine call
 // sites would leave forked logic nobody could ever finish deleting.
 
-export type TeamRole = "owner" | "member";
+// Three roles. 'admin' was added when the artifact registry gained a review
+// step: members PROPOSE changes to the instructions other people's agents
+// execute, and someone has to be able to approve them. Without a role between
+// owner and member, every proposal would be self-approved and the review step
+// would be ceremony.
+//
+//   owner  — everything, including deleting the teamspace and making owners
+//   admin  — invite, remove members, approve proposals, manage folders
+//   member — create and propose; comment; delete what they created
+//
+// SQLite cannot add a CHECK by ALTER, so this union is the only guard on the
+// column — exactly as it always was for owner/member.
+export type TeamRole = "owner" | "admin" | "member";
 export type ShareRole = "viewer" | "commenter" | "editor";
+
+// Rank, so comparisons read as "at least an admin" rather than a growing list
+// of string equality checks that someone will forget to widen next time.
+const RANK: Record<TeamRole, number> = { owner: 3, admin: 2, member: 1 };
+
+export function atLeast(role: TeamRole | null, min: TeamRole): boolean {
+  if (!role) return false;
+  return RANK[role] >= RANK[min];
+}
 
 export interface DocFacts {
   teamspaceId: string | null;
@@ -67,7 +88,10 @@ export function resolveDocAccess(input: AccessInput): DocCapabilities {
   const { userId, doc, membership, share } = input;
   if (!userId) return { ...NONE };
 
-  if (membership === "owner") return { ...FULL };
+  // An admin has full authority over the teamspace's documents. The line
+  // between admin and owner is drawn at the teamspace itself — renaming it,
+  // deleting it, and making other owners — not at its contents.
+  if (membership === "owner" || membership === "admin") return { ...FULL };
 
   if (membership === "member") {
     return {
@@ -105,19 +129,102 @@ export function resolveDocAccess(input: AccessInput): DocCapabilities {
 
 // Teamspace-level actions, separate from any document.
 export function canInvite(role: TeamRole | null): boolean {
-  return role === "owner";
+  return atLeast(role, "admin");
 }
 
 export function canRemoveMember(
   actorRole: TeamRole | null,
   actorUserId: string,
   targetUserId: string,
+  // The target's role. An admin must not be able to remove an owner — without
+  // this, "admin" would be a quiet path to taking over the teamspace.
+  targetRole: TeamRole | null = null,
 ): boolean {
-  // Owners remove anyone; anyone may remove themselves (leave).
+  // Must actually be in the teamspace first: a non-member has nothing to leave,
+  // and returning true for them would let an unrelated caller's "remove myself"
+  // reach the delete path.
+  if (!actorRole) return false;
+  // Anyone may remove themselves (leave), whatever their role.
+  if (actorUserId === targetUserId) return true;
   if (actorRole === "owner") return true;
-  return actorRole === "member" && actorUserId === targetUserId;
+  // An admin may not remove an owner — otherwise "admin" is a quiet path to
+  // taking over the teamspace.
+  if (actorRole === "admin") return targetRole !== "owner";
+  return false;
 }
 
 export function canPublishInto(role: TeamRole | null): boolean {
-  return role === "owner" || role === "member";
+  return atLeast(role, "member");
+}
+
+// ── Roles ───────────────────────────────────────────────────────────────────
+
+// Only an owner changes roles, and only an owner can mint another owner.
+// An admin promoting someone to owner would be the same takeover path as
+// removing one.
+// Demoting yourself is permitted here and refused by the last-owner check at
+// the route, which is the only place that can count the remaining owners.
+export function canChangeRole(actorRole: TeamRole | null): boolean {
+  return actorRole === "owner";
+}
+
+// Renaming, archiving, or otherwise altering the teamspace itself.
+export function canManageTeamspace(role: TeamRole | null): boolean {
+  return role === "owner";
+}
+
+// Create, rename and archive folders. This wires the `ownerOnly` branch of
+// guardTeamspace that has existed unused since folders shipped — until now any
+// member could delete a teamspace's folder structure.
+export function canManageFolders(role: TeamRole | null): boolean {
+  return atLeast(role, "admin");
+}
+
+// ── Artifact registry ───────────────────────────────────────────────────────
+
+// Everyone in the teamspace may write. Whether that write goes live or becomes
+// a proposal is canPublishArtifact's job, not this one.
+export function canWriteArtifact(role: TeamRole | null): boolean {
+  return atLeast(role, "member");
+}
+
+// Whether this role's write lands as `published` immediately, or as `proposed`
+// awaiting review.
+//
+// This is the rule that makes the registry safe to open up: an artifact is
+// instructions every teammate's agent will later read and act on, so a member
+// pushing from a repo produces a proposal, not team policy. Teams that do not
+// want the ceremony turn it off per teamspace (teamspaces.review_member_writes).
+export function canPublishArtifact(
+  role: TeamRole | null,
+  reviewMemberWrites: boolean,
+): boolean {
+  if (atLeast(role, "admin")) return true;
+  return role === "member" && !reviewMemberWrites;
+}
+
+// Approve or reject someone else's proposal.
+export function canReviewArtifact(role: TeamRole | null): boolean {
+  return atLeast(role, "admin");
+}
+
+// Archiving hides an artifact from every agent in the teamspace, so it is a
+// destructive act on shared state. Bounded the same way document deletion is
+// (resolveDocAccess): admins and owners may archive anything, a member only
+// what they created. Otherwise one member could silently disable the team's
+// whole registry.
+export function canArchiveArtifact(
+  role: TeamRole | null,
+  createdBy: string | null,
+  userId: string,
+): boolean {
+  if (atLeast(role, "admin")) return true;
+  return role === "member" && createdBy != null && createdBy === userId;
+}
+
+// Unarchiving is NOT the mirror of archiving. An admin archives an artifact
+// precisely when it is wrong or malicious, so letting the member who wrote it
+// put it back would undo the only remedy an admin has.
+export function canUnarchiveArtifact(role: TeamRole | null): boolean {
+  return atLeast(role, "admin");
 }

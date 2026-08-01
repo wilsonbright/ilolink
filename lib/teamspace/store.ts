@@ -99,6 +99,11 @@ export async function listTeamspacesForUser(
 // Same list, plus how many people and skills are in each. Kept separate from
 // listTeamspacesForUser because the app layout calls that one on every render
 // and has no use for the counts — no reason to make the shell pay for them.
+//
+// Counts skills specifically, not every artifact kind: this number is rendered
+// as "N skills" and also picks which teamspaces are offered as a copy source
+// when creating a new one — and that copy only carries skills across. Counting
+// specs and plans in it would offer a teamspace with nothing to copy.
 export async function listTeamspacesWithCounts(
   userId: string,
 ): Promise<
@@ -118,8 +123,9 @@ export async function listTeamspacesWithCounts(
     `SELECT t.*, m.role,
             (SELECT COUNT(*) FROM teamspace_members c WHERE c.teamspace_id = t.id)
               AS member_count,
-            (SELECT COUNT(*) FROM skills s
-              WHERE s.teamspace_id = t.id AND s.archived_at IS NULL)
+            (SELECT COUNT(*) FROM artifacts s
+              WHERE s.teamspace_id = t.id AND s.kind = 'skill'
+                AND s.archived_at IS NULL)
               AS skill_count
        FROM teamspaces t
        JOIN teamspace_members m ON m.teamspace_id = t.id

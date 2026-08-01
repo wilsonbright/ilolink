@@ -16,6 +16,8 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth/current-user";
 import { getMembership } from "@/lib/teamspace/store";
 import { putSkill, SkillError } from "@/lib/skills/store-core";
+import { canPublishArtifact } from "@/lib/teamspace/permissions";
+import { queryFirst } from "@/lib/db/client";
 import { rateLimit } from "@/lib/ratelimit";
 import { env } from "@/lib/cf";
 
@@ -62,6 +64,16 @@ export async function POST(
 
   const e = env() as unknown as { DB: D1Database; DOCS: R2Bucket };
 
+  // Whether this write goes live or becomes a proposal. Read fresh from D1 and
+  // FAILS CLOSED — an unreadable teamspace row means review stays on. This
+  // route previously always published, which made the review step bypassable
+  // from the browser regardless of the caller's role.
+  const ts = await queryFirst<{ review_member_writes: number }>(
+    "SELECT review_member_writes FROM teamspaces WHERE id = ?",
+    teamspaceId,
+  );
+  const publish = canPublishArtifact(role, (ts?.review_member_writes ?? 1) === 1);
+
   try {
     const result = await putSkill(
       { DB: e.DB, DOCS: e.DOCS },
@@ -79,6 +91,7 @@ export async function POST(
         // you read and the write is refused if someone edited underneath you.
         ifVersion:
           typeof body.ifVersion === "number" ? body.ifVersion : null,
+        publish,
       },
     );
     return NextResponse.json(result, { status: result.created ? 201 : 200 });

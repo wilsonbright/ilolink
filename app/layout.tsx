@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SITE_TITLE, SITE_DESCRIPTION } from "@/lib/seo/site";
 
+// Default metadata for anything that doesn't declare its own; the copy itself
+// lives in lib/seo/site.ts with the rest of the site registry.
 export const metadata: Metadata = {
-  title: "ilolink — share what you wrote, read how it landed",
-  description:
-    "Publish a Markdown or HTML file, get a link, and see how people actually read it. Cookieless analytics, heatmaps, and feedback — nothing creepy.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
 };
 
 export default function RootLayout({

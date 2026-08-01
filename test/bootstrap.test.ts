@@ -10,8 +10,19 @@ import type { SkillBindings } from "@/lib/skills/store-core";
 // spirit of test/store-core.test.ts. Rows are keyed by table so assertions can
 // talk about "the folders inserted" rather than statement indices — the same
 // brittleness that bit the store-core tests when a column was added.
+//
+// Skills now live in the `artifacts` table alongside the other kinds, so the
+// seeded rows carry a `kind` and the store's lookups key on (teamspace, kind,
+// name). Seeds default to kind 'skill' because that is all bootstrap copies.
 function fakeBindings(seed: {
-  skills?: { id: string; teamspace_id: string; name: string; description: string; tags: string | null }[];
+  skills?: {
+    id: string;
+    teamspace_id: string;
+    kind?: string;
+    name: string;
+    description: string;
+    tags: string | null;
+  }[];
   bodies?: Record<string, string>;
 } = {}) {
   const inserted: Record<string, unknown[][]> = {};
@@ -36,12 +47,22 @@ function fakeBindings(seed: {
           return { success: true, meta: { changes: 1 } };
         },
         first: async () => {
-          // getSkill / putSkill look up an existing skill by (teamspace, name).
-          if (/FROM skills WHERE teamspace_id/i.test(text)) {
-            const [ts, name] = stmt._p as [string, string];
-            return skills.find((s) => s.teamspace_id === ts && s.name === name) ?? null;
+          // getArtifact / putArtifact look one up by (teamspace, kind, name) —
+          // the unique key the artifacts table now carries.
+          if (/FROM artifacts WHERE teamspace_id/i.test(text)) {
+            const [ts, kind, name] = stmt._p as [string, string, string];
+            return (
+              skills.find(
+                (s) =>
+                  s.teamspace_id === ts &&
+                  (s.kind ?? "skill") === kind &&
+                  s.name === name,
+              ) ?? null
+            );
           }
-          if (/FROM skill_versions/i.test(text)) {
+          // The version row still keys on the column `skill_id`: the table was
+          // renamed, its columns were not.
+          if (/FROM artifact_versions/i.test(text)) {
             const [skillId] = stmt._p as [string];
             const s = skills.find((x) => x.id === skillId);
             if (!s) return null;
@@ -49,6 +70,7 @@ function fakeBindings(seed: {
               version: 1,
               body_r2_key: `skills/${s.id}/1/SKILL.md`,
               body_sha256: "seeded",
+              status: "published",
               created_by: "u_author",
               created_at: 1,
             };
@@ -57,9 +79,13 @@ function fakeBindings(seed: {
           return null;
         },
         all: async () => {
-          if (/FROM skills\b/i.test(text)) {
-            const ts = stmt._p[0] as string;
-            return { results: skills.filter((s) => s.teamspace_id === ts) };
+          if (/FROM artifacts\b/i.test(text)) {
+            const [ts, kind] = stmt._p as [string, string];
+            return {
+              results: skills.filter(
+                (s) => s.teamspace_id === ts && (s.kind ?? "skill") === kind,
+              ),
+            };
           }
           return { results: [] };
         },
@@ -90,9 +116,13 @@ describe("teamspace bootstrap", () => {
     expect(res.warnings).toEqual([]);
 
     expect(inserted.folders?.[0]).toContain(STARTER_FOLDER);
-    expect(inserted.skills?.[0]).toContain(STARTER_SKILL_NAME);
+    // Skills are rows of the `artifacts` table now, so that is the insert to
+    // look at — and it must carry kind 'skill', or the starter skill would be
+    // invisible to skills_list.
+    expect(inserted.artifacts?.[0]).toContain(STARTER_SKILL_NAME);
+    expect(inserted.artifacts?.[0]).toContain("skill");
     // Scoped to the new teamspace, not leaked into another.
-    expect(inserted.skills?.[0]).toContain("t_new");
+    expect(inserted.artifacts?.[0]).toContain("t_new");
   });
 
   it("copies skills from the source teamspace instead of seeding", async () => {
@@ -117,12 +147,12 @@ describe("teamspace bootstrap", () => {
     // A team that deliberately copied skills must not also get a placeholder
     // telling them to write some.
     expect(res.starterSkillCreated).toBe(false);
-    expect(inserted.skills?.some((row) => row.includes(STARTER_SKILL_NAME))).toBe(
-      false,
-    );
+    expect(
+      inserted.artifacts?.some((row) => row.includes(STARTER_SKILL_NAME)),
+    ).toBe(false);
 
     // The copy lands under the NEW teamspace, and the body really moved.
-    expect(inserted.skills?.[0]).toContain("t_new");
+    expect(inserted.artifacts?.[0]).toContain("t_new");
     expect([...r2.values()].filter((v) => v.includes("Imperative mood")).length)
       .toBeGreaterThan(1);
   });

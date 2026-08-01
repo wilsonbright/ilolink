@@ -1,4 +1,4 @@
-// POST /api/folders — create a folder in a teamspace. Any member may.
+// POST /api/folders — create a folder in a teamspace. Admins and owners.
 
 import { NextResponse } from "next/server";
 import { guardTeamspace } from "@/lib/auth/team-guard";
@@ -19,7 +19,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "A 'teamspaceId' is required." }, { status: 400 });
   }
 
-  const guard = await guardTeamspace(teamspaceId);
+  // canManageFolders: folders are shared structure, so shaping them is an
+  // admin's job, not every member's.
+  const guard = await guardTeamspace(teamspaceId, { minRole: "admin" });
   if (!guard.ok) return guard.response;
 
   try {

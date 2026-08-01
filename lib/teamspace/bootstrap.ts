@@ -131,6 +131,11 @@ export async function bootstrapTeamspace(
       description: STARTER_SKILL_DESCRIPTION,
       body: STARTER_SKILL_BODY,
       changelog: "Created with the teamspace.",
+      // Published, not proposed: bootstrap only ever runs for the person who
+      // just created the teamspace, and they are its owner. A starter skill
+      // sitting in a review queue nobody has been told about would be worse
+      // than none at all.
+      publish: true,
     });
     result.starterSkillCreated = true;
   } catch {
@@ -173,6 +178,8 @@ async function copySkills(
         body: full.body,
         tags: skill.tags ? (JSON.parse(skill.tags) as string[]) : null,
         changelog: "Copied when this teamspace was created.",
+        // Same reasoning as the starter skill: the copier is the new owner.
+        publish: true,
       });
       copied++;
     } catch {

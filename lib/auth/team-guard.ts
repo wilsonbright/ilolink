@@ -6,8 +6,17 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "./current-user";
 import { getMembership } from "@/lib/teamspace/store";
-import type { TeamRole } from "@/lib/teamspace/permissions";
+import { atLeast, type TeamRole } from "@/lib/teamspace/permissions";
 import type { UserRow } from "./session";
+
+// Phrased per required rank, because "only an owner" is a lie for a route that
+// an admin may also call — and the wrong message is what sends someone to
+// support asking for a promotion they do not need.
+const DENIED: Record<TeamRole, string> = {
+  owner: "Only an owner can do that.",
+  admin: "Only an admin or owner can do that.",
+  member: "Only a member of this teamspace can do that.",
+};
 
 export interface TeamGuardOk {
   ok: true;
@@ -21,7 +30,9 @@ export interface TeamGuardFail {
 
 export async function guardTeamspace(
   teamspaceId: string,
-  opts: { ownerOnly?: boolean } = {},
+  // Ranked rather than boolean: 'admin' exists between owner and member now, so
+  // a route that needs "at least an admin" has no way to say so with a flag.
+  opts: { minRole?: TeamRole } = {},
 ): Promise<TeamGuardOk | TeamGuardFail> {
   const user = await currentUser();
   if (!user) {
@@ -41,11 +52,11 @@ export async function guardTeamspace(
       response: NextResponse.json({ error: "Not found." }, { status: 404 }),
     };
   }
-  if (opts.ownerOnly && role !== "owner") {
+  if (opts.minRole && !atLeast(role, opts.minRole)) {
     return {
       ok: false,
       response: NextResponse.json(
-        { error: "Only an owner can do that." },
+        { error: DENIED[opts.minRole] },
         { status: 403 },
       ),
     };

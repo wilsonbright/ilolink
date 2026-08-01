@@ -1,8 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
+  atLeast,
+  canChangeRole,
   canInvite,
+  canManageFolders,
+  canManageTeamspace,
+  canPublishArtifact,
   canPublishInto,
   canRemoveMember,
+  canReviewArtifact,
+  canWriteArtifact,
   resolveDocAccess,
   type AccessInput,
 } from "@/lib/teamspace/permissions";
@@ -165,5 +172,97 @@ describe("teamspace-level actions", () => {
     expect(canPublishInto("owner")).toBe(true);
     expect(canPublishInto("member")).toBe(true);
     expect(canPublishInto(null)).toBe(false);
+  });
+});
+
+// ── The admin role ──────────────────────────────────────────────────────────
+//
+// 'admin' exists so the artifact review step is not ceremony: someone other
+// than the proposer has to be able to approve. These tests pin the line between
+// admin and owner, which is drawn at the TEAMSPACE (rename, delete, mint
+// owners) rather than at its contents.
+
+describe("the admin role", () => {
+  it("has full authority over documents, like an owner", () => {
+    const a = access({ membership: "admin" });
+    expect(a).toEqual({
+      canRead: true,
+      canComment: true,
+      canEdit: true,
+      canDelete: true,
+      canManageShares: true,
+      canModerate: true,
+    });
+  });
+
+  it("may invite and manage folders, but not rename the teamspace", () => {
+    expect(canInvite("admin")).toBe(true);
+    expect(canManageFolders("admin")).toBe(true);
+    expect(canManageTeamspace("admin")).toBe(false);
+    expect(canManageTeamspace("owner")).toBe(true);
+  });
+
+  it("may not remove an owner — that would be a takeover path", () => {
+    expect(canRemoveMember("admin", "u_a", "u_m", "member")).toBe(true);
+    expect(canRemoveMember("admin", "u_a", "u_o", "owner")).toBe(false);
+    // An owner may still remove an admin.
+    expect(canRemoveMember("owner", "u_o", "u_a", "admin")).toBe(true);
+  });
+
+  it("may not change roles — only an owner mints another owner", () => {
+    expect(canChangeRole("owner")).toBe(true);
+    expect(canChangeRole("admin")).toBe(false);
+    expect(canChangeRole("member")).toBe(false);
+  });
+
+  it("members cannot manage folders", () => {
+    // Until now guardTeamspace's ownerOnly branch had no caller, so any member
+    // could delete a teamspace's folder structure.
+    expect(canManageFolders("member")).toBe(false);
+    expect(canManageFolders(null)).toBe(false);
+  });
+});
+
+describe("atLeast", () => {
+  it("ranks owner > admin > member", () => {
+    expect(atLeast("owner", "admin")).toBe(true);
+    expect(atLeast("admin", "admin")).toBe(true);
+    expect(atLeast("member", "admin")).toBe(false);
+    expect(atLeast("member", "member")).toBe(true);
+    expect(atLeast(null, "member")).toBe(false);
+  });
+});
+
+// ── The review rule ─────────────────────────────────────────────────────────
+//
+// This is what makes opening the registry to every member safe: an artifact is
+// instructions every teammate's agent will read and act on, so a member's push
+// becomes a proposal rather than team policy.
+
+describe("canPublishArtifact", () => {
+  it("lets admins and owners publish directly", () => {
+    expect(canPublishArtifact("owner", true)).toBe(true);
+    expect(canPublishArtifact("admin", true)).toBe(true);
+  });
+
+  it("turns a member's write into a proposal when review is on", () => {
+    expect(canPublishArtifact("member", true)).toBe(false);
+  });
+
+  it("lets a member publish directly when the teamspace turns review off", () => {
+    expect(canPublishArtifact("member", false)).toBe(true);
+  });
+
+  it("never lets a non-member publish, review on or off", () => {
+    expect(canPublishArtifact(null, false)).toBe(false);
+    expect(canPublishArtifact(null, true)).toBe(false);
+  });
+
+  it("separates writing from publishing", () => {
+    // A member may always WRITE; whether it goes live is the other predicate.
+    expect(canWriteArtifact("member")).toBe(true);
+    expect(canWriteArtifact(null)).toBe(false);
+    expect(canReviewArtifact("member")).toBe(false);
+    expect(canReviewArtifact("admin")).toBe(true);
   });
 });

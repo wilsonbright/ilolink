@@ -2,7 +2,9 @@
 // DELETE /api/folders/<id>  — archive (documents inside return to the root)
 //
 // Both resolve the folder through its teamspace, so an id from another
-// teamspace reads as "not found" rather than being actionable.
+// teamspace reads as "not found" rather than being actionable, and both need
+// canManageFolders — until this was wired, any member could archive a
+// teamspace's whole folder structure.
 
 import { NextResponse } from "next/server";
 import { guardTeamspace } from "@/lib/auth/team-guard";
@@ -29,7 +31,7 @@ export async function PATCH(
   const teamspaceId = await teamspaceOf(id);
   if (!teamspaceId) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
-  const guard = await guardTeamspace(teamspaceId);
+  const guard = await guardTeamspace(teamspaceId, { minRole: "admin" });
   if (!guard.ok) return guard.response;
 
   let body: { name?: unknown };
@@ -60,7 +62,7 @@ export async function DELETE(
   // double-click does not surface an error.
   if (!teamspaceId) return NextResponse.json({ ok: true, alreadyGone: true });
 
-  const guard = await guardTeamspace(teamspaceId);
+  const guard = await guardTeamspace(teamspaceId, { minRole: "admin" });
   if (!guard.ok) return guard.response;
 
   try {

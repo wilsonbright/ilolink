@@ -10,6 +10,8 @@ import { currentUser } from "@/lib/auth/current-user";
 import { getMembership, listMembers } from "@/lib/teamspace/store";
 import { listPendingInvites } from "@/lib/teamspace/invites";
 import { queryFirst } from "@/lib/db/client";
+import { countProposals } from "@/lib/artifacts/store-core";
+import { env } from "@/lib/cf";
 import { MembersAdmin } from "./members-admin";
 
 export const runtime = "nodejs";
@@ -42,15 +44,19 @@ export default async function TeamspacePage({
   if (!teamspace) notFound();
 
   const isOwner = role === "owner";
-  const [members, pending, skillCount] = await Promise.all([
+  const e = env() as unknown as { DB: D1Database; DOCS: R2Bucket };
+  const [members, pending, artifactCount, proposals] = await Promise.all([
     listMembers(id),
     isOwner ? listPendingInvites(id) : Promise.resolve([]),
+    // Every kind, not just skills: this number links to the registry, and a
+    // count that disagrees with the page it sends you to is worse than none.
     queryFirst<{ n: number }>(
-      "SELECT COUNT(*) AS n FROM skills WHERE teamspace_id = ? AND archived_at IS NULL",
+      "SELECT COUNT(*) AS n FROM artifacts WHERE teamspace_id = ? AND archived_at IS NULL",
       id,
     ),
+    countProposals({ DB: e.DB, DOCS: e.DOCS }, id),
   ]);
-  const skills = Number(skillCount?.n ?? 0);
+  const artifacts = Number(artifactCount?.n ?? 0);
 
   return (
     <div>
@@ -87,20 +93,36 @@ export default async function TeamspacePage({
 
       <section className="mt-12 border-t border-hairline pt-8">
         <div className="mb-2 flex items-baseline justify-between gap-4">
-          <h2 className="font-medium text-ink">Skills</h2>
+          <h2 className="font-medium text-ink">Registry</h2>
           <Link
-            href={`/t/${id}/skills`}
+            href={`/t/${id}/registry`}
             className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
           >
-            {skills === 0
+            {artifacts === 0
               ? "View"
-              : `View ${skills} ${skills === 1 ? "skill" : "skills"}`}
+              : `View ${artifacts} ${artifacts === 1 ? "artifact" : "artifacts"}`}
           </Link>
         </div>
         <p className="leading-relaxed text-ink-soft">
-          Shared instructions that assistants connected to this teamspace can
-          read and write.
+          Skills, agents, specs, plans and handoffs that assistants connected to
+          this teamspace can read and write.
         </p>
+        {/* Surfaced here as well as in the registry because a proposal is a
+            teammate's change that has NOT taken effect, and the person who can
+            approve it may only ever visit the teamspace page. */}
+        {proposals > 0 && (
+          <p className="mt-3 leading-relaxed text-ink-soft">
+            <Link
+              href={`/t/${id}/proposals`}
+              className="text-accent underline"
+            >
+              {proposals} {proposals === 1 ? "change is" : "changes are"}{" "}
+              waiting for review
+            </Link>{" "}
+            — proposed versions are not what assistants read until someone
+            approves them.
+          </p>
+        )}
         {/* The gotcha worth stating outright: an assistant authorised BEFORE
             this teamspace existed is still bound to whichever teamspace was
             picked at approval time, because the id is sealed into the OAuth

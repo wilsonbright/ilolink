@@ -1,9 +1,14 @@
-// POST /api/teamspaces/<id>/invite — invite someone by email. Owners only.
+// POST /api/teamspaces/<id>/invite — invite someone by email. Admins and
+// owners; only an owner may invite at the owner role.
 
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth/current-user";
 import { getMembership } from "@/lib/teamspace/store";
-import { canInvite } from "@/lib/teamspace/permissions";
+import {
+  canChangeRole,
+  canInvite,
+  type TeamRole,
+} from "@/lib/teamspace/permissions";
 import { createInvite, INVITE_TTL_DAYS } from "@/lib/teamspace/invites";
 import { isPlausibleEmail, normalizeEmail } from "@/lib/auth/otp";
 import { mailerConfig, siteOrigin } from "@/lib/auth/config";
@@ -13,6 +18,8 @@ import { queryFirst } from "@/lib/db/client";
 import { rateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
+
+const ROLES: TeamRole[] = ["owner", "admin", "member"];
 
 export async function POST(
   req: Request,
@@ -33,7 +40,7 @@ export async function POST(
   }
   if (!canInvite(role)) {
     return NextResponse.json(
-      { error: "Only an owner can invite people." },
+      { error: "Only an admin or owner can invite people." },
       { status: 403 },
     );
   }
@@ -60,7 +67,21 @@ export async function POST(
     );
   }
   const emailNorm = normalizeEmail(rawEmail);
-  const inviteRole = body.role === "owner" ? "owner" : "member";
+  // Anything unrecognised lands as 'member' rather than 400ing, so an older
+  // client that omits the field keeps working.
+  const inviteRole: TeamRole =
+    typeof body.role === "string" && (ROLES as string[]).includes(body.role)
+      ? (body.role as TeamRole)
+      : "member";
+  // Minting an owner is an owner's privilege, not an admin's — otherwise an
+  // admin could invite an address they control as owner and take the teamspace,
+  // which is exactly the path canChangeRole and canRemoveMember already close.
+  if (inviteRole === "owner" && !canChangeRole(role)) {
+    return NextResponse.json(
+      { error: "Only an owner can invite another owner." },
+      { status: 403 },
+    );
+  }
 
   const teamspace = await queryFirst<{ name: string }>(
     "SELECT name FROM teamspaces WHERE id = ?",
