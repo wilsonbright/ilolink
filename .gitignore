@@ -13,6 +13,9 @@ Thumbs.db
 # Env / secrets (Cloudflare local dev vars)
 .dev.vars
 .dev.vars.*
+# ...but the template carries no real values and must be committed, or a fresh
+# checkout has no record of which secrets the workers need. Mirrors !.env.example.
+!.dev.vars.example
 
 # Deps / build
 node_modules/

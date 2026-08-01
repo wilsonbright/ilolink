@@ -1,0 +1,39 @@
+# Local worker secrets for `wrangler dev` / `npm run preview`.
+# Copy to `.dev.vars` (git-ignored) and fill in. For production, set the real
+# values with `wrangler secret put <NAME>` instead — never commit real secrets.
+
+# App worker (ilolink) — Cloudflare Turnstile secret (invisible widget) that gates publish.
+TURNSTILE_SECRET=""
+
+# App worker (ilolink) — token to query the Analytics Engine SQL API (dashboard stats/heatmaps).
+# Ideally an "Account Analytics: Read" scoped token.
+AE_SQL_TOKEN=""
+
+# Content worker (ilolink-content) — secret for the daily-rotating, unstored visitor-hash salt.
+# Generate: openssl rand -base64 32
+SALT_SECRET=""
+
+# App worker (ilolink) — moderation surface at /admin. Single shared secret today;
+# folds into users.is_staff once accounts land everywhere.
+ADMIN_SECRET=""
+
+# Shared by the app and the MCP worker (ilolink-mcp) — HMAC key for the
+# login-free /w/<token> dashboard links. Must be IDENTICAL in both workers.
+DASHBOARD_SECRET=""
+
+# ── Auth (Phase 1) ────────────────────────────────────────────────────────────
+
+# App worker (ilolink) — Resend API key for sign-in codes and invitations.
+RESEND_API_KEY=""
+
+# Sender address. Must be on a domain VERIFIED in Resend, or sends fail.
+EMAIL_FROM="ilolink <auth@ilolink.com>"
+
+# Absolute origin used to build magic-link URLs. Set to http://localhost:3000
+# locally so emailed links point back at your dev server.
+SITE_ORIGIN="https://ilolink.com"
+
+# Set to 1 to log sign-in emails to the console instead of sending them.
+# Useful before the sending domain is verified. Defaults on when
+# RESEND_API_KEY is empty, so local dev works with no Resend account at all.
+EMAIL_DRY_RUN="1"
