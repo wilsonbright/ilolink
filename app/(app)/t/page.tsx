@@ -66,6 +66,11 @@ export default async function TeamspacesPage() {
               <span>
                 {t.member_count === 1 ? "just you" : people(t.member_count)}
               </span>
+              {t.skill_count > 0 && (
+                <span>
+                  {t.skill_count} {t.skill_count === 1 ? "skill" : "skills"}
+                </span>
+              )}
               <span>{t.role}</span>
             </span>
           </li>
@@ -80,7 +85,17 @@ export default async function TeamspacesPage() {
         </p>
       )}
 
-      <CreateTeamspace />
+      {/* Only teamspaces that actually hold skills are worth offering as a
+          source — an empty one in the list just makes the choice look broken. */}
+      <CreateTeamspace
+        sources={teamspaces
+          .filter((t) => t.skill_count > 0)
+          .map((t) => ({
+            id: t.id,
+            name: t.name,
+            skillCount: t.skill_count,
+          }))}
+      />
     </div>
   );
 }

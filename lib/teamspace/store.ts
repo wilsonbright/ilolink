@@ -96,16 +96,31 @@ export async function listTeamspacesForUser(
   );
 }
 
-// Same list, plus how many people are in each. Kept separate from
+// Same list, plus how many people and skills are in each. Kept separate from
 // listTeamspacesForUser because the app layout calls that one on every render
-// and has no use for the counts — no reason to make the shell pay for a GROUP BY.
+// and has no use for the counts — no reason to make the shell pay for them.
 export async function listTeamspacesWithCounts(
   userId: string,
-): Promise<(TeamspaceRow & { role: TeamRole; member_count: number })[]> {
-  return queryAll<TeamspaceRow & { role: TeamRole; member_count: number }>(
+): Promise<
+  (TeamspaceRow & {
+    role: TeamRole;
+    member_count: number;
+    skill_count: number;
+  })[]
+> {
+  return queryAll<
+    TeamspaceRow & {
+      role: TeamRole;
+      member_count: number;
+      skill_count: number;
+    }
+  >(
     `SELECT t.*, m.role,
             (SELECT COUNT(*) FROM teamspace_members c WHERE c.teamspace_id = t.id)
-              AS member_count
+              AS member_count,
+            (SELECT COUNT(*) FROM skills s
+              WHERE s.teamspace_id = t.id AND s.archived_at IS NULL)
+              AS skill_count
        FROM teamspaces t
        JOIN teamspace_members m ON m.teamspace_id = t.id
       WHERE m.user_id = ? AND t.status = 'active'

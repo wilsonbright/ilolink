@@ -11,9 +11,16 @@ import { useState } from "react";
 
 const MAX_NAME = 60;
 
-export function CreateTeamspace() {
+export interface CopySource {
+  id: string;
+  name: string;
+  skillCount: number;
+}
+
+export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [copyFrom, setCopyFrom] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +32,7 @@ export function CreateTeamspace() {
       const res = await fetch("/api/teamspaces", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, copySkillsFrom: copyFrom || null }),
       });
       const data = (await res.json()) as {
         error?: string;
@@ -71,6 +78,32 @@ export function CreateTeamspace() {
           {busy ? "Creating…" : "Create"}
         </button>
       </div>
+
+      {/* Skills are hard-scoped per teamspace, so a new one starts with none.
+          Offering the copy here is the only moment it is cheap — afterwards it
+          means re-writing each skill by hand. */}
+      {sources.length > 0 && (
+        <div>
+          <label htmlFor="ts-copy" className="block text-sm text-ink-soft">
+            Start with a copy of another teamspace&rsquo;s skills
+          </label>
+          <select
+            id="ts-copy"
+            value={copyFrom}
+            onChange={(e) => setCopyFrom(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
+          >
+            <option value="">Don&rsquo;t copy — start empty</option>
+            {sources.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.skillCount}{" "}
+                {s.skillCount === 1 ? "skill" : "skills"})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {error && <p className="text-sm text-ink">{error}</p>}
     </form>
   );

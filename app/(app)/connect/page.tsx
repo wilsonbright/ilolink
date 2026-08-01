@@ -12,7 +12,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/current-user";
-import { ensurePersonalTeamspace } from "@/lib/teamspace/store";
+import {
+  ensurePersonalTeamspace,
+  listTeamspacesForUser,
+} from "@/lib/teamspace/store";
 import { env } from "@/lib/cf";
 import { TokenMinter } from "./token-minter";
 
@@ -28,7 +31,10 @@ export default async function ConnectPage() {
   const user = await currentUser();
   if (!user) redirect("/signin?next=%2Fconnect");
 
+  // Ensure the personal one exists first so the picker is never empty for a
+  // brand-new account.
   await ensurePersonalTeamspace(user.id);
+  const teamspaces = await listTeamspacesForUser(user.id);
   const mcpOrigin =
     (env() as unknown as { MCP_ORIGIN?: string }).MCP_ORIGIN ??
     "https://mcp.ilolink.com";
@@ -46,12 +52,22 @@ export default async function ConnectPage() {
         <h2 className="mb-2 font-medium text-ink">
           Claude, and anything that supports OAuth
         </h2>
-        <p className="leading-relaxed text-ink-soft">
+        <p className="mb-3 leading-relaxed text-ink-soft">
           Add a custom connector pointing at{" "}
           <code className="text-ink">{connectorUrl}</code>. You&rsquo;ll be
           asked to approve it here and to choose which teamspace it may publish
           into. Nothing is copied by hand, and you can disconnect it at any
           time.
+        </p>
+        {/* The teamspace is sealed into the OAuth grant at approval time, so
+            this is not a preference that can be changed later — it is chosen
+            once and only re-chosen by connecting again. Saying so here is
+            cheaper than the support question. */}
+        <p className="leading-relaxed text-ink-soft">
+          That choice is fixed for as long as the connection lasts. If you make
+          a new teamspace later, connect the assistant again and pick the new
+          one on the approval screen — an existing connection keeps writing to
+          the teamspace it was approved for.
         </p>
       </section>
 
@@ -63,7 +79,10 @@ export default async function ConnectPage() {
           Create a connector token and give it to the assistant as an
           Authorization header.
         </p>
-        <TokenMinter connectorUrl={connectorUrl} />
+        <TokenMinter
+          connectorUrl={connectorUrl}
+          teamspaces={teamspaces.map((t) => ({ id: t.id, name: t.name }))}
+        />
       </section>
 
       <p className="text-sm leading-relaxed text-ink-faint">
