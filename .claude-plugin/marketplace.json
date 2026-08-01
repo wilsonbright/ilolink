@@ -1,0 +1,14 @@
+{
+  "name": "ilolink",
+  "owner": {
+    "name": "ilolink",
+    "url": "https://ilolink.com"
+  },
+  "plugins": [
+    {
+      "name": "ilolink",
+      "source": "./",
+      "description": "Publish documents to shareable web pages, and read/write your team's shared skill registry, from any project."
+    }
+  ]
+}

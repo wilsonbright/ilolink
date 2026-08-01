@@ -1,0 +1,17 @@
+{
+  "name": "ilolink",
+  "version": "1.0.0",
+  "description": "Publish documents to shareable web pages, and read/write your team's shared skill registry, from any project.",
+  "author": {
+    "name": "ilolink",
+    "url": "https://ilolink.com"
+  },
+  "homepage": "https://ilolink.com",
+  "keywords": ["publishing", "sharing", "skills", "mcp"],
+  "mcpServers": {
+    "ilolink": {
+      "type": "http",
+      "url": "https://mcp.ilolink.com/mcp"
+    }
+  }
+}
