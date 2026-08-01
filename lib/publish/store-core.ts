@@ -69,6 +69,9 @@ export interface CreateDocumentInput {
   teamspace_id?: string | null;
   // Provenance, not ownership: which user published it.
   created_by?: string | null;
+  // Per-doc commenting policy (migration 0011). Mirrored into the KV
+  // SlugRecord so the content worker never hits D1 on the hot path.
+  comments_mode?: "off" | "anon" | "signed";
   // Opt-in: store + serve this HTML raw (unsanitized) under the permissive CSP.
   // Default false. The column is added by migration 0006.
   trusted?: boolean;
@@ -100,8 +103,9 @@ export async function createDocumentWith(
     `INSERT INTO documents
       (id, slug, title, source_type, visibility, password_hash,
        manage_token_hash, current_version_id, expires_at, published_at,
-       created_at, updated_at, workspace_id, trusted, teamspace_id, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       created_at, updated_at, workspace_id, trusted, teamspace_id, created_by,
+       comments_mode)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       row.id,
@@ -120,6 +124,7 @@ export async function createDocumentWith(
       row.trusted ? 1 : 0,
       row.teamspace_id ?? null,
       row.created_by ?? null,
+      input.comments_mode ?? "anon",
     )
     .run();
   return row;

@@ -27,6 +27,36 @@ function start(){
 var meta=document.querySelector('meta[name="ilo:doc"]');
 var doc=meta&&meta.getAttribute("content");
 if(!doc)return;
+// Per-doc commenting policy: 'off' | 'anon' | 'signed'. Absent on pages served
+// before migration 0011, which default to 'anon'. Forced to 'off' by the shell
+// on trusted docs, where the author's own scripts run and could forge a
+// composer.
+var cmeta=document.querySelector('meta[name="ilo:comments"]');
+var COMMENTS_MODE=(cmeta&&cmeta.getAttribute("content"))||"anon";
+// The app origin serves the identified composer. Documents are reachable both
+// directly and reverse-proxied under the apex, so resolve it rather than
+// assuming which host we are on.
+var APP_ORIGIN="https://ilolink.com";
+// Swap the local composer for an app-origin iframe. The frame holds the session
+// cookie; this page never can. Height comes back over postMessage.
+function signedComposer(parentId,anchor,onDone){
+var url=APP_ORIGIN+"/embed/comment?doc="+encodeURIComponent(doc)
+  +(parentId?"&parent="+encodeURIComponent(parentId):"")
+  +(anchor?"&anchor="+encodeURIComponent(JSON.stringify(anchor)):"");
+var fr=document.createElement("iframe");
+fr.src=url;fr.title="Add a comment";
+fr.setAttribute("scrolling","no");
+fr.style.cssText="width:100%;border:0;height:96px;display:block;background:transparent;";
+function onMsg(ev){
+  // Only our own frame may resize or notify us.
+  if(ev.origin!==APP_ORIGIN)return;
+  var d=ev.data||{};
+  if(d.type==="ilo:comment:height"&&typeof d.height==="number")fr.style.height=Math.min(400,Math.max(80,d.height))+"px";
+  if(d.type==="ilo:comment:posted"&&onDone)onDone();
+}
+window.addEventListener("message",onMsg);
+return fr;
+}
 var docEl=document.querySelector(".doc")||document.body;
 var SANS="Inter,ui-sans-serif,system-ui,-apple-system,sans-serif";
 function mk(t,s,x){var e=document.createElement(t);if(s)e.style.cssText=s;if(x!=null)e.textContent=x;return e;}
@@ -120,11 +150,14 @@ function appendComment(parent,c,isReply){
 var box=mk("div",isReply?"margin-left:.9rem;padding-left:.7rem;border-left:2px solid var(--hairline);margin-top:.55rem;":"margin-top:.1rem;");
 var m=mk("div","display:flex;gap:.4rem;align-items:baseline;font-size:.75rem;color:var(--ink-faint);margin-bottom:.2rem;");
 m.appendChild(mk("span","color:var(--ink-soft);font-weight:560;",c.author_name?String(c.author_name):"Anonymous"));
+if(c.author_kind==="user")m.appendChild(mk("span","color:var(--accent);font-size:.7rem;","\u2713"));
 m.appendChild(mk("span",null,fmt(c.created_at)));box.appendChild(m);
 box.appendChild(mk("div","white-space:pre-wrap;line-height:1.5;font-size:.9rem;",String(c.body==null?"":c.body)));
 parent.appendChild(box);
 }
 function replyForm(parentId,onDone){
+if(COMMENTS_MODE==="off")return mk("div",null,"");
+if(COMMENTS_MODE==="signed")return signedComposer(parentId,null,onDone);
 var f=mk("form","display:flex;flex-direction:column;gap:.4rem;margin-top:.65rem;");
 var body=mk("textarea",IN+"min-height:2.4rem;resize:vertical;");body.placeholder="Reply";body.required=true;body.maxLength=4000;
 var hp=hpf(),send=mk("button",BTN+"align-self:flex-start;font-size:.82rem;","Reply");
@@ -279,6 +312,8 @@ root.appendChild(list);
 
 // top-level comment form (kept for a general, unanchored comment + text selection)
 function form(parentId,onDone){
+if(COMMENTS_MODE==="off")return mk("div",null,"");
+if(COMMENTS_MODE==="signed")return signedComposer(parentId,null,onDone);
 var f=mk("form","display:flex;flex-direction:column;gap:.5rem;margin-top:.6rem;max-width:34rem;");
 var name=mk("input",IN);name.type="text";name.placeholder="Name (optional)";name.maxLength=80;
 var body=mk("textarea",IN+"min-height:3.5rem;resize:vertical;");body.placeholder="Write a reply";body.required=true;body.maxLength=4000;
@@ -287,6 +322,8 @@ f.addEventListener("submit",function(ev){ev.preventDefault();var v=body.value.tr
 return f;
 }
 function buildMainForm(){
+if(COMMENTS_MODE==="off")return mk("div",null,"");
+if(COMMENTS_MODE==="signed")return signedComposer(null,pendingAnchor,function(){pendingAnchor=null;load();});
 var f=mk("form","display:flex;flex-direction:column;gap:.5rem;margin-top:1.25rem;max-width:34rem;");
 var chip=mk("div","display:none;align-items:center;gap:.5rem;padding:.4rem .6rem;background:var(--accent-soft);border:1px solid var(--hairline);border-radius:8px;font-size:.8rem;color:var(--ink-soft);");
 chip.appendChild(mk("span","color:var(--accent);font-weight:560;white-space:nowrap;","On selection:"));
@@ -306,6 +343,7 @@ function renderRow(c,isReply){
 var box=mk("div",isReply?"margin-left:1.25rem;padding-left:1rem;border-left:2px solid var(--hairline);":"");
 var m=mk("div","display:flex;gap:.5rem;align-items:baseline;font-size:.8rem;color:var(--ink-faint);margin-bottom:.25rem;");
 m.appendChild(mk("span","color:var(--ink-soft);font-weight:560;",c.author_name?String(c.author_name):"Anonymous"));
+if(c.author_kind==="user")m.appendChild(mk("span","color:var(--accent);font-size:.7rem;","\u2713"));
 m.appendChild(mk("span",null,fmt(c.created_at)));box.appendChild(m);
 if(!isReply&&c.anchor){
 if(c.anchor.type==="point"||c.anchor.type==="region"){

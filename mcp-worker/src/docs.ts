@@ -224,6 +224,8 @@ export async function updateDoc(
     password_hash: prev?.password_hash ?? null,
     expires_at: prev?.expires_at ?? null,
     source_type: sourceType,
+    // Preserve the existing policy, exactly as with visibility/password.
+    comments_mode: prev?.comments_mode,
   });
   return { slug: doc.slug, share_url: shareUrl(doc.slug) };
 }

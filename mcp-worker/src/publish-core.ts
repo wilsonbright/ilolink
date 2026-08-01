@@ -248,6 +248,7 @@ export async function publishForWorkspace(
     password_hash: passwordHash,
     expires_at: expiresAt,
     source_type: sourceType,
+    comments_mode: "anon",
   });
 
   // Softer signal: allowed, but counted. Auto-suspend the workspace on repeat.

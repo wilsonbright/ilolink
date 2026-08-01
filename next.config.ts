@@ -17,9 +17,29 @@ const SECURITY_HEADERS = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+];
+
+// Framing rules are applied separately from the rest because /embed/* needs the
+// opposite answer. X-Frame-Options has no "allow one specific origin" value
+// (ALLOW-FROM is dead), so the only way to let the content origin frame the
+// comment composer is to NOT emit the header on that path — hence the negative
+// lookahead rather than a later override.
+const FRAME_HEADERS = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+];
+
+// The identity island: /embed/comment is framed BY a published document on the
+// content origin. It is the one app surface that may be framed cross-origin,
+// and it is deliberately the only place an authenticated write is reachable
+// from a page the document author controls.
+const EMBED_FRAME_HEADERS = [
+  {
+    key: "Content-Security-Policy",
+    value: `frame-ancestors 'self' ${CONTENT}`,
+  },
+  { key: "Cache-Control", value: "private, no-store" },
 ];
 
 const nextConfig: NextConfig = {
@@ -30,6 +50,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },
+      // Everything except /embed/* keeps the strict framing rules.
+      { source: "/((?!embed/).*)", headers: FRAME_HEADERS },
+      { source: "/embed/:path*", headers: EMBED_FRAME_HEADERS },
       // Token/secret-bearing surfaces must never be stored by a shared cache.
       {
         source: "/admin/:path*",

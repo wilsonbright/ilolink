@@ -29,7 +29,7 @@ async function restoreDoc(docId: string): Promise<void> {
   const db = env().DB;
   const doc = await db
     .prepare(
-      "SELECT slug, visibility, password_hash, expires_at, source_type, current_version_id FROM documents WHERE id = ?",
+      "SELECT slug, visibility, password_hash, expires_at, source_type, comments_mode, current_version_id FROM documents WHERE id = ?",
     )
     .bind(docId)
     .first<{
@@ -38,6 +38,7 @@ async function restoreDoc(docId: string): Promise<void> {
       password_hash: string | null;
       expires_at: number | null;
       source_type: string;
+      comments_mode: string | null;
       current_version_id: string | null;
     }>();
   if (!doc || !doc.current_version_id) return;
@@ -55,6 +56,7 @@ async function restoreDoc(docId: string): Promise<void> {
     password_hash: doc.password_hash,
     expires_at: doc.expires_at,
     source_type: doc.source_type as SlugRecord["source_type"],
+    comments_mode: doc.comments_mode as SlugRecord["comments_mode"],
   };
   await env().KV.put(`slug:${doc.slug}`, JSON.stringify(record));
   await db.prepare("UPDATE documents SET unpublished_at = NULL WHERE id = ?").bind(docId).run();

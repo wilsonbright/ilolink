@@ -17,6 +17,10 @@ function makeNonce(): string {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+// The app origin, which serves the identified-comment composer framed into
+// documents. Kept as a constant so the CSP and the worker agree on one value.
+export const APP_ORIGIN = "https://ilolink.com";
+
 // Build the CSP for a served document. `trackerHost` is the first-party origin
 // that serves /tracker.js (defaults to 'self' — self-hosted on the content origin).
 export function buildDocCsp(opts?: {
@@ -29,6 +33,12 @@ export function buildDocCsp(opts?: {
   // opens script/style/connect/frame. Origin isolation (view.ilolink.com) and
   // frame-ancestors 'none' still contain it. NEVER set for unvouched content.
   trusted?: boolean;
+  // Allow framing the app-origin identified-comment composer
+  // (/embed/comment on APP_ORIGIN). Only ever set for untrusted documents:
+  // a trusted doc runs the author's own scripts, which could hide the real
+  // frame and draw a convincing fake one, so identified commenting is refused
+  // there outright (see app/api/comments/route.ts).
+  commentEmbed?: boolean;
 }): DocCspResult {
   // A nonce is still minted so readerShell's signature is unchanged; on trusted
   // docs the policy carries no nonce-source, so the attribute is simply ignored
@@ -78,13 +88,22 @@ export function buildDocCsp(opts?: {
     // No plugins, no base tag hijack, no form posts. pdf docs may frame their
     // own /raw viewer (same origin); all other docs frame nothing.
     "object-src 'none'",
-    opts?.allowFrame ? "frame-src 'self'" : "frame-src 'none'",
+    frameSrc(opts?.allowFrame, opts?.commentEmbed),
     "frame-ancestors 'none'",
     "base-uri 'none'",
     "form-action 'none'",
   ];
 
   return { nonce, header: directives.join("; ") };
+}
+
+// pdf docs frame their own same-origin /raw viewer; documents with identified
+// commenting frame the app origin's composer. Everything else frames nothing.
+function frameSrc(allowFrame?: boolean, commentEmbed?: boolean): string {
+  const sources: string[] = [];
+  if (allowFrame) sources.push("'self'");
+  if (commentEmbed) sources.push(APP_ORIGIN);
+  return sources.length ? `frame-src ${sources.join(" ")}` : "frame-src 'none'";
 }
 
 // CSP for the content origin's own first-party chrome pages (password gate,

@@ -64,6 +64,9 @@ interface PublishInput {
   trusted?: boolean;
   // Optional target teamspace; defaults to the user's personal one.
   teamspaceId?: string;
+  // Per-doc commenting policy; defaults to "anon" to preserve the existing
+  // reader-feedback loop the marketing corpus promises.
+  commentsMode?: "off" | "anon" | "signed";
 }
 
 function asString(v: FormDataEntryValue | null | undefined): string | undefined {
@@ -115,6 +118,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
   let turnstileToken: string | undefined;
   let trusted = false;
   let teamspaceId: string | undefined;
+  let commentsMode: "off" | "anon" | "signed" | undefined;
 
   if (contentType.includes("multipart/form-data")) {
     let form: FormData;
@@ -156,6 +160,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     turnstileToken = asString(form.get("turnstileToken"));
     trusted = asString(form.get("trusted")) === "true";
     teamspaceId = asString(form.get("teamspace")) || undefined;
+    commentsMode = asCommentsMode(asString(form.get("commentsMode")) ?? "");
   } else {
     let body: unknown;
     try {
@@ -181,6 +186,9 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
       typeof b.turnstileToken === "string" ? b.turnstileToken : undefined;
     trusted = b.trusted === true;
     teamspaceId = typeof b.teamspace === "string" ? b.teamspace : undefined;
+    commentsMode = asCommentsMode(
+      typeof b.commentsMode === "string" ? b.commentsMode : "",
+    );
   }
 
   if (content.trim().length === 0) {
@@ -225,6 +233,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     // binary/converted with no author scripts to run.
     trusted: trusted && !upload && sourceTypeRaw === "html",
     teamspaceId,
+    commentsMode,
   };
 }
 
@@ -386,6 +395,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     trusted: input.trusted,
     teamspace_id: teamspace.id,
     created_by: user.id,
+    comments_mode: input.commentsMode ?? "anon",
   });
 
   const version = await store(doc.id);
@@ -400,6 +410,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     expires_at: expiresAt,
     source_type: sourceType,
     trusted: input.trusted,
+    comments_mode: input.commentsMode,
   });
 
   return NextResponse.json(
@@ -421,4 +432,10 @@ async function resolveNamedTeamspace(
     "SELECT id, status, quota_docs FROM teamspaces WHERE id = ?",
     teamspaceId,
   );
+}
+
+// Unknown values fall back to the default rather than erroring — a stale client
+// sending a mode we no longer support should still be able to publish.
+function asCommentsMode(v: string): "off" | "anon" | "signed" | undefined {
+  return v === "off" || v === "anon" || v === "signed" ? v : undefined;
 }

@@ -15,6 +15,7 @@ import {
   normalizeEmail,
 } from "@/lib/auth/otp";
 import { signInEmail } from "@/lib/email/templates";
+import { displayNameFromEmail, looksLikeEmail } from "@/lib/email/display";
 
 // The cookie is the security boundary between the app origin and the untrusted
 // content origin they share a registrable domain with. These assertions are the
@@ -165,5 +166,35 @@ describe("sign-in email", () => {
     const body = signInEmail("111111", 'https://x/?a="><script>', 10);
     expect(body.html).not.toContain("<script>");
     expect(body.html).toContain("&lt;script&gt;");
+  });
+});
+
+// Comment author names are returned verbatim by the content worker's PUBLIC
+// GET /_comments. An address reaching that column is published to every reader
+// of the document — a privacy break that is invisible in review, because the
+// field looks like an innocuous display name.
+describe("public display names never carry an address", () => {
+  it("reduces an email to its local part", () => {
+    expect(displayNameFromEmail("alice@example.com")).toBe("alice");
+    expect(displayNameFromEmail("a.b+tag@sub.example.co.uk")).toBe("a.b+tag");
+  });
+
+  it("never returns anything containing @", () => {
+    for (const e of [
+      "alice@example.com",
+      "weird@@example.com",
+      "UPPER@EXAMPLE.COM",
+    ]) {
+      expect(looksLikeEmail(displayNameFromEmail(e))).toBe(false);
+    }
+  });
+
+  it("handles absent and degenerate input without throwing", () => {
+    expect(displayNameFromEmail(null)).toBeNull();
+    expect(displayNameFromEmail("")).toBeNull();
+    // No @ at all: pass it through rather than inventing a name.
+    expect(displayNameFromEmail("nobody")).toBe("nobody");
+    // Leading @ would otherwise slice to an empty string.
+    expect(displayNameFromEmail("@example.com")).toBe("@example.com");
   });
 });

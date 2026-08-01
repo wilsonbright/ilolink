@@ -63,7 +63,18 @@ export interface SlugRecord {
   // worker reads this straight from KV — no D1 hit on the hot path — so it MUST
   // be written here at publish time. Optional/absent on old records => false.
   trusted?: boolean;
+  // Per-doc commenting policy, read on the hot path to decide whether to mount
+  // the widget at all. Absent on records written before migration 0011 =>
+  // treat as "anon", matching the column default.
+  //
+  // WARNING: SlugRecord is written at FOUR sites — app/api/publish/route.ts,
+  // mcp-worker/src/publish-core.ts, mcp-worker/src/docs.ts, and rebuilt in
+  // app/api/admin/action/route.ts. A field added here that is not written at
+  // all four silently no-ops for whichever path missed it.
+  comments_mode?: CommentsMode;
 }
+
+export type CommentsMode = "off" | "anon" | "signed";
 
 // Result of the sanitize step: safe HTML plus the extracted title.
 export interface SanitizeResult {

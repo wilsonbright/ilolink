@@ -13,6 +13,7 @@
 // (Web Crypto only), so they bundle into a plain Worker without Node shims.
 // ─────────────────────────────────────────────────────────────────────────
 import { verifyPassword } from "../../lib/crypto/password";
+import { displayNameFromEmail } from "../../lib/email/display";
 import {
   buildDocCsp,
   buildChromeCsp,
@@ -308,6 +309,9 @@ function readerShell(opts: {
   format?: string; // source_type, drives the OG-card badge
   description?: string;
   html?: boolean; // true => full-bleed (author controls styling)
+  // 'off' | 'anon' | 'signed'. Read by the widget to decide which composer (if
+  // any) to mount. Forced to 'off' on trusted docs.
+  commentsMode?: string;
 }): string {
   const robots = opts.noindex
     ? '<meta name="robots" content="noindex" />'
@@ -346,6 +350,7 @@ function readerShell(opts: {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 ${robots}
 <meta name="ilo:doc" content="${escapeHtml(opts.docId)}" />
+<meta name="ilo:comments" content="${escapeHtml(opts.commentsMode ?? "anon")}" />
 <title>${escapeHtml(opts.title)}</title>
 ${og}
 <style>
@@ -742,13 +747,20 @@ function parseStoredAnchor(raw: string | null): CommentAnchor | null {
 // Each comment carries its parsed `anchor` (or null for a general comment).
 async function commentsList(env: Env, docId: string): Promise<Response> {
   const rows = await env.DB.prepare(
-    "SELECT id, parent_id, author_name, body, anchor, created_at FROM comments WHERE document_id = ? AND status = 'visible' ORDER BY created_at ASC LIMIT 500",
+    `SELECT c.id, c.parent_id, c.author_name, c.author_kind, c.body, c.anchor,
+            c.created_at, u.email AS author_email
+       FROM comments c
+       LEFT JOIN users u ON u.id = c.author_user_id
+      WHERE c.document_id = ? AND c.status = 'visible'
+      ORDER BY c.created_at ASC LIMIT 500`,
   )
     .bind(docId)
     .all<{
       id: string;
       parent_id: string | null;
       author_name: string | null;
+      author_kind: string | null;
+      author_email: string | null;
       body: string;
       anchor: string | null;
       created_at: number;
@@ -756,7 +768,13 @@ async function commentsList(env: Env, docId: string): Promise<Response> {
   const comments = rows.results.map((c) => ({
     id: c.id,
     parent_id: c.parent_id,
-    author_name: c.author_name,
+    // Prefer the live account name over the snapshot taken at post time, but
+    // never fall through to the email: this response is PUBLIC, and leaking a
+    // commenter's address to every reader would be a privacy break.
+    author_name: c.author_name ?? displayNameFromEmail(c.author_email),
+    // 'user' earns a verified marker in the widget; 'anon' does not. Old rows
+    // predate migration 0011 and default to 'anon'.
+    author_kind: c.author_kind === "user" ? "user" : "anon",
     body: c.body,
     created_at: c.created_at,
     anchor: parseStoredAnchor(c.anchor),
@@ -1079,7 +1097,16 @@ export default {
     // nonce alone admits it; default-src 'none' blocks everything else. Trusted
     // docs (publisher opt-in) instead get the permissive CSP so their own
     // scripts run; origin isolation + frame-ancestors 'none' still contain them.
-    const csp = buildDocCsp({ allowFrame: isPdf || trusted, trusted });
+    // Identified commenting frames the app origin's composer. NEVER on a
+    // trusted doc: the author's own scripts run there and could hide the real
+    // frame behind a convincing fake one (app/api/comments also refuses).
+    const commentsMode = rec.comments_mode ?? "anon";
+    const commentEmbed = commentsMode === "signed" && !trusted;
+    const csp = buildDocCsp({
+      allowFrame: isPdf || trusted,
+      trusted,
+      commentEmbed,
+    });
     const html = readerShell({
       title: isPdf ? "PDF document — ilolink" : titleFromBody(textForMeta),
       body,
@@ -1092,6 +1119,7 @@ export default {
         ? "A PDF shared on ilolink."
         : descriptionFromBody(textForMeta),
       html: rec.source_type === "html" || isPdf, // full-bleed
+      commentsMode: trusted ? "off" : commentsMode,
     });
 
     const headers = new Headers(docSecurityHeaders(csp.header));
