@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; padding: 0; }
+  .card {
+    width: 1200px; height: 630px;
+    background: #fafaf8;
+    box-sizing: border-box;
+    padding: 72px 80px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .top { display: flex; align-items: center; gap: 16px; }
+  .mark { width: 44px; height: 44px; border-radius: 12px; background: #3b5bdb; }
+  .brand { font-size: 30px; font-weight: 700; color: #1a1a17; letter-spacing: -0.02em; }
+  .badge {
+    align-self: flex-start;
+    font-size: 20px; font-weight: 700; color: #3b5bdb;
+    background: #edf0fd; padding: 8px 18px; border-radius: 999px;
+    margin-bottom: 22px;
+  }
+  .headline {
+    font-size: 62px; font-weight: 700; color: #1a1a17;
+    line-height: 1.08; letter-spacing: -0.02em; max-width: 20ch;
+  }
+  .foot { font-size: 26px; color: #8a8a80; font-weight: 400; }
+  .mid { display: flex; flex-direction: column; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="top">
+      <div class="mark"></div>
+      <div class="brand">ilolink</div>
+    </div>
+    <div class="mid">
+      <div class="badge">New · from Claude, Grok &amp; ChatGPT</div>
+      <div class="headline">Publish what your AI makes to a link.</div>
+    </div>
+    <div class="foot">ilolink.com · cookieless analytics, heatmaps &amp; comments · no account</div>
+  </div>
+</body>
+</html>

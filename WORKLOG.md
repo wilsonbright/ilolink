@@ -5,6 +5,17 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-07-25 — Product Hunt launch prep: Phase 0 security fixes + listing/assets/playbook
+- **Asked:** execute the approved PH launch plan (`~/.claude/plans/concurrent-toasting-papert.md`).
+- **Phase 0 — security (blocking) — code done, locally verified:**
+  - **H1 (report-flood takedown)** `content-worker/src/index.ts`: reporter dedupe now keys on client **IP only** (`visitorHash(ip, "", docId, salt)`), not the attacker-controlled UA; `REPORT_LIMIT` 3→10 distinct IPs; `autoActionDoc` no longer suspends the whole workspace (single-doc unpublish only, reversible) — workspace suspension is now human-only via `/admin/moderation`. Removed `WS_REPORT_FLAG_LIMIT`.
+  - **H2 (unmetered MCP + update bypass)** `mcp-worker/src/docs.ts` `updateDoc` now enforces `MAX_TEXT_BYTES` (2 MB) on the text path and re-runs `scanContent` block on text+docx (`assertNotAbusive`). New `mcp-worker/src/ratelimit.ts` (`enforceMcpRate`) wired into `publish`(10/min), `update`(15/min), `unpublish`(20/min) per workspace in `agent.ts`. Exported `MAX_TEXT_BYTES` from `publish-core.ts`.
+  - **Headers** `next.config.ts`: added `headers()` — HSTS, nosniff, referrer-policy (strict-origin-when-cross-origin keeps `/w` token out of cross-origin Referer), `X-Frame-Options: SAMEORIGIN` + `CSP frame-ancestors 'self'` (pdf iframe is same-origin), Permissions-Policy; `Cache-Control: private, no-store` on `/admin/*` and `/w/*`.
+  - **Admin secret out of URL** new `app/api/admin/login/route.ts` sets HttpOnly `ilo_admin` cookie; `app/admin/moderation/{page,actions,login}.tsx` + `app/api/admin/action/route.ts` + `lib/admin/gate.ts` now read the cookie (dropped `?key=` + `x-admin-key` + client `adminKey` prop).
+  - **Verified:** `tsc --noEmit` clean (app + both workers), `vitest run` 51/51, `next build` clean. Runtime audit repros NOT yet re-run (needs deploy).
+- **Phase 1/2/3 — deliverables:** `docs/launch/product-hunt.md` (tagline/desc/topics/first comment/canned answers), `docs/launch/playbook.md` (timing + day-of), `docs/launch/assets/README.md` (asset spec + GIF shot-list), `docs/launch/assets/thumbnail.png` (240×240) + `social-card.png` (1200×630) rendered from brand HTML (kept as source).
+- **Pending (production side effects / decisions):** deploy 3 workers + re-run repros; publish seeded demo doc; capture 7 live gallery screenshots; rotate `ADMIN_SECRET` + CF API token.
+
 ## 2026-07-22 — Per-doc opt-in "trusted" (raw, unsanitized) HTML
 - **Asked:** an uploaded interactive HTML file (`clema_prompt_evolution.html`, expand/collapse via inline `onclick`) is dead on ilolink.com/w3p3bd. "Don't sanitize, accept as is."
 - **Root cause (systematic-debugging):** the file's interactivity is inline `onclick` only (no `<script>`). ilolink's sanitizer strips ALL `on*` attributes on ingest (`lib/sanitize/html.ts`) and the doc CSP is `default-src 'none'` + nonce-only `script-src` (`lib/sanitize/csp.ts`), so nothing runs. By design, not a bug.
