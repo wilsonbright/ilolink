@@ -1,295 +1,133 @@
-"use client";
+// /dashboard — the signed-in document list.
+//
+// Previously this was a fully client-side component reading localStorage: there
+// was no server-side "list my documents" query at all, so switching browsers
+// permanently lost the list (links kept working; the list did not). It is now
+// server-rendered from teamspace membership, and the local history survives
+// only to power the claim banner.
 
-// Accountless dashboard. There is no server-side list of "your" documents —
-// ownership lives only in this browser. We render getHistory() from
-// localStorage: what you published here, with the link and a way into stats.
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import {
-  getHistory,
-  removeFromHistory,
-  type HistoryEntry,
-} from "@/lib/history";
-import { QrCode } from "@/app/(app)/publish/publish-form";
+import { redirect } from "next/navigation";
+import { currentUser } from "@/lib/auth/current-user";
+import { listDashboardDocs, listTeamspacesForUser } from "@/lib/teamspace/store";
+import { ClaimBanner } from "./claim-banner";
 
-const VISIBILITY_LABEL: Record<string, string> = {
-  public: "Public",
-  unlisted: "Unlisted",
-  password: "Password",
-  expiring: "Expiring",
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Your documents — ilolink",
+  robots: { index: false, follow: false },
 };
 
-function formatDate(ms: number): string {
-  if (!ms) return "—";
-  return new Intl.DateTimeFormat("en", {
+function when(ts: number | null): string {
+  if (!ts) return "";
+  return new Date(ts).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
-  }).format(ms);
+  });
 }
 
-function VisibilityBadge({ visibility }: { visibility: string }) {
-  return (
-    <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent">
-      {VISIBILITY_LABEL[visibility] ?? visibility}
-    </span>
-  );
-}
+export default async function DashboardPage() {
+  const user = await currentUser();
+  if (!user) redirect("/signin?next=%2Fdashboard");
 
-interface Counts {
-  views: number;
-  comments: number;
-}
+  const [docs, teamspaces] = await Promise.all([
+    listDashboardDocs(user.id),
+    listTeamspacesForUser(user.id),
+  ]);
 
-// Quiet per-doc counts, token-gated via /api/counts. Silent on failure — the
-// card stays useful even if the tally can't be fetched.
-function CountsLine({ entry }: { entry: HistoryEntry }) {
-  const [counts, setCounts] = useState<Counts | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    fetch(
-      `/api/counts?slug=${encodeURIComponent(entry.slug)}&token=${encodeURIComponent(entry.manageToken)}`,
-    )
-      .then((r) => (r.ok ? (r.json() as Promise<Counts>) : null))
-      .then((data) => {
-        if (alive && data) setCounts(data);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [entry.slug, entry.manageToken]);
-
-  if (!counts) {
-    return <span className="text-ink-faint tabular-nums">·</span>;
-  }
-  return (
-    <span className="text-ink-soft tabular-nums">
-      {counts.views.toLocaleString()} views ·{" "}
-      {counts.comments.toLocaleString()} comments
-    </span>
-  );
-}
-
-function DocCard({
-  entry,
-  onDeleted,
-}: {
-  entry: HistoryEntry;
-  onDeleted: (slug: string) => void;
-}) {
-  // Two-step confirm, kept subtle: a hover-revealed muted link that expands
-  // into an inline confirm so no single click can unpublish.
-  const [armed, setArmed] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState(false);
-
-  const [copied, setCopied] = useState(false);
-  const [showQr, setShowQr] = useState(false);
-  const qrRef = useRef<HTMLDivElement>(null);
-
-  async function del() {
-    setDeleting(true);
-    setError(false);
-    try {
-      const res = await fetch(
-        `/api/documents?slug=${encodeURIComponent(entry.slug)}`,
-        {
-          method: "DELETE",
-          headers: { authorization: `Bearer ${entry.manageToken}` },
-        },
-      );
-      if (!res.ok) throw new Error();
-      removeFromHistory(entry.slug);
-      onDeleted(entry.slug);
-    } catch {
-      setDeleting(false);
-      setError(true);
-    }
-  }
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(entry.url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard blocked — the Open link still works */
-    }
-  }
-
-  // Serialize the rendered QR <svg> to a standalone file and download it.
-  function downloadQr() {
-    const svg = qrRef.current?.querySelector("svg");
-    if (!svg) return;
-    const source = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([source], { type: "image/svg+xml" });
-    const href = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = href;
-    a.download = `ilolink-${entry.slug}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(href);
-  }
-
-  const actionClass =
-    "text-ink-soft transition-colors duration-150 hover:text-accent";
+  const live = docs.filter((d) => !d.unpublished_at);
+  const unpublished = docs.filter((d) => d.unpublished_at);
+  // Only worth naming teamspaces once there is more than the personal one —
+  // a solo user should never meet the concept.
+  const showTeamspace = teamspaces.some((t) => !t.is_personal);
 
   return (
-    <li className="group border-b border-hairline py-6 last:border-b-0">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <Link
-            href={`/dashboard/${entry.slug}`}
-            className="text-lg font-medium text-ink transition-colors duration-150 hover:text-accent"
-          >
-            {entry.title || "Untitled"}
-          </Link>
-          <p className="mt-1 text-sm text-ink-faint">
-            /{entry.slug} · Published {formatDate(entry.publishedAt)}
-          </p>
-        </div>
-        <VisibilityBadge visibility={entry.visibility} />
-      </div>
-
-      <p className="mt-3 text-sm">
-        <CountsLine entry={entry} />
-      </p>
-
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
-        <button type="button" onClick={copyLink} className={actionClass}>
-          {copied ? "Copied" : "Copy link"}
-        </button>
-        <a
-          href={entry.url}
-          className={actionClass}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open
-        </a>
-        <button
-          type="button"
-          onClick={() => setShowQr((v) => !v)}
-          aria-expanded={showQr}
-          className={actionClass}
-        >
-          QR
-        </button>
-        <Link href={`/dashboard/${entry.slug}`} className={actionClass}>
-          Stats &amp; comments
-        </Link>
-
-        {!armed ? (
-          <button
-            type="button"
-            onClick={() => setArmed(true)}
-            className="text-ink-faint opacity-0 transition-opacity duration-150 hover:text-[#b3261e] focus-visible:opacity-100 group-hover:opacity-100 dark:hover:text-[#f2827a]"
-          >
-            Delete
-          </button>
-        ) : (
-          <span className="flex items-center gap-3">
-            <span className="text-ink-soft">Really delete?</span>
-            <button
-              type="button"
-              onClick={del}
-              disabled={deleting}
-              className="font-medium text-[#b3261e] transition-colors duration-150 hover:text-[#8f1d18] disabled:opacity-50 dark:text-[#f2827a] dark:hover:text-[#f6a49e]"
-            >
-              {deleting ? "Deleting…" : "Confirm"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setArmed(false)}
-              disabled={deleting}
-              className="text-ink-faint transition-colors duration-150 hover:text-ink disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </span>
-        )}
-      </div>
-
-      {showQr ? (
-        <div className="mt-4 flex items-center gap-4">
-          <div ref={qrRef} className="w-24 [&_svg]:h-24 [&_svg]:w-24">
-            <QrCode text={entry.url} />
-          </div>
-          <button
-            type="button"
-            onClick={downloadQr}
-            className={actionClass}
-          >
-            Download
-          </button>
-        </div>
-      ) : null}
-
-      {error ? (
-        <p className="mt-2 text-sm text-[#b3261e] dark:text-[#f2827a]">
-          Couldn’t delete this document. Please try again.
-        </p>
-      ) : null}
-    </li>
-  );
-}
-
-export default function DashboardPage() {
-  // localStorage is client-only; read after mount to avoid hydration mismatch.
-  const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
-
-  useEffect(() => {
-    setEntries(getHistory());
-  }, []);
-
-  function handleDeleted(slug: string) {
-    // removeFromHistory already ran in the card; mirror it in state so the row
-    // drops out without a reload.
-    setEntries((prev) => (prev ? prev.filter((e) => e.slug !== slug) : prev));
-  }
-
-  return (
-    <section>
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold text-ink">Your documents</h1>
+    <div>
+      <div className="mb-8 flex items-baseline justify-between">
+        <h1 className="text-2xl font-medium text-ink">Your documents</h1>
         <Link
           href="/publish"
           className="text-sm text-accent transition-colors duration-150 hover:text-ink"
         >
-          Publish
+          Publish new
         </Link>
       </div>
 
-      {entries === null ? null : entries.length === 0 ? (
-        <div className="mt-10 max-w-prose space-y-3 text-ink-soft">
-          <p>Nothing published from this browser yet.</p>
-          <p className="text-sm text-ink-faint">
-            ilolink has no accounts. Your published documents are remembered in{" "}
-            <span className="text-ink-soft">this browser only</span> — clear its
-            storage or switch devices and this list starts empty, though your
-            links keep working.
-          </p>
-          <p>
-            <Link
-              href="/publish"
-              className="text-accent underline-offset-2 hover:underline"
-            >
+      <ClaimBanner knownSlugs={docs.map((d) => d.slug)} />
+
+      {live.length === 0 && unpublished.length === 0 ? (
+        <div className="rounded-lg border border-hairline bg-surface px-5 py-8">
+          <p className="mb-2 text-ink">Nothing published yet.</p>
+          <p className="leading-relaxed text-ink-soft">
+            Publish a document and it will appear here, on every device you sign
+            in from.{" "}
+            <Link href="/publish" className="text-accent underline">
               Publish your first document
             </Link>
             .
           </p>
         </div>
       ) : (
-        <ul className="mt-6">
-          {entries.map((entry) => (
-            <DocCard key={entry.slug} entry={entry} onDeleted={handleDeleted} />
+        <ul>
+          {live.map((d) => (
+            <li
+              key={d.id}
+              className="border-b border-hairline py-5 last:border-b-0"
+            >
+              <div className="flex items-baseline justify-between gap-4">
+                <Link
+                  href={`/dashboard/${d.slug}`}
+                  className="font-medium text-ink transition-colors duration-150 hover:text-accent"
+                >
+                  {d.title || d.slug}
+                </Link>
+                <span className="shrink-0 text-sm tabular-nums text-ink-faint">
+                  {when(d.published_at)}
+                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-ink-faint">
+                <span>{d.visibility}</span>
+                <span>{d.source_type}</span>
+                {showTeamspace && d.teamspace_name && (
+                  <span>{d.teamspace_name}</span>
+                )}
+                {d.via === "shared" && <span>shared with you</span>}
+                <a
+                  href={`/${d.slug}`}
+                  className="text-accent transition-colors duration-150 hover:text-ink"
+                >
+                  open
+                </a>
+              </div>
+            </li>
           ))}
         </ul>
       )}
-    </section>
+
+      {unpublished.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-sm font-medium text-ink-soft">Unpublished</h2>
+          <ul>
+            {unpublished.map((d) => (
+              <li
+                key={d.id}
+                className="border-b border-hairline py-4 last:border-b-0"
+              >
+                <Link
+                  href={`/dashboard/${d.slug}`}
+                  className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                >
+                  {d.title || d.slug}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }

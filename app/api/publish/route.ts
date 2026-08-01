@@ -18,6 +18,10 @@ import { generateSlug, isValidCustomSlug } from "@/lib/slug";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { newManageToken, hashToken } from "@/lib/manage-token";
+import { currentUser } from "@/lib/auth/current-user";
+import { ensurePersonalTeamspace, getMembership } from "@/lib/teamspace/store";
+import { canPublishInto } from "@/lib/teamspace/permissions";
+import { queryFirst } from "@/lib/db/client";
 import { scanContent } from "@/lib/abuse/scan";
 import {
   MAX_BODY_BYTES,
@@ -58,6 +62,8 @@ interface PublishInput {
   // Publisher opt-in: store + serve this HTML raw (unsanitized) so its own
   // scripts run. Honoured only for text HTML (never md/pdf/docx). Default false.
   trusted?: boolean;
+  // Optional target teamspace; defaults to the user's personal one.
+  teamspaceId?: string;
 }
 
 function asString(v: FormDataEntryValue | null | undefined): string | undefined {
@@ -108,6 +114,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
   let title: string | undefined;
   let turnstileToken: string | undefined;
   let trusted = false;
+  let teamspaceId: string | undefined;
 
   if (contentType.includes("multipart/form-data")) {
     let form: FormData;
@@ -148,6 +155,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     title = asString(form.get("title"));
     turnstileToken = asString(form.get("turnstileToken"));
     trusted = asString(form.get("trusted")) === "true";
+    teamspaceId = asString(form.get("teamspace")) || undefined;
   } else {
     let body: unknown;
     try {
@@ -172,6 +180,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     turnstileToken =
       typeof b.turnstileToken === "string" ? b.turnstileToken : undefined;
     trusted = b.trusted === true;
+    teamspaceId = typeof b.teamspace === "string" ? b.teamspace : undefined;
   }
 
   if (content.trim().length === 0) {
@@ -215,6 +224,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     // Only text HTML can be trusted — md renders safe markdown, and pdf/docx are
     // binary/converted with no author scripts to run.
     trusted: trusted && !upload && sourceTypeRaw === "html",
+    teamspaceId,
   };
 }
 
@@ -242,13 +252,46 @@ async function resolveSlug(customSlug?: string): Promise<string | NextResponse> 
 export async function POST(req: Request): Promise<NextResponse> {
   const ip = clientIp(req);
 
-  // Abuse control on the open publish endpoint: IP rate-limit + Turnstile.
+  // Publishing now requires an account. The composer at / still renders for
+  // signed-out visitors and only asks for an email at submit time, so the
+  // funnel the marketing corpus feeds is intact — but every document created
+  // from here on has a real owner.
+  const user = await currentUser();
+  if (!user) {
+    return bad("Sign in to publish.", 401);
+  }
+
+  // Abuse control: IP rate-limit + Turnstile. Kept even behind auth — an
+  // account is cheap to create, so this still blunts scripted floods.
   if (!(await rateLimit(`publish:ip:${ip}`, 20, 3600))) {
     return bad("Too many documents published from here. Try again later.", 429);
   }
 
   const input = await readInput(req);
   if (input instanceof NextResponse) return input;
+
+  // Which teamspace to publish into. Defaults to the user's personal one, so a
+  // solo user never encounters the concept.
+  const teamspace = input.teamspaceId
+    ? await resolveNamedTeamspace(user.id, input.teamspaceId)
+    : await ensurePersonalTeamspace(user.id);
+  if (!teamspace) {
+    return bad("You are not a member of that teamspace.", 403);
+  }
+  if (teamspace.status !== "active") {
+    return bad("That teamspace is suspended.", 403);
+  }
+
+  const used = await queryFirst<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM documents WHERE teamspace_id = ? AND unpublished_at IS NULL",
+    teamspace.id,
+  );
+  if (Number(used?.n ?? 0) >= teamspace.quota_docs) {
+    return bad(
+      `That teamspace has reached its limit of ${teamspace.quota_docs} published documents.`,
+      403,
+    );
+  }
 
   if (!(await verifyTurnstile(input.turnstileToken, ip))) {
     return bad("Human check failed. Please retry.", 403);
@@ -341,6 +384,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     manage_token_hash: manageTokenHash,
     expires_at: expiresAt,
     trusted: input.trusted,
+    teamspace_id: teamspace.id,
+    created_by: user.id,
   });
 
   const version = await store(doc.id);
@@ -360,5 +405,20 @@ export async function POST(req: Request): Promise<NextResponse> {
   return NextResponse.json(
     { slug, url: viewUrl(slug), manageToken },
     { status: 201 },
+  );
+}
+
+// A teamspace the user is actually a member of, or null. Returning null rather
+// than throwing keeps "not a member" and "no such teamspace" indistinguishable,
+// so teamspace ids cannot be probed.
+async function resolveNamedTeamspace(
+  userId: string,
+  teamspaceId: string,
+): Promise<{ id: string; status: string; quota_docs: number } | null> {
+  const role = await getMembership(teamspaceId, userId);
+  if (!canPublishInto(role)) return null;
+  return queryFirst<{ id: string; status: string; quota_docs: number }>(
+    "SELECT id, status, quota_docs FROM teamspaces WHERE id = ?",
+    teamspaceId,
   );
 }

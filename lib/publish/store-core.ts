@@ -61,9 +61,14 @@ export interface CreateDocumentInput {
   password_hash?: string | null;
   manage_token_hash?: string | null;
   expires_at?: number | null;
-  // Set on the MCP path so the doc is owned by a workspace. Optional/null on the
-  // web path. The column is added by migration 0003.
+  // LEGACY MCP ownership, superseded by teamspace_id. Column added by
+  // migration 0003; retired in Phase 9.
   workspace_id?: string | null;
+  // Ownership (migration 0009). Every document belongs to a teamspace —
+  // including a solo user's auto-created personal one.
+  teamspace_id?: string | null;
+  // Provenance, not ownership: which user published it.
+  created_by?: string | null;
   // Opt-in: store + serve this HTML raw (unsanitized) under the permissive CSP.
   // Default false. The column is added by migration 0006.
   trusted?: boolean;
@@ -88,13 +93,15 @@ export async function createDocumentWith(
     created_at: now,
     updated_at: now,
     trusted: input.trusted ?? false,
+    teamspace_id: input.teamspace_id ?? null,
+    created_by: input.created_by ?? null,
   };
   await DB.prepare(
     `INSERT INTO documents
       (id, slug, title, source_type, visibility, password_hash,
        manage_token_hash, current_version_id, expires_at, published_at,
-       created_at, updated_at, workspace_id, trusted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       created_at, updated_at, workspace_id, trusted, teamspace_id, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       row.id,
@@ -111,6 +118,8 @@ export async function createDocumentWith(
       row.updated_at,
       input.workspace_id ?? null,
       row.trusted ? 1 : 0,
+      row.teamspace_id ?? null,
+      row.created_by ?? null,
     )
     .run();
   return row;

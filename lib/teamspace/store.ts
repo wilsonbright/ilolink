@@ -140,6 +140,53 @@ export async function claimPendingShares(
   return res.meta.changes ?? 0;
 }
 
+export interface DashboardDoc {
+  id: string;
+  slug: string;
+  title: string | null;
+  visibility: string;
+  source_type: string;
+  published_at: number | null;
+  unpublished_at: number | null;
+  teamspace_id: string | null;
+  teamspace_name: string;
+  is_personal: number;
+  created_by: string | null;
+  via: "member" | "shared";
+}
+
+// Everything the signed-in user can see: documents in teamspaces they belong
+// to, plus documents shared or assigned directly to them. UNION rather than a
+// LEFT JOIN so a document that is both does not appear twice.
+export async function listDashboardDocs(
+  userId: string,
+): Promise<DashboardDoc[]> {
+  return queryAll<DashboardDoc>(
+    `SELECT d.id, d.slug, d.title, d.visibility, d.source_type, d.published_at,
+            d.unpublished_at, d.teamspace_id, t.name AS teamspace_name,
+            t.is_personal, d.created_by, 'member' AS via
+       FROM documents d
+       JOIN teamspaces t        ON t.id = d.teamspace_id
+       JOIN teamspace_members m ON m.teamspace_id = t.id AND m.user_id = ?
+     UNION
+     SELECT d.id, d.slug, d.title, d.visibility, d.source_type, d.published_at,
+            d.unpublished_at, d.teamspace_id, COALESCE(t.name, 'Shared with me'),
+            0, d.created_by, 'shared' AS via
+       FROM documents d
+       JOIN document_shares s ON s.document_id = d.id
+                             AND s.user_id = ? AND s.revoked_at IS NULL
+       LEFT JOIN teamspaces t ON t.id = d.teamspace_id
+      WHERE NOT EXISTS (
+        SELECT 1 FROM teamspace_members m2
+         WHERE m2.teamspace_id = d.teamspace_id AND m2.user_id = ?
+      )
+     ORDER BY published_at DESC`,
+    userId,
+    userId,
+    userId,
+  );
+}
+
 export interface AccessibleDoc {
   id: string;
   teamspace_id: string | null;

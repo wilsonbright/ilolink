@@ -51,6 +51,23 @@ function fakeBindings() {
   return { bindings: { DB, DOCS, KV } as PublishBindings, sql, r2, kv };
 }
 
+// Map an INSERT's bound params to their column names by parsing the column
+// list out of the SQL. The earlier version of these tests indexed params from
+// the END of the array, so simply appending a column to the INSERT broke them
+// while the code was correct — exactly the failure mode a schema change should
+// not produce.
+function boundColumns(
+  insert: { text: string; params: unknown[] },
+): Record<string, unknown> {
+  const cols = insert.text
+    .slice(insert.text.indexOf("(") + 1, insert.text.indexOf(")"))
+    .split(",")
+    .map((c) => c.trim());
+  const out: Record<string, unknown> = {};
+  cols.forEach((c, i) => (out[c] = insert.params[i]));
+  return out;
+}
+
 describe("store-core (binding-parameterized)", () => {
   it("createDocumentWith inserts under the given workspace_id", async () => {
     const { bindings, sql } = fakeBindings();
@@ -62,10 +79,9 @@ describe("store-core (binding-parameterized)", () => {
     expect(row.slug).toBe("abc123");
     const insert = sql.find((s) => s.text.includes("INSERT INTO documents"));
     expect(insert).toBeDefined();
-    // Bound params end with workspace_id then trusted (0 by default).
-    const params = insert!.params;
-    expect(params[params.length - 2]).toBe("w_test");
-    expect(params[params.length - 1]).toBe(0);
+    const cols = boundColumns(insert!);
+    expect(cols.workspace_id).toBe("w_test");
+    expect(cols.trusted).toBe(0);
     expect(row.trusted).toBe(false);
   });
 
@@ -78,7 +94,35 @@ describe("store-core (binding-parameterized)", () => {
     });
     expect(row.trusted).toBe(true);
     const insert = sql.find((s) => s.text.includes("INSERT INTO documents"));
-    expect(insert!.params[insert!.params.length - 1]).toBe(1);
+    expect(boundColumns(insert!).trusted).toBe(1);
+  });
+
+  it("createDocumentWith persists teamspace ownership and provenance", async () => {
+    const { bindings, sql } = fakeBindings();
+    const row = await createDocumentWith(bindings.DB, {
+      slug: "owned1",
+      source_type: "md",
+      teamspace_id: "t_team",
+      created_by: "u_author",
+    });
+    const cols = boundColumns(
+      sql.find((s) => s.text.includes("INSERT INTO documents"))!,
+    );
+    expect(cols.teamspace_id).toBe("t_team");
+    expect(cols.created_by).toBe("u_author");
+    expect(row.teamspace_id).toBe("t_team");
+  });
+
+  it("createDocumentWith leaves ownership null when not supplied", async () => {
+    // The legacy web path publishes without a teamspace during the transition;
+    // the column must be NULL rather than the string "undefined".
+    const { bindings, sql } = fakeBindings();
+    await createDocumentWith(bindings.DB, { slug: "anon1", source_type: "md" });
+    const cols = boundColumns(
+      sql.find((s) => s.text.includes("INSERT INTO documents"))!,
+    );
+    expect(cols.teamspace_id).toBeNull();
+    expect(cols.created_by).toBeNull();
   });
 
   it("storeVersionWith writes raw + rendered bodies to the given R2 bucket", async () => {
