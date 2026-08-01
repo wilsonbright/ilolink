@@ -1,12 +1,33 @@
-// OAuth defaultHandler. Renders the Authorize page for ANY MCP client (Claude,
-// Grok, and other MCP-compatible assistants) and, on approve, SILENTLY provisions
-// an anonymous workspace — no email, no password — then completes the grant. The
-// provider injects env.OAUTH_PROVIDER (the OAuth helpers). See mcp-worker/PINNED.md.
+// OAuth defaultHandler — the consent step for any MCP client (Claude, Grok, …).
+//
+// This used to mint `crypto.randomUUID()` as an anonymous subject and silently
+// provision a workspace: approving created an account-less bucket with no owner.
+// Now it authenticates a real ilolink user.
+//
+// It cannot do that itself. The session cookie is host-locked to ilolink.com
+// (deliberately — see lib/auth/cookies.ts), so mcp.ilolink.com can never read
+// it, and widening the cookie would hand sessions to the untrusted content
+// origin. So consent is DELEGATED to the app over a signed handoff:
+//
+//   1. GET  mcp/authorize            → validate the OAuth request, redirect to
+//                                      app/oauth/authorize with the request in a
+//                                      signed envelope
+//   2.      app/oauth/authorize      → sign in if needed, pick a teamspace, approve
+//   3.      app/api/auth/mcp-approve → sign {userId, teamspaceId, tokenEpoch, reqHash}
+//   4. GET  mcp/authorize/complete   → verify, then completeAuthorization
+//
+// The envelope in step 1 is signed too, so a third party cannot drive the app's
+// consent screen with an OAuth request we never validated.
 
 import type { Env } from "./agent";
-import { getOrCreateByOauthSubject } from "./workspace";
+import {
+  hmac,
+  b64urlEncode,
+  b64urlDecode,
+  constantTimeEqual,
+  verifyPayload,
+} from "../../lib/crypto/hmac";
 
-// The provider augments env with this helpers object at runtime (env.OAUTH_PROVIDER).
 interface OAuthHelpers {
   parseAuthRequest(request: Request): Promise<{ clientId?: string; scope?: string[] } & Record<string, unknown>>;
   lookupClient(clientId: string): Promise<{ clientName?: string } | null>;
@@ -19,47 +40,26 @@ interface OAuthHelpers {
   }): Promise<{ redirectTo: string }>;
 }
 
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+interface GrantAssertion {
+  userId: string;
+  teamspaceId: string;
+  tokenEpoch: number;
+  email: string;
+  // Binds the assertion to ONE authorize request, so a captured assertion
+  // cannot be replayed against a different (attacker-chosen) redirect_uri.
+  reqHash: string;
 }
 
-// The connecting app's own name (from OAuth client registration), or a neutral
-// fallback so the page never wrongly says "Claude" for Grok/others.
-function appName(raw?: string | null): string {
-  const n = (raw ?? "").trim();
-  if (!n || n.length > 40) return "your AI assistant";
-  return n;
+function appOrigin(env: Env): string {
+  return (env as unknown as { APP_ORIGIN?: string }).APP_ORIGIN ?? "https://ilolink.com";
 }
 
-function page(stateB64: string, client: string): string {
-  const app = esc(client);
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Authorize ilolink</title>
-<style>
-:root{color-scheme:light dark;--bg:#fafaf8;--surface:#fff;--ink:#1a1a17;--soft:#56564f;--faint:#8a8a80;--line:#eae8e1;--accent:#3b5bdb}
-@media(prefers-color-scheme:dark){:root{--bg:#17171a;--surface:#1f1f23;--ink:#edece7;--soft:#a8a79f;--faint:#6f6e67;--line:#2c2c31;--accent:#7c93f0}}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--ink);font-family:"Inter",ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-.card{width:100%;max-width:30rem;padding:2.5rem 1.75rem;text-align:center}
-h1{font-size:1.4rem;font-weight:620;margin:0 0 .5rem}
-p{color:var(--soft);line-height:1.6;margin:0 0 1rem}
-ul{color:var(--soft);text-align:left;line-height:1.7;margin:0 auto 1.5rem;max-width:24rem;padding-left:1.1rem}
-button{width:100%;padding:.8rem 1rem;font-size:1rem;font-weight:560;color:#fff;background:var(--accent);border:0;border-radius:9px;cursor:pointer}
-.fine{font-size:.82rem;color:var(--faint);margin-top:1.25rem}
-</style></head><body><div class="card">
-<h1>Connect ilolink to ${app}</h1>
-<p>Approve to create a private, anonymous ilolink workspace. No account, no password.</p>
-<ul>
-<li>Publish documents to a shareable link, right from your chat.</li>
-<li>See views, scroll depth, and comments on a private dashboard.</li>
-<li>Ask for your dashboard link anytime — it needs no login, so keep it private.</li>
-</ul>
-<form method="POST" action="/authorize">
-<input type="hidden" name="state" value="${esc(stateB64)}" />
-<button type="submit">Authorize</button>
-</form>
-<p class="fine">ilolink has no accounts. Approving creates a workspace tied to this connection.</p>
-</div></body></html>`;
+function handoffSecret(env: Env): string {
+  const s = (env as unknown as { MCP_HANDOFF_SECRET?: string }).MCP_HANDOFF_SECRET;
+  // Fail closed: without the shared secret we cannot verify who approved a
+  // grant, and issuing one anyway is exactly the bug this replaces.
+  if (!s) throw new Error("MCP_HANDOFF_SECRET is not configured.");
+  return s;
 }
 
 export const authorizeHandler = {
@@ -67,44 +67,76 @@ export const authorizeHandler = {
     const helpers = (env as unknown as { OAUTH_PROVIDER: OAuthHelpers }).OAUTH_PROVIDER;
     const url = new URL(request.url);
 
-    if (url.pathname === "/authorize") {
-      // GET: parse the OAuth request from the query (this validates redirect_uri
-      // etc.) and render the consent page, carrying the request forward as state.
-      if (request.method === "GET") {
-        const oauthReq = await helpers.parseAuthRequest(request);
-        const client = oauthReq.clientId
-          ? await helpers.lookupClient(oauthReq.clientId).catch(() => null)
-          : null;
-        const state = btoa(JSON.stringify(oauthReq));
-        return new Response(page(state, appName(client?.clientName)), {
-          headers: { "content-type": "text/html; charset=utf-8" },
+    // Step 1 — validate the OAuth request, then hand off to the app.
+    if (url.pathname === "/authorize" && request.method === "GET") {
+      const oauthReq = await helpers.parseAuthRequest(request);
+      const client = oauthReq.clientId
+        ? await helpers.lookupClient(oauthReq.clientId).catch(() => null)
+        : null;
+
+      const req = b64urlEncode(JSON.stringify(oauthReq));
+      const secret = handoffSecret(env);
+      const sig = await hmac(secret, req);
+
+      const target = new URL("/oauth/authorize", appOrigin(env));
+      target.searchParams.set("req", req);
+      target.searchParams.set("sig", sig);
+      if (client?.clientName) target.searchParams.set("app", client.clientName);
+      return Response.redirect(target.toString(), 302);
+    }
+
+    // Step 4 — the app says this user approved. Verify and issue.
+    if (url.pathname === "/authorize/complete" && request.method === "GET") {
+      const req = url.searchParams.get("req") ?? "";
+      const grant = url.searchParams.get("grant") ?? "";
+      const secret = handoffSecret(env);
+
+      // The OAuth request must still be one we signed in step 1.
+      const reqSig = url.searchParams.get("sig") ?? "";
+      if (!constantTimeEqual(reqSig, await hmac(secret, req))) {
+        return new Response("Invalid authorize request.", { status: 400 });
+      }
+
+      const assertion = await verifyPayload<GrantAssertion>(
+        secret,
+        grant,
+        Date.now(),
+      );
+      if (!assertion) {
+        return new Response("That approval expired. Please try again.", {
+          status: 400,
+        });
+      }
+      // The assertion must belong to THIS request, not another one.
+      if (!constantTimeEqual(assertion.reqHash, await hmac(secret, req))) {
+        return new Response("Approval does not match this request.", {
+          status: 400,
         });
       }
 
-      // POST (approve): reconstruct the AuthRequest from state — do NOT call
-      // parseAuthRequest here, the POST has no query params so it would reject an
-      // empty redirect_uri.
-      if (request.method === "POST") {
-        const form = await request.formData();
-        let parsed: { scope?: string[] } & Record<string, unknown>;
-        try {
-          parsed = JSON.parse(atob(String(form.get("state") ?? "")));
-        } catch {
-          return new Response("Bad authorize state.", { status: 400 });
-        }
-        // Anonymous: a fresh subject per grant. Claude persists the issued token,
-        // so re-authorizing is rare; each fresh authorize yields a new workspace.
-        const subject = crypto.randomUUID();
-        const ws = await getOrCreateByOauthSubject(env.DB, subject);
-        const { redirectTo } = await helpers.completeAuthorization({
-          request: parsed,
-          userId: ws.id,
-          scope: parsed.scope ?? ["publish"],
-          metadata: { anonymous: true },
-          props: { workspaceId: ws.id, origin: "claude_oauth" },
-        });
-        return Response.redirect(redirectTo, 302);
+      let parsed: { scope?: string[] } & Record<string, unknown>;
+      try {
+        parsed = JSON.parse(b64urlDecode(req));
+      } catch {
+        return new Response("Invalid authorize request.", { status: 400 });
       }
+
+      const { redirectTo } = await helpers.completeAuthorization({
+        request: parsed,
+        userId: assertion.userId,
+        scope: parsed.scope ?? ["publish"],
+        metadata: { email: assertion.email },
+        // Identity ONLY. No role, no permissions: those are re-read from D1 on
+        // every tool call (see mcp-worker/src/authz.ts), because this props
+        // object is decrypted once and then cached in a warm Durable Object.
+        props: {
+          userId: assertion.userId,
+          teamspaceId: assertion.teamspaceId,
+          tokenEpoch: assertion.tokenEpoch,
+          origin: "oauth",
+        },
+      });
+      return Response.redirect(redirectTo, 302);
     }
 
     return new Response("Not found", { status: 404 });
