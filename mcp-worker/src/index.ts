@@ -1,13 +1,21 @@
-// Worker entry. Two front doors to one workspace:
-//   /mcp            → wrapped by workers-oauth-provider (Claude one-click).
-//   /w_XXXX/mcp     → resolve the workspace from the path token (ChatGPT), set
-//                     ctx.props, and hand to the MCP transport (no OAuth).
-// Downstream both land in the same IlolinkMCP tools. See mcp-worker/PINNED.md.
+// Worker entry. Two front doors to one teamspace:
+//   /mcp + OAuth Bearer          → wrapped by workers-oauth-provider (Claude etc.)
+//   /mcp + `ilo_pat_…` Bearer    → personal access token (clients without OAuth)
+//
+// Both land in the same IlolinkMCP tools with the same props shape. See
+// mcp-worker/PINNED.md.
+//
+// RETIRED: /w_XXXX/mcp. The workspace id was itself the bearer secret AND sat in
+// the URL, so it leaked into browser history, the assistant's stored connector
+// config, referrer chains, and this worker's own request logs (observability is
+// on). It also doubled as the dashboard key, so one leak gave away publishing
+// and analytics together. The path now returns a JSON-RPC error telling the
+// assistant to reconnect.
 
 import { OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { IlolinkMCP, type Env } from "./agent";
 import { authorizeHandler } from "./authorize";
-import { getWorkspace } from "./workspace";
+import { resolveApiToken, touchApiToken, PAT_PREFIX } from "../../lib/mcp/api-tokens";
 
 export { IlolinkMCP };
 
@@ -19,7 +27,6 @@ const apiHandler = {
     mcpHandler.fetch(req, env, ctx),
 };
 
-// OAuth-wrapped handler for the Claude path.
 const provider = new OAuthProvider({
   apiRoute: "/mcp",
   apiHandler,
@@ -41,25 +48,34 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    // ChatGPT token path: /w_XXXX/mcp[...] — resolve workspace, inject props,
-    // rewrite to /mcp, and hand to the transport directly (bypassing OAuth).
-    const m = url.pathname.match(/^\/(w_[A-Za-z0-9]+)\/mcp(\/.*)?$/);
-    if (m) {
-      const ws = await getWorkspace(env.DB, m[1]);
-      if (!ws) {
+    // The retired URL-token path. Answer clearly rather than 404ing, so an
+    // assistant still holding an old connector URL tells its user what to do.
+    if (/^\/(w_[A-Za-z0-9]+)\/mcp(\/.*)?$/.test(url.pathname)) {
+      return rpcError(
+        "This ilolink connector URL has been retired. Reconnect ilolink from your assistant's connector settings, or create a new connector token at ilolink.com/connect.",
+      );
+    }
+
+    // Personal access token path. Checked BEFORE the OAuth provider, because
+    // the provider would reject an unrecognized bearer token outright.
+    const auth = request.headers.get("authorization") ?? "";
+    const presented = auth.replace(/^Bearer\s+/i, "");
+    if (url.pathname.startsWith("/mcp") && presented.startsWith(PAT_PREFIX)) {
+      const resolved = await resolveApiToken(env.DB, presented);
+      if (!resolved) {
         return rpcError(
-          "Your ilolink workspace URL looks wrong — mint a new one at ilolink.com/connect.",
+          "That ilolink connector token is not valid or has been revoked. Create a new one at ilolink.com/connect.",
         );
       }
+      ctx.waitUntil(touchApiToken(env.DB, resolved.tokenId));
+      // Identity only — membership and status are re-read from D1 on every tool
+      // call (see ./authz.ts), so revoking access takes effect immediately.
       (ctx as unknown as { props: unknown }).props = {
-        workspaceId: ws.id,
-        origin: "chatgpt_token",
+        userId: resolved.userId,
+        teamspaceId: resolved.teamspaceId,
+        origin: "pat",
       };
-      const rewritten = new Request(
-        `${url.origin}/mcp${m[2] ?? ""}${url.search}`,
-        request,
-      );
-      return mcpHandler.fetch(rewritten, env, ctx);
+      return mcpHandler.fetch(request, env, ctx);
     }
 
     // Everything else (/, /mcp, /authorize, /token, /register, /.well-known/*)

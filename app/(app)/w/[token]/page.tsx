@@ -6,7 +6,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { env } from "@/lib/cf";
 import { verifyDashboardToken } from "@/lib/mcp/dashboard-token";
-import { RotateToken } from "./rotate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -116,7 +115,15 @@ export default async function WorkspaceDashboard({
 
       {ws.origin === "chatgpt_token" ? (
         <div className="mt-10 border-t border-hairline pt-6">
-          <RotateToken workspaceId={workspaceId} />
+          {/* Rotation is gone with the URL-token path it protected. This
+              dashboard is a read-only legacy surface until it is retired;
+              connector credentials are now managed at /connect. */}
+          <a
+            href="/connect"
+            className="text-sm text-accent transition-colors duration-150 hover:text-ink"
+          >
+            Manage connectors
+          </a>
         </div>
       ) : null}
     </section>
