@@ -1,4 +1,5 @@
-// Per-doc manage token: the only proof of "I published this" in an accountless
+// LEGACY per-doc manage token. Was the only proof of "I published this" in an
+// accountless
 // world. The raw token lives in the publisher's browser (localStorage); only its
 // SHA-256 is stored server-side. High entropy (nanoid 32 ≈ 190 bits), so a plain
 // SHA-256 is sufficient — no slow KDF needed. Presented to privileged endpoints

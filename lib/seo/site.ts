@@ -5,7 +5,8 @@
 export const SITE_URL = "https://ilolink.com";
 export const SITE_NAME = "ilolink";
 
-// The live conversion surface. ilolink is accountless — the composer *is* the
+// The live conversion surface. Publishing now needs a free account; the
+// composer is still the
 // signup, so every marketing CTA points here rather than at a /pricing page.
 export const COMPOSE_URL = "/";
 

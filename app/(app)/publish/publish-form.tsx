@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SignInForm } from "@/app/(app)/signin/signin-form";
 import type { SourceType, Visibility } from "@/lib/types";
 import { addToHistory } from "@/lib/history";
 
@@ -99,6 +100,12 @@ export function PublishForm() {
   const dragDepth = useRef(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Publishing requires an account. Rather than sending the user away — which
+  // would destroy the draft in this component's state, including a file of up
+  // to 15 MB — a 401 renders the sign-in form inline. This is the entire reason
+  // sign-in uses a 6-digit code rather than a magic link.
+  const [needsAuth, setNeedsAuth] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
   const [result, setResult] = useState<PublishResult | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
 
@@ -235,6 +242,16 @@ export function PublishForm() {
       });
       const data: unknown = await res.json().catch(() => ({}));
       const obj = (data ?? {}) as Record<string, unknown>;
+
+      if (res.status === 401) {
+        // Not signed in. Keep the draft exactly where it is and ask for an
+        // account in place.
+        setTurnstileToken("");
+        window.turnstile?.reset();
+        setNeedsAuth(true);
+        setError(null);
+        return;
+      }
 
       if (!res.ok || obj.ok === false) {
         // A used/failed token can't be replayed — force a fresh human check.
@@ -471,6 +488,31 @@ export function PublishForm() {
       {/* Publish sits directly under the composer so it's never hunted for; */}
       {/* everything optional collapses behind the Options disclosure. */}
       <div className="space-y-4">
+        {needsAuth && (
+          <div className="rounded-lg border border-hairline bg-surface p-4">
+            <p className="mb-1 text-sm font-medium text-ink">
+              Sign in to publish
+            </p>
+            <p className="mb-4 text-sm leading-relaxed text-ink-soft">
+              Your draft stays exactly as it is — we&rsquo;ll email you a code.
+              Readers never need an account.
+            </p>
+            <SignInForm
+              next="/publish"
+              onSignedIn={() => {
+                setNeedsAuth(false);
+                setSignedIn(true);
+              }}
+            />
+          </div>
+        )}
+
+        {signedIn && (
+          <p className="text-sm text-ink-soft">
+            Signed in — press Publish to continue.
+          </p>
+        )}
+
         {error && (
           <p role="alert" className="text-sm text-ink">
             {error}

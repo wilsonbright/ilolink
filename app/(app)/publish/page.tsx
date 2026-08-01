@@ -7,7 +7,8 @@ export const metadata: Metadata = {
   description: "Paste Markdown or HTML, get a link, and see how it's read.",
 };
 
-// Accountless: anyone can publish. Ownership is proved later by the per-doc
+// Publishing requires a session (/api/publish returns 401 without one) and the
+// document is owned by a teamspace. Pre-accounts docs still carry the per-doc
 // manage token the browser keeps, not by a signed-in session.
 export default function PublishPage() {
   return (

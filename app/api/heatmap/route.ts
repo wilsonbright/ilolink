@@ -1,9 +1,8 @@
 // GET /api/heatmap?slug=&token=&bucket= — private per-doc click/scroll heatmap.
 //
-// Same accountless ownership model as /api/stats: resolve the doc by its public
-// slug, verify the presented manage token against the stored hash (constant-time),
-// and only then return the per-bucket Heatmap. 403 on a bad/absent token; 404 for
-// an unknown slug. `bucket` is a closed enum (sm|md|lg); anything else -> "lg".
+// Same access model as /api/stats: guardDoc resolves the doc by its public slug
+// and requires canRead. 404 unknown slug, 401 unidentified, 403 not yours.
+// `bucket` is a closed enum (sm|md|lg); anything else -> "lg".
 
 import { NextResponse } from "next/server";
 import { guardDoc } from "@/lib/auth/doc-guard";

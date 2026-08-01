@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { PublishForm } from "@/app/(app)/publish/publish-form";
 import { PILLARS, LEGAL } from "@/lib/seo/site";
+import { NavAuth } from "@/app/nav-auth";
 
 const VALUE = [
   {
@@ -42,18 +43,21 @@ export default function Home() {
             >
               Guides
             </Link>
-            <Link
-              href="/dashboard"
-              className="hidden transition-colors duration-150 hover:text-ink sm:inline"
-            >
-              Your documents
-            </Link>
+            <span className="hidden sm:inline">
+              <NavAuth />
+            </span>
             <a
               href="#compose"
               className="inline-flex items-center rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-canvas transition-opacity duration-150 hover:opacity-90"
             >
               Publish
             </a>
+            <Link
+              href="/signin"
+              className="inline-flex items-center rounded-md border border-hairline px-3 py-1.5 text-sm font-medium text-ink transition-colors duration-150 hover:border-accent hover:text-accent sm:hidden"
+            >
+              Sign in
+            </Link>
           </nav>
         </div>
       </header>

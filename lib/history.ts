@@ -1,4 +1,7 @@
-// Browser-local publish history — the accountless replacement for a dashboard
+// Browser-local publish history. Was the accountless replacement for a
+// dashboard; now survives only to feed the claim flow (app/api/claim), which
+// trades these per-doc tokens for real account ownership. Retired once the
+// pre-accounts corpus is claimed or abandoned.
 // query. Lives only in this browser's localStorage; holds the manage token that
 // unlocks private analytics + comment moderation for each doc. CLIENT ONLY.
 

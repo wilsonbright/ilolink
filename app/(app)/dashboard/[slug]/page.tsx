@@ -1,6 +1,7 @@
 "use client";
 
-// Per-document detail, accountless. Ownership is proved by the per-doc manage
+// Per-document detail. Ownership is a teamspace; pre-accounts docs still prove
+// it with the per-doc manage
 // token this browser stored at publish time — not a session. If the token isn't
 // here, this browser can't manage the doc, and we say so plainly (no data leak).
 import Link from "next/link";

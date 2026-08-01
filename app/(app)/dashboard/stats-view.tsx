@@ -9,7 +9,8 @@
 //   • view.ilolink.com/_comments (view)   — visible comments to moderate
 // Moderation writes back through the app origin: /api/comments/moderate.
 //
-// The manage token is the accountless proof of ownership; it is passed in from
+// The manage token is the LEGACY proof of ownership (pre-accounts docs only);
+// current docs authorize by session. It is passed in from
 // the dashboard (which read it from the publisher's localStorage) and never
 // rendered. The client only knows slug + token, so /api/stats doubles as the
 // slug→doc-id bridge: it returns the (non-secret) doc id, which then keys the

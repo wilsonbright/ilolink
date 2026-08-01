@@ -1,8 +1,8 @@
-// GET /api/doc-html?slug=&token= — token-gated raw sanitized document HTML.
+// GET /api/doc-html?slug= — access-gated raw sanitized document HTML.
 //
 // The dashboard heatmap overlay needs the exact rendered doc body to place the
 // canvas over. This returns the current version's sanitized HTML from R2, gated
-// by the same accountless manage token as /api/stats and /api/heatmap. It is only
+// by the same access guard as /api/stats and /api/heatmap. It is only
 // ever embedded in a sandboxed, script-free iframe (srcdoc) by the owner, but we
 // still ship a strict CSP so the payload can never execute or phone home even if
 // the response is opened directly.

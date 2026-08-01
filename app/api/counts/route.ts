@@ -1,9 +1,10 @@
 // GET /api/counts?slug=&token= — compact per-doc tallies for the dashboard card.
 //
-// Same accountless ownership proof as /api/stats and /api/feedback: resolve the
-// doc by its public slug, verify the presented manage token against the stored
-// hash, and only then return { views, comments }. 403 on a bad/absent token;
-// 404 for an unknown slug. Kept lean — the dashboard fetches one per card.
+// Same access model as /api/stats and /api/feedback: guardDoc resolves the doc
+// by its public slug and requires canRead — a teamspace membership on the
+// session, a direct share, or a legacy manage token. 404 unknown slug, 401 when
+// nobody is identified, 403 when they are but it isn't theirs. Kept lean — the
+// dashboard fetches one per card.
 
 import { NextResponse } from "next/server";
 import { guardDoc } from "@/lib/auth/doc-guard";

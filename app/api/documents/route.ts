@@ -1,6 +1,7 @@
 // DELETE /api/documents?slug=&token= — permanently unpublish a document.
 //
-// Accountless: the manage token minted at publish is the only proof of ownership.
+// Authorized by guardDoc (canDelete): a teamspace member for docs they created,
+// an owner otherwise, or a legacy manage token for pre-accounts docs.
 // Resolve by slug, verify the token, then hard-delete every trace: D1 rows
 // (comments, feedback, versions, doc), the KV slug record, and all R2 bodies.
 // Irreversible by design — documents are immutable and there is no trash.
