@@ -5,8 +5,11 @@ export type SourceType = "md" | "html" | "pdf";
 
 export type Visibility = "public" | "unlisted" | "password" | "expiring";
 
-// No accounts. Ownership is proved by a per-doc manage token whose SHA-256 is
-// stored here; the raw token lives only in the publisher's browser.
+// Ownership is `teamspace_id` (migration 0009). `manage_token_hash` is the
+// pre-accounts proof — the raw token lives only in the publisher's browser —
+// and `workspace_id` was the MCP-side equivalent. Both are still honored by
+// lib/teamspace/permissions.ts through the transition and are dropped in
+// Phase 9, one full release after the code stops reading them.
 export interface DocumentRow {
   id: string;
   slug: string;
@@ -25,6 +28,12 @@ export interface DocumentRow {
   // the sanitize-on-ingest boundary is the norm. Set only when the publisher
   // explicitly vouches for the content. Added by migration 0006.
   trusted: boolean;
+  // Ownership (migration 0009). Nullable while unclaimed web documents exist.
+  teamspace_id?: string | null;
+  // Provenance, not ownership — who published it into the teamspace.
+  created_by?: string | null;
+  // Legacy MCP ownership, superseded by teamspace_id (migration 0003).
+  workspace_id?: string | null;
 }
 
 export interface DocumentVersion {

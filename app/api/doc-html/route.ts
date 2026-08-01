@@ -7,8 +7,8 @@
 // still ship a strict CSP so the payload can never execute or phone home even if
 // the response is opened directly.
 
-import { getDocumentBySlug, readSlugRecord } from "@/lib/db/documents";
-import { verifyToken } from "@/lib/manage-token";
+import { readSlugRecord } from "@/lib/db/documents";
+import { guardDoc } from "@/lib/auth/doc-guard";
 import { getBody } from "@/lib/r2/store";
 
 export const runtime = "nodejs";
@@ -35,19 +35,15 @@ function text(body: string, status: number): Response {
 export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const slug = url.searchParams.get("slug");
-  const token = url.searchParams.get("token");
+  if (!slug) return text("<!-- missing slug -->", 400);
 
-  if (!slug || !token) {
-    return text("<!-- missing slug or token -->", 400);
-  }
-
-  const doc = await getDocumentBySlug(slug);
-  if (!doc) {
-    return text("<!-- not found -->", 404);
-  }
-
-  if (!(await verifyToken(token, doc.manage_token_hash))) {
-    return text("<!-- not authorized -->", 403);
+  // This route hands back the document's raw sanitized HTML for the heatmap
+  // overlay, so it is gated on canRead exactly like the analytics routes.
+  const guard = await guardDoc(req, { require: "canRead", slug });
+  if (!guard.ok) {
+    // The caller renders this into an iframe, so keep the HTML content type
+    // rather than leaking a JSON error body into the document surface.
+    return text(`<!-- ${guard.response.status === 404 ? "not found" : "not authorized"} -->`, guard.response.status);
   }
 
   // Prefer the hot KV slug record's rendered key; fall back to the doc row's

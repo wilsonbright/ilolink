@@ -1,13 +1,12 @@
-// GET /api/stats?slug=&token= — private per-doc analytics (spec §7).
+// GET /api/stats?slug=[&token=] — private per-doc analytics (spec §7).
 //
-// Accountless: the manage token minted at publish time is the only proof of
-// ownership. We resolve the doc by its public slug, verify the presented token
-// against the stored hash (constant-time), and only then return its Stats.
-// 403 on a bad/absent token; 404 for an unknown slug (slugs are public URLs).
+// Authorization goes through guardDoc(), which accepts EITHER a teamspace
+// membership on the signed-in session or a legacy manage token, and answers via
+// the one permission resolver. 404 for an unknown slug, 401 when nobody is
+// identified, 403 when they are but the document isn't theirs.
 
 import { NextResponse } from "next/server";
-import { getDocumentBySlug } from "@/lib/db/documents";
-import { verifyToken } from "@/lib/manage-token";
+import { guardDoc } from "@/lib/auth/doc-guard";
 import { queryStats } from "@/lib/analytics/query";
 import { env } from "@/lib/cf";
 
@@ -33,25 +32,9 @@ async function exactViews(docId: string): Promise<number | null> {
 }
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const url = new URL(req.url);
-  const slug = url.searchParams.get("slug");
-  const token = url.searchParams.get("token");
-
-  if (!slug || !token) {
-    return NextResponse.json(
-      { error: "Both 'slug' and 'token' are required." },
-      { status: 400 },
-    );
-  }
-
-  const doc = await getDocumentBySlug(slug);
-  if (!doc) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
-  }
-
-  if (!(await verifyToken(token, doc.manage_token_hash))) {
-    return NextResponse.json({ error: "Not authorized." }, { status: 403 });
-  }
+  const guard = await guardDoc(req, { require: "canRead" });
+  if (!guard.ok) return guard.response;
+  const { doc } = guard;
 
   const [stats, exact] = await Promise.all([
     queryStats(doc.id),

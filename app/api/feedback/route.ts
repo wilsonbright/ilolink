@@ -6,30 +6,15 @@
 // ownership proof as /api/stats: resolve doc by slug, verify the manage token.
 
 import { NextResponse } from "next/server";
-import { getDocumentBySlug } from "@/lib/db/documents";
-import { verifyToken } from "@/lib/manage-token";
+import { guardDoc } from "@/lib/auth/doc-guard";
 import { queryAll } from "@/lib/db/client";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const url = new URL(req.url);
-  const slug = url.searchParams.get("slug");
-  const token = url.searchParams.get("token");
-
-  if (!slug || !token) {
-    return NextResponse.json(
-      { error: "Both 'slug' and 'token' are required." },
-      { status: 400 },
-    );
-  }
-
-  const doc = await getDocumentBySlug(slug);
-  if (!doc) return NextResponse.json({ error: "Not found." }, { status: 404 });
-
-  if (!(await verifyToken(token, doc.manage_token_hash))) {
-    return NextResponse.json({ error: "Not authorized." }, { status: 403 });
-  }
+  const guard = await guardDoc(req, { require: "canRead" });
+  if (!guard.ok) return guard.response;
+  const { doc } = guard;
 
   const reactionRows = await queryAll<{ value: string; n: number }>(
     "SELECT value, COUNT(*) AS n FROM feedback WHERE document_id = ? AND kind = 'reaction' GROUP BY value",

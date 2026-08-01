@@ -6,8 +6,7 @@
 // one doc can never touch another's comments. All values are D1-parametrized.
 
 import { NextResponse } from "next/server";
-import { getDocumentBySlug } from "@/lib/db/documents";
-import { verifyToken } from "@/lib/manage-token";
+import { guardDoc } from "@/lib/auth/doc-guard";
 import { execute } from "@/lib/db/client";
 
 export const runtime = "nodejs";
@@ -42,9 +41,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   const token = typeof b.token === "string" ? b.token : "";
   const action = b.action;
 
-  if (!slug || !commentId || !token) {
+  if (!slug || !commentId) {
     return NextResponse.json(
-      { error: "Fields 'slug', 'commentId', and 'token' are required." },
+      { error: "Fields 'slug' and 'commentId' are required." },
       { status: 400 },
     );
   }
@@ -55,14 +54,16 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
 
-  const doc = await getDocumentBySlug(slug);
-  if (!doc) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
-  }
-
-  if (!(await verifyToken(token, doc.manage_token_hash))) {
-    return NextResponse.json({ error: "Not authorized." }, { status: 403 });
-  }
+  // Slug and the legacy token arrive in the JSON body here, not the query.
+  // canModerate — not canRead — so a viewer/commenter share cannot hide other
+  // people's comments on a document merely shared with them.
+  const guard = await guardDoc(req, {
+    require: "canModerate",
+    slug,
+    token: token || null,
+  });
+  if (!guard.ok) return guard.response;
+  const { doc } = guard;
 
   await execute(
     "UPDATE comments SET status = ? WHERE id = ? AND document_id = ?",

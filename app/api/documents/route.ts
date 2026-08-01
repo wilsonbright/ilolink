@@ -10,7 +10,7 @@ import {
   getDocumentBySlug,
   deleteDocumentCascade,
 } from "@/lib/db/documents";
-import { verifyToken } from "@/lib/manage-token";
+import { guardDoc } from "@/lib/auth/doc-guard";
 import { deleteByPrefix } from "@/lib/r2/store";
 import { env } from "@/lib/cf";
 
@@ -19,26 +19,22 @@ export const runtime = "nodejs";
 export async function DELETE(req: Request): Promise<NextResponse> {
   const url = new URL(req.url);
   const slug = url.searchParams.get("slug");
-  // The manage token is destructive-irreversible, so it rides in the
-  // Authorization header (not the query string, which lands in access logs).
-  const auth = req.headers.get("authorization") ?? "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-
-  if (!slug || !token) {
-    return NextResponse.json(
-      { error: "slug (query) and Bearer token (Authorization header) are required." },
-      { status: 400 },
-    );
+  if (!slug) {
+    return NextResponse.json({ error: "A 'slug' is required." }, { status: 400 });
   }
 
-  const doc = await getDocumentBySlug(slug);
   // Idempotent: an already-deleted doc reports success so the client can clear
-  // its local history without getting stuck on a 404.
-  if (!doc) return NextResponse.json({ ok: true, alreadyGone: true });
+  // its local history without getting stuck on a 404. Checked before the guard
+  // so the response for a gone document does not depend on who is asking.
+  const existing = await getDocumentBySlug(slug);
+  if (!existing) return NextResponse.json({ ok: true, alreadyGone: true });
 
-  if (!(await verifyToken(token, doc.manage_token_hash))) {
-    return NextResponse.json({ error: "Not authorized." }, { status: 403 });
-  }
+  // canDelete, which a member only holds for documents they created. The legacy
+  // manage token still rides in the Authorization header rather than the query
+  // string, since this is the one irreversible operation.
+  const guard = await guardDoc(req, { require: "canDelete", slug });
+  if (!guard.ok) return guard.response;
+  const { doc } = guard;
 
   // Order: drop the public lookup first (stops new reads), then bodies, then rows.
   await env().KV.delete(`slug:${slug}`);
