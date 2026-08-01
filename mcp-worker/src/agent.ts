@@ -206,6 +206,25 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
     return canPublishArtifact(roleOf(caller), review);
   }
 
+  // Who to attribute a published document to, or null when the connection
+  // cannot say.
+  //
+  // MUST NOT THROW. requireMember() rejects a pre-accounts grant outright —
+  // it carries workspaceId and no userId — so calling caller() directly here
+  // made publish_document fail for every legacy connector with "this
+  // connection is no longer valid", which is a worse outage than the missing
+  // attribution it was added to fix. The stamp is a nice-to-have; publishing
+  // is not.
+  private async ownerStamp(): Promise<{ teamspaceId: string; userId: string } | null> {
+    if (!this.props?.userId || !this.props?.teamspaceId) return null;
+    try {
+      const caller = await this.caller();
+      return { teamspaceId: caller.teamspaceId, userId: caller.userId };
+    } catch {
+      return null;
+    }
+  }
+
   // Display label only — never an authorization input. Returns null rather than
   // throwing for pre-accounts connections, which have no teamspace at all.
   private async teamspaceName(): Promise<string | null> {
@@ -334,15 +353,14 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
       },
       async (input) => {
         try {
-          const caller = await this.caller();
           const wsId = await this.workspaceId();
+          // Best-effort: null for a pre-accounts connection, which must still
+          // be able to publish.
+          const owner = await this.ownerStamp();
           // Publish is the heaviest tool (render + docx + R2). Cap per workspace.
           await enforceMcpRate(this.env.KV, wsId, "publish", 10, 60);
           const b = { DB: this.env.DB, DOCS: this.env.DOCS, KV: this.env.KV };
-          const res = await publishForWorkspace(b, wsId, input, {
-            teamspaceId: caller.teamspaceId,
-            userId: caller.userId,
-          });
+          const res = await publishForWorkspace(b, wsId, input, owner ?? undefined);
           void touchLastSeen(this.env.DB, wsId).catch(() => {});
           const dashboard_url = await this.dashboardUrl(wsId);
           // Naming the destination matters once a user has more than one

@@ -84,10 +84,47 @@ export function decodeDataUrl(content: string): Uint8Array | null {
 }
 
 // Convert docx bytes to HTML. The HTML still passes through sanitizeDocument.
+//
+// Logs the real failure before rethrowing. Callers turn any throw here into
+// "Could not read that .docx file — it may be corrupt", which is the right
+// thing to tell a user but useless for diagnosis: a file that converts fine
+// under Node can still fail here if the library reaches for something the
+// Workers runtime does not provide, and that looks identical to a corrupt file
+// from the outside.
 export async function docxToHtml(bytes: Uint8Array): Promise<string> {
-  const mammoth = (await import("mammoth")).default;
-  const result = await mammoth.convertToHtml({ buffer: Buffer.from(bytes) });
-  return result.value;
+  try {
+    const mammoth = (await import("mammoth")).default;
+
+    // BOTH keys, deliberately — this is why .docx never worked in production.
+    //
+    // mammoth's package.json remaps ./lib/unzip.js to ./browser/unzip.js for
+    // bundlers, and the two builds accept DIFFERENT options:
+    //   node    → { path } | { buffer } | { file }   (no arrayBuffer)
+    //   browser → { arrayBuffer } only
+    // Workers gets the browser build, so passing only `buffer` rejected with
+    // "Could not find file in options" — which the caller reported as "the file
+    // may be corrupt". Under Node the same call succeeded, so every local test
+    // passed while every real upload failed.
+    //
+    // Slice off the view's own range: a Uint8Array may be a window onto a
+    // larger buffer, and handing over the whole thing would corrupt the zip.
+    const arrayBuffer = bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength,
+    ) as ArrayBuffer;
+    const result = await mammoth.convertToHtml({
+      arrayBuffer,
+      buffer: Buffer.from(bytes),
+    } as unknown as Parameters<typeof mammoth.convertToHtml>[0]);
+    return result.value;
+  } catch (e) {
+    console.error(
+      "docxToHtml failed:",
+      e instanceof Error ? `${e.name}: ${e.message}` : String(e),
+      e instanceof Error && e.stack ? e.stack.split("\n").slice(0, 4).join(" | ") : "",
+    );
+    throw e;
+  }
 }
 
 // Byte length of a UTF-8 string (matches what R2 stores, not JS char count).
