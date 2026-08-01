@@ -118,6 +118,23 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
     return signedDashboardUrl(workspaceId, this.env.DASHBOARD_SECRET);
   }
 
+  // Display label only — never an authorization input. Returns null rather than
+  // throwing for pre-accounts connections, which have no teamspace at all.
+  private async teamspaceName(): Promise<string | null> {
+    try {
+      const id = this.props?.teamspaceId;
+      if (!id) return null;
+      const row = await this.env.DB.prepare(
+        "SELECT name FROM teamspaces WHERE id = ?",
+      )
+        .bind(id)
+        .first<{ name: string }>();
+      return row?.name ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async init(): Promise<void> {
     this.server.registerTool(
       "ping",
@@ -128,6 +145,67 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       async () => textResult("pong"),
+    );
+
+    // WHY THIS EXISTS.
+    //
+    // The teamspace is sealed into the OAuth grant when the connection is
+    // approved and is never re-chosen (see mcp-worker/src/authorize.ts). Once a
+    // user belongs to more than one teamspace, an assistant connected months
+    // ago is still bound to whichever one was picked then — and until this
+    // tool, nothing could report which. Every publish and every skill write
+    // landed somewhere the user could not see from the assistant, correctly and
+    // silently. requireMember() already resolves all of this on every call; the
+    // only thing missing was a way to say it out loud.
+    this.server.registerTool(
+      "whoami",
+      {
+        title: "Which teamspace am I connected to?",
+        description:
+          "Report which ilolink teamspace this connection acts in, and as whom. Call this before publishing or writing a skill if the user has not been told which teamspace you are using — a connection is bound to one teamspace for its whole life, and the user may have several.",
+        inputSchema: {},
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () => {
+        try {
+          const caller = await this.caller();
+          const row = await this.env.DB.prepare(
+            `SELECT t.name, t.is_personal,
+                    (SELECT COUNT(*) FROM teamspace_members m WHERE m.teamspace_id = t.id) AS members,
+                    (SELECT COUNT(*) FROM skills s
+                      WHERE s.teamspace_id = t.id AND s.archived_at IS NULL) AS skills,
+                    u.email
+               FROM teamspaces t, users u
+              WHERE t.id = ? AND u.id = ?`,
+          )
+            .bind(caller.teamspaceId, caller.userId)
+            .first<{
+              name: string;
+              is_personal: number;
+              members: number;
+              skills: number;
+              email: string;
+            }>();
+          if (!row) return errResult("This connection is no longer valid.");
+
+          return jsonResult({
+            teamspace: row.name,
+            teamspace_id: caller.teamspaceId,
+            // Shared vs personal changes what "publishing here" means to the
+            // user, so name it rather than making them infer it from a count.
+            shared: row.is_personal !== 1,
+            members: row.members,
+            skills: row.skills,
+            signed_in_as: row.email,
+            role: caller.role,
+            note: "This connection can only act in this teamspace. To use a different one, reconnect ilolink and pick it on the approval screen.",
+          });
+        } catch (e) {
+          return errResult(
+            e instanceof PublishError ? e.message : "Could not read this connection.",
+          );
+        }
+      },
     );
 
     this.server.registerTool(
@@ -170,9 +248,15 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
           const res = await publishForWorkspace(b, wsId, input);
           void touchLastSeen(this.env.DB, wsId).catch(() => {});
           const dashboard_url = await this.dashboardUrl(wsId);
+          // Naming the destination matters once a user has more than one
+          // teamspace: the binding was chosen at approval time and is invisible
+          // from the assistant otherwise. Strictly best-effort — publish has
+          // already succeeded here, and a label must never turn that into an
+          // error.
+          const teamspace = await this.teamspaceName();
           return textResult(
-            `Published. Share: ${res.share_url}. Your private analytics: ${dashboard_url}.`,
-            { ...res, dashboard_url },
+            `Published${teamspace ? ` to ${teamspace}` : ""}. Share: ${res.share_url}. Your private analytics: ${dashboard_url}.`,
+            { ...res, dashboard_url, ...(teamspace ? { teamspace } : {}) },
           );
         } catch (e) {
           const msg = e instanceof PublishError ? e.message : "Publish failed — please retry.";

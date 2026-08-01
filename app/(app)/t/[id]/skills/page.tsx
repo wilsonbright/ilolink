@@ -6,9 +6,15 @@
 // whose whole risk model is "a teammate can write instructions another agent
 // will execute", not being able to see them was the wrong default.
 //
-// Read-only on purpose. Writing happens through MCP, where the version history
-// and provenance preamble live; a second write path would be a second place for
-// the audit trail to be wrong.
+// Writing from here goes through POST /api/teamspaces/<id>/skills, which calls
+// the same putSkill() the MCP tool does. That indirection is the point: the
+// version history and `created_by` trail are the entire mitigation for "a
+// teammate can write instructions another agent executes", and a second
+// implementation would be a second place for that trail to be wrong.
+//
+// New and Import live at /t/<id>/new-skill and /t/<id>/import-skills rather
+// than under this segment, because a child of skills/ would sit beside
+// skills/[name] and shadow any skill legitimately named "new" or "import".
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -88,12 +94,26 @@ export default async function SkillsPage({
     <div>
       <div className="mb-2 flex items-baseline justify-between">
         <h1 className="text-2xl font-medium text-ink">Skills</h1>
-        <Link
-          href={`/t/${id}`}
-          className="text-sm text-accent transition-colors duration-150 hover:text-ink"
-        >
-          {teamspace.name}
-        </Link>
+        <span className="flex shrink-0 items-center gap-3 text-sm">
+          <Link
+            href={`/t/${id}/new-skill`}
+            className="text-accent transition-colors duration-150 hover:text-ink"
+          >
+            New
+          </Link>
+          <Link
+            href={`/t/${id}/import-skills`}
+            className="text-accent transition-colors duration-150 hover:text-ink"
+          >
+            Import
+          </Link>
+          <Link
+            href={`/t/${id}`}
+            className="text-ink-soft transition-colors duration-150 hover:text-ink"
+          >
+            {teamspace.name}
+          </Link>
+        </span>
       </div>
       <p className="mb-8 leading-relaxed text-ink-soft">
         Instructions any assistant connected to this teamspace can read. Anyone
@@ -105,10 +125,21 @@ export default async function SkillsPage({
         <div className="rounded-lg border border-hairline bg-surface px-5 py-8">
           <p className="mb-2 text-ink">No skills yet.</p>
           <p className="leading-relaxed text-ink-soft">
-            Connect an assistant and ask it to write one.{" "}
-            <Link href="/connect" className="text-accent underline">
-              Connect an assistant
+            <Link
+              href={`/t/${id}/import-skills`}
+              className="text-accent underline"
+            >
+              Import the ones you already have
+            </Link>{" "}
+            from a repo,{" "}
+            <Link href={`/t/${id}/new-skill`} className="text-accent underline">
+              write one here
             </Link>
+            , or{" "}
+            <Link href="/connect" className="text-accent underline">
+              connect an assistant
+            </Link>{" "}
+            and ask it to save one.
           </p>
         </div>
       ) : (

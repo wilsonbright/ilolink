@@ -89,12 +89,20 @@ export default async function SkillDetailPage({
         <h1 className="font-mono text-2xl font-medium text-ink">
           {found.skill.name}
         </h1>
-        <Link
-          href={`/t/${id}/skills`}
-          className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
-        >
-          All skills
-        </Link>
+        <span className="flex shrink-0 items-center gap-3 text-sm">
+          <Link
+            href={`/t/${id}/skills/${encodeURIComponent(found.skill.name)}/edit`}
+            className="text-accent transition-colors duration-150 hover:text-ink"
+          >
+            Edit
+          </Link>
+          <Link
+            href={`/t/${id}/skills`}
+            className="text-ink-soft transition-colors duration-150 hover:text-ink"
+          >
+            All skills
+          </Link>
+        </span>
       </div>
       <p className="mb-2 leading-relaxed text-ink-soft">
         {found.skill.description}
@@ -132,8 +140,8 @@ export default async function SkillDetailPage({
       )}
 
       <p className="mt-10 text-sm leading-relaxed text-ink-faint">
-        Skills are edited through a connected assistant, which keeps the version
-        history and records who made each change.{" "}
+        Edits here and edits from a connected assistant go through the same
+        path, so the version history is one story either way.{" "}
         <Link href="/connect" className="text-accent underline">
           Connect an assistant
         </Link>

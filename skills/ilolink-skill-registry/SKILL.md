@@ -70,3 +70,46 @@ future agents will follow them.
 
 Do not put secrets in a skill. It is shared with everyone in the teamspace and
 retrieved automatically by agents in other projects.
+
+## Know which teamspace you are in
+
+A connection is bound to **one** teamspace for its entire life — chosen when the
+user approved it, and not changeable afterwards. A user may belong to several,
+so "publish this" and "save this skill" are ambiguous from the user's side even
+though they are unambiguous from yours.
+
+Call `whoami` when it matters. It returns the teamspace name, whether it is
+shared or personal, how many people and skills are in it, and who you are acting
+as.
+
+Do this **before the first publish or skill write of a session**, and say the
+teamspace name out loud: *"I'll save this to the Acme Design teamspace."* If the
+user expected somewhere else, the fix is for them to reconnect ilolink and pick
+a different teamspace on the approval screen — there is no tool that can switch
+it.
+
+## Importing skills a project already has
+
+When the user asks to push existing local skills (`.claude/skills/`,
+`skills/*/SKILL.md`, a docs folder of conventions) into the registry:
+
+1. **List the files first and show the user what you found.** Do not import a
+   directory sight unseen — these become instructions every connected agent
+   acts on.
+2. For each file, read the frontmatter. `name` is the retrieval key; if there is
+   none, use the containing directory name, not `SKILL`.
+3. **Check for collisions before writing.** `skills_list` shows what is already
+   there. If a name exists, `skills_get` it and show the user the difference —
+   an import that quietly bumps a teammate's skill to a new version is the
+   failure mode to avoid.
+4. Write with `skills_put`, passing `if_version` for anything that already
+   exists, and a `changelog` naming the source file.
+5. Report what was created versus updated versus skipped.
+
+Skip anything that is not reusable guidance: READMEs, changelogs, meeting notes,
+and anything containing credentials or customer data.
+
+The user can also do this without an assistant, from the teamspace's Skills page
+in the browser — there is an **Import** screen that reads local files, shows the
+same review, and writes through the same versioned path. Point them at it when
+the set is large or when they would rather review it visually.
