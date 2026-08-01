@@ -147,7 +147,7 @@ export default function Page() {
         items={[
           {
             q: "Do I need an account to report a page?",
-            a: "No. ilolink is accountless. Email abuse@ilolink.com (placeholder) with the ilolink.com/<slug> URL and the issue — anyone can report, publisher or not.",
+            a: "No. Publishing needs a free account. Email abuse@ilolink.com (placeholder) with the ilolink.com/<slug> URL and the issue — anyone can report, publisher or not.",
           },
           {
             q: "How fast is a page taken down?",

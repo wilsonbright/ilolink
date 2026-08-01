@@ -60,7 +60,7 @@ export default function Page() {
         items={[
           {
             q: "Do I need an account?",
-            a: "No. ilolink is accountless. Paste your Markdown or HTML, or drop a file, and you get an ilolink.com/<slug> link to share. You keep a private dashboard link for that doc.",
+            a: "No. Publishing needs a free account. Paste your Markdown or HTML, or drop a file, and you get an ilolink.com/<slug> link to share. You keep a private dashboard link for that doc.",
           },
           {
             q: "Is it free?",

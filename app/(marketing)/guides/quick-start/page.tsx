@@ -171,7 +171,7 @@ export default function Page() {
         items={[
           {
             q: "Do I need an account?",
-            a: "No. ilolink is accountless — you land on the composer, paste or drop your file, and get a link. No sign-up and no login.",
+            a: "No. Publishing needs a free account — you land on the composer, paste or drop your file, and get a link. No sign-up and no login.",
           },
           {
             q: "How long does it take?",

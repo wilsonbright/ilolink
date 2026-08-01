@@ -3,6 +3,14 @@
 Everything to paste into the Product Hunt submission form. MCP-connector-led
 positioning. Character counts checked against PH field limits.
 
+> **Revised 2026-08-01 for the accounts pivot.** The original draft led with
+> "accountless", which is no longer true: publishing needs a free email-only
+> account. Readers still never sign in, and the analytics privacy story is
+> unchanged — that distinction is now what the copy leans on. The taglines and
+> the ordering of the three pillars are a positioning call and worth your own
+> pass before submitting; what is here is corrected for accuracy, not optimised
+> for conversion.
+
 ---
 
 ## Name
@@ -22,14 +30,14 @@ Publish what your AI makes to a link — from your chat
 **Backups:**
 
 - `Turn any AI output into a shareable, tracked page` (49)
-- `Share AI output as a real link. No account.` (43)
+- `Share AI output as a real link your team can see` (48)
 
 > If the em dash reads oddly in the PH preview, use the first backup.
 
 ## Description (PH limit ~260 chars)
 
 ```
-ilolink turns anything an AI makes — Markdown, HTML, PDF, a diagram, a table — into a shareable page. Publish straight from Claude, Grok, or ChatGPT via MCP, or paste on the web. No account. Then see how it landed: cookieless analytics, heatmaps, and comments.
+ilolink turns anything an AI makes — Markdown, HTML, PDF, a diagram, a table — into a shareable page. Publish straight from Claude, Grok, or ChatGPT via MCP, or paste on the web. Readers never sign in. Then see how it landed: cookieless analytics, heatmaps, and comments.
 ```
 
 (258 chars.)
@@ -65,19 +73,25 @@ ilolink does two things:
 
 1. **Publish from inside your chat.** Add ilolink as an MCP connector in Claude,
    Grok, or ChatGPT, then just say "publish this as an ilolink page." You get a
-   real share link back — without leaving the conversation. No account, no
-   copy-paste. (Prefer the web? Paste Markdown/HTML or drop a PDF, DOCX, CSV, or
-   image at ilolink.com.)
+   real share link back — without leaving the conversation, no copy-paste.
+   (Prefer the web? Paste Markdown/HTML or drop a PDF, DOCX, CSV, or image at
+   ilolink.com.)
 
 2. **See how it landed.** Every link comes with cookieless, privacy-first
    analytics: views, how far people read, referrers, a heatmap of where they
-   stop, and Figma-style comments — no cookies, no fingerprinting, no login.
+   stop, and Figma-style comments — no cookies, no fingerprinting, and your
+   readers never sign in.
 
-The whole thing is accountless. Your private dashboard is a link — the link is
-the key. Nothing to sign up for.
+3. **Bring your team.** Documents live in a teamspace, so a colleague sees the
+   same library, comments with their name on it, and can be assigned a doc to
+   review. Your assistant shares that teamspace — including a skill registry it
+   reads and writes, so guidance you write once is available in every project
+   you connect.
 
-Try it in ~30 seconds: add the connector in Claude/Grok (ilolink.com/connect),
-or just paste something at ilolink.com and watch the analytics roll in.
+Publishing takes a free account — one email, no password. Reading never does.
+
+Try it in ~60 seconds: sign in at ilolink.com, add the connector in Claude/Grok
+(ilolink.com/connect), and say "publish this as an ilolink page."
 
 I'd genuinely love feedback — especially on the publish-from-chat flow and what
 formats you'd want next. I'm here all day. Thank you for taking a look 🙏
@@ -87,30 +101,34 @@ formats you'd want next. I'm here all day. Thank you for taking a look 🙏
 
 ## Canned answers (keep these ready)
 
-**"How do the analytics stay private if there's no account?"**
+**"You have accounts now — what happened to the privacy story?"**
 
 ```
-No cookies, no fingerprinting, no cross-site tracking. We count a view and how
-far someone scrolled using a short-lived, salted hash that can't be tied back to
-a person, and we honor Do-Not-Track / Global Privacy Control. There's no login
-because there's no user profile to log into — your dashboard is a private link.
+Nothing changed for readers, who are the people being measured. Opening a page
+sets nothing on your device: no cookies, no fingerprinting, no cross-site
+tracking. Views and scroll depth come from a short-lived salted hash that can't
+be tied back to a person, and we honor Do-Not-Track / Global Privacy Control.
+The account is for publishers, so a document survives changing laptops and a
+team can share one library. We store an email address and no password.
 ```
 
 **"Which assistants actually work?"**
 
 ```
-Anything that supports remote MCP connectors. Claude and Grok use the one-click
-OAuth flow (add the connector, click Authorize). ChatGPT works via a tokenized
-connector URL you mint at ilolink.com/connect (Developer Mode). Same tools
-everywhere: publish, update, unpublish, list, analytics.
+Anything that supports remote MCP connectors. Claude and Grok use the OAuth
+flow — add the connector, then approve it and pick a teamspace. Clients without
+OAuth use a connector token you create at ilolink.com/connect and pass as an
+Authorization header. Same tools everywhere: publish, update, unpublish, list,
+analytics, plus the team skill registry.
 ```
 
 **"Is it free?"**
 
 ```
-Yes — free to use right now, no account. Each workspace gets a generous document
-limit. If ilolink grows I'll add paid tiers for heavier use, but the core
-publish-and-track flow stays free.
+Yes — free to use right now. Creating an account takes one email and no
+password, and each teamspace gets a generous document limit. If ilolink grows
+I'll add paid tiers for heavier use, but the core publish-and-track flow stays
+free.
 ```
 
 **"Is my data safe / who can see my docs?"**

@@ -178,7 +178,7 @@ export default function Page() {
         items={[
           {
             q: "Is it really free?",
-            a: "Yes — publishing is free and accountless. Paste or drop a file and get a link, no login and no card. There are no paid tiers to quote, so we won't invent pricing here.",
+            a: "Yes — publishing is free. Paste or drop a file and get a link, no login and no card. There are no paid tiers to quote, so we won't invent pricing here.",
           },
           {
             q: "Do I need an account?",

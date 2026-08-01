@@ -148,7 +148,7 @@ export default function Page() {
           },
           {
             q: "Do I need an account to publish?",
-            a: "No. Publishing is accountless: paste Markdown or HTML, or drop a file, and get a link. Analytics, heatmaps, and feedback come with it.",
+            a: "No. Publishing is quick: paste Markdown or HTML, or drop a file, and get a link. Analytics, heatmaps, and feedback come with it.",
           },
         ]}
       />

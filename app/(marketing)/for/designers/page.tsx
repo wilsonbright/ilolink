@@ -141,7 +141,7 @@ export default function Page() {
           },
           {
             q: "Is it free?",
-            a: "Yes. Publishing is free and accountless — paste or drop your mockup and get a link. There are no paid tiers to quote.",
+            a: "Yes. Publishing is free — paste or drop your mockup and get a link. There are no paid tiers to quote.",
           },
         ]}
       />

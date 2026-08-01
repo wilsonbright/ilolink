@@ -181,7 +181,7 @@ export default function Page() {
         items={[
           {
             q: "Is ilolink really free?",
-            a: "Yes — publishing HTML, Markdown, and images is free, and it's accountless. There's no pricing tier to buy for the features described here.",
+            a: "Yes — publishing HTML, Markdown, and images is free, and publishing needs only a free account. There's no pricing tier to buy for the features described here.",
           },
           {
             q: "Do the free links expire?",

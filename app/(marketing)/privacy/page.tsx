@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: "Privacy policy — ilolink",
   description:
-    "ilolink is cookieless and accountless. Analytics use a rotating visitor hash — no fingerprint, no personal profile. We collect as little as possible.",
+    "Readers are never tracked and never sign in. Analytics use a rotating visitor hash — no fingerprint, no personal profile. Publishers hold an account; we store an email address and nothing more.",
   alternates: { canonical: "/privacy" },
 };
 
@@ -26,7 +26,7 @@ export default function Page() {
             path: "/privacy",
             headline: "Privacy policy",
             description:
-              "How ilolink handles data: cookieless, accountless, anonymous analytics from a rotating visitor hash.",
+              "How ilolink handles data: no reader cookies, no reader accounts, anonymous analytics from a rotating visitor hash.",
             datePublished: "2026-07-21",
           }),
         ]}
@@ -41,10 +41,10 @@ export default function Page() {
         title="Privacy policy"
         lead={
           <>
-            ilolink is cookieless and accountless. There is no login. Analytics
+            Readers are never tracked and never asked to sign in. Analytics
             come from a rotating visitor hash — no fingerprint, no personal
-            profile, uniques approximate by design. We collect as little as
-            possible to run the service.
+            profile, uniques approximate by design. Publishing needs an
+            account, for which we store an email address and nothing more.
           </>
         }
       />
@@ -63,13 +63,18 @@ export default function Page() {
         <h2>The short version</h2>
         <ul>
           <li>
-            <strong>No cookies.</strong> We set no cookies on readers or
-            publishers. Nothing to consent to, nothing to reject.
+            <strong>No cookies for readers.</strong> Opening a published page
+            sets nothing on your device — nothing to consent to, nothing to
+            reject. Signed-in publishers have one session cookie, which is
+            strictly necessary to keep you signed in and is never used for
+            tracking or advertising.
           </li>
           <li>
-            <strong>No accounts.</strong> You never sign up. Ownership of a doc
-            is a per-doc manage token kept in your browser, not a server-side
-            account tied to your identity.
+            <strong>Readers never need an account.</strong> Anyone with a link
+            can open a page, and can react or leave a comment without signing
+            in. Publishing requires an account: we store your email address so
+            you can sign in and so teammates can share documents with you. No
+            password is ever set, and we ask for nothing else.
           </li>
           <li>
             <strong>Anonymous, approximate analytics.</strong> Reader stats are
@@ -128,7 +133,8 @@ export default function Page() {
           be counted more than once across time — that is why uniques are
           labelled approximate everywhere they appear. We do not build a profile
           of any reader and do not track people across other sites. Analytics,
-          heatmaps, feedback, and comments are all cookieless. See{" "}
+          heatmaps, and feedback never involve a cookie. Comments do not either,
+          unless you choose to sign in so your name appears beside them. See{" "}
           <a href="/guides/analytics-heatmaps-feedback">
             how the analytics work
           </a>{" "}
@@ -137,12 +143,32 @@ export default function Page() {
 
         <h2>Cookies</h2>
         <p>
-          <em>Placeholder — pending legal review.</em> We do not use cookies for
-          analytics, advertising, or tracking. Any storage in your browser is
-          limited to what the app needs to function — for example, keeping your
-          per-doc manage token so you can return to a doc you published from{" "}
-          <a href="/dashboard">your documents</a>. There is no cross-site
-          tracking and no third-party advertising cookies.
+          <em>Placeholder — pending legal review.</em> We use no cookies for
+          analytics, advertising, or tracking, and there are no third-party
+          cookies at all.
+        </p>
+        <p>
+          Reading a published page sets nothing on your device. If you sign in
+          to publish, we set one strictly necessary session cookie so you stay
+          signed in between visits. It is host-locked to ilolink.com, is never
+          sent to the domain that serves published documents, and carries no
+          information about you beyond an opaque random value.
+        </p>
+
+        <h2>What we store about you</h2>
+        <p>
+          <em>Placeholder — pending legal review.</em> If you have an account we
+          store your <strong>email address</strong> — needed to sign you in and
+          to let teammates share documents with you — and an optional display
+          name if you set one. We never set or store a password.
+        </p>
+        <p>
+          Each active sign-in also records a session row: when it was created
+          and last used, and a truncated one-way hash of the browser and IP it
+          came from. Those hashes exist so you can recognise your own sessions
+          and end them; they are not reversible and are not used to build a
+          profile. Signing out deletes the session; there is a
+          &ldquo;sign out everywhere&rdquo; that ends all of them at once.
         </p>
 
         <h2>Data processors</h2>
@@ -182,11 +208,11 @@ export default function Page() {
         items={[
           {
             q: "Does ilolink use cookies?",
-            a: "No. The service is cookieless. Analytics come from a rotating visitor hash rather than cookies, so there is no tracking cookie to consent to or reject.",
+            a: "Not for readers — opening a published page sets nothing on your device, and analytics come from a rotating visitor hash rather than cookies. Signed-in publishers have one strictly necessary session cookie, which is never used for tracking or advertising. There is no third-party or advertising cookie anywhere. Reject.",
           },
           {
             q: "Do I need an account, and do you have my personal data?",
-            a: "There is no account. Ownership of a doc is a per-doc manage token kept in your browser, so there is no server-side identity profile tied to you.",
+            a: "Readers do not. Publishing requires one, and we store an email address for it — no password, no profile, and nothing we did not need to sign you in and let teammates share with you.",
           },
           {
             q: "Can a publisher see who read their doc?",
@@ -199,7 +225,7 @@ export default function Page() {
         ]}
       />
 
-      <Cta sub="No account, no cookies. Paste a doc and get a link." />
+      <Cta sub="Readers never sign in and are never tracked. Paste a doc and get a link." />
     </Article>
   );
 }

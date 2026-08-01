@@ -170,7 +170,7 @@ export default function Page() {
           },
           {
             q: "Is there a free tier?",
-            a: "Publishing is free and accountless — paste or drop a file and get a link, no login. There are no paid tiers to quote, so we won't invent pricing here.",
+            a: "Publishing is free — paste or drop a file and get a link, no login. There are no paid tiers to quote, so we won't invent pricing here.",
           },
           {
             q: "Can it host a whole framework app?",

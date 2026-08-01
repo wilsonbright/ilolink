@@ -95,7 +95,7 @@ export default function Page() {
         </ol>
         <Callout title="Where the delete lives">
           <p>
-            ilolink is accountless. The manage token for each doc is stored in
+            Publishing needs a free account. The manage token for each doc is stored in
             the <strong>browser you published from</strong>, so your dashboard —
             and the delete button — works from that same browser and device. If
             you published from a different machine, delete from that one.

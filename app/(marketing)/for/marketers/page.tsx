@@ -130,7 +130,7 @@ export default function Page() {
           },
           {
             q: "Is it free?",
-            a: "Yes. Publishing a page, sharing the link, and reading the analytics and heatmaps are free. It's accountless, so there's nothing to sign up for.",
+            a: "Yes. Publishing a page, sharing the link, and reading the analytics and heatmaps are free. An account takes one email and no password.",
           },
         ]}
       />

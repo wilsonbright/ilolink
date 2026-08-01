@@ -185,7 +185,7 @@ export default function Page() {
           },
           {
             q: "Is ilolink free?",
-            a: "Publishing is free and accountless — paste or drop a file and get a link, no login. There are no paid tiers to quote, so we won't invent pricing here.",
+            a: "Publishing is free — paste or drop a file and get a link, no login. There are no paid tiers to quote, so we won't invent pricing here.",
           },
           {
             q: "Can ilolink use a custom domain?",

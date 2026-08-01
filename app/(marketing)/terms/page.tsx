@@ -35,8 +35,8 @@ export default function Page() {
           <>
             Use ilolink to publish lawful content and don&apos;t abuse the service. You keep
             your content; we just host it. Links and hosting are provided as-is, with no
-            guaranteed uptime. There&apos;s no account to close &mdash; ownership is a manage token
-            in your browser.
+            guaranteed uptime. Publishing needs a free account; readers never
+            need one.
           </>
         }
       />
@@ -52,11 +52,19 @@ export default function Page() {
 
         <h2>Using ilolink</h2>
         <p>
-          ilolink is accountless. You paste Markdown or HTML, or drop a file, and get a link
-          at ilolink.com/&lt;slug&gt;. There&apos;s no login and no server-side account: control
-          over a doc is a per-doc manage token stored in your browser. Keep that token safe.
-          If you lose it, you lose the ability to edit or unpublish that doc, and we can&apos;t
-          recover it for you.
+          You paste Markdown or HTML, or drop a file, and get a link at
+          ilolink.com/&lt;slug&gt;. Publishing requires a free account, which you
+          create by confirming an email address &mdash; there is no password to
+          choose or lose. Anyone with the link can read the page without signing
+          in.
+        </p>
+        <p>
+          Documents belong to a teamspace, not to a device. Everyone in a
+          teamspace can see and edit its documents, and an owner can invite or
+          remove members. Documents published before accounts existed are still
+          controlled by the per-doc token kept in the publishing browser; you can
+          attach them to your account from{" "}
+          <a href="/dashboard">your documents</a>.
         </p>
 
         <h2>Your content and ownership</h2>
@@ -113,7 +121,7 @@ export default function Page() {
         items={[
           {
             q: "Do I need an account to agree to these terms?",
-            a: "No. ilolink is accountless. Publishing a doc means you accept these terms; control over that doc is a manage token kept in your browser, not a login.",
+            a: "To publish, yes — creating an account and publishing a document both mean you accept these terms. To read a published page you need no account and agree to nothing.",
           },
           {
             q: "Who owns what I publish?",

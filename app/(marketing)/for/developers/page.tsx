@@ -174,7 +174,7 @@ export default function Page() {
           },
           {
             q: "Is it free, and do I need an account?",
-            a: "Yes, it's free and accountless. Paste Markdown or HTML, or drop a file up to 2 MB, and get a link at no cost — no sign-up for you and none for the people reading it.",
+            a: "Yes, it's free. Paste Markdown or HTML, or drop a file up to 2 MB, and get a link at no cost — no sign-up for you and none for the people reading it.",
           },
           {
             q: "Can I keep an internal doc private?",

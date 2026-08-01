@@ -78,7 +78,7 @@ export default function Page() {
 
         <h2>How moderation works</h2>
         <p>
-          Publishing is accountless, so there is no upfront review — you paste,
+          There is no upfront review — you paste,
           you get a link. The security model does the first pass automatically:
           on ingest we drop <code>javascript:</code>, <code>data:</code>, and{" "}
           <code>vbscript:</code> URLs, strip anything that would run JavaScript,
@@ -116,7 +116,7 @@ export default function Page() {
         items={[
           {
             q: "Do you review pages before they publish?",
-            a: "No. Publishing is accountless and instant. The sanitizer strips scripts and sandboxes the render automatically on ingest; policy violations like phishing or illegal content are handled after a report.",
+            a: "No. Publishing is instant. The sanitizer strips scripts and sandboxes the render automatically on ingest; policy violations like phishing or illegal content are handled after a report.",
           },
           {
             q: "How do I report a page?",

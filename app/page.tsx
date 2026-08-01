@@ -16,7 +16,7 @@ const VALUE = [
   },
   {
     title: "Quiet feedback",
-    body: "Readers can react or leave a note. No account, no friction.",
+    body: "Readers can react or leave a note without signing in. No account, no friction.",
   },
 ];
 
@@ -65,7 +65,7 @@ export default function Home() {
           </h1>
           <p className="mt-5 max-w-[52ch] text-lg leading-relaxed text-ink-soft">
             Paste Markdown or HTML, or drop a file. Cookieless analytics,
-            heatmaps, and quiet feedback — no account needed.
+            heatmaps, and quiet feedback — and readers never sign in.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             <a
@@ -114,7 +114,7 @@ export default function Home() {
           <span className="text-ink">ChatGPT</span>, or any MCP-compatible
           assistant. Then just say <em>&ldquo;publish this as an ilolink page&rdquo;</em> —
           you get a share link and a private analytics dashboard without leaving
-          the chat. No account, no copy-paste.
+          the chat. No copy-paste, no context switch.
         </p>
         <ul className="mt-6 grid gap-3 text-sm text-ink-soft sm:grid-cols-3">
           <li className="rounded-lg border border-hairline bg-surface px-4 py-3">

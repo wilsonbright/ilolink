@@ -139,7 +139,7 @@ export default function Page() {
           },
           {
             q: "Is permanence a paid feature like on some hosts?",
-            a: "No. Many free or quick-drop hosts expire or cap free links — check their terms. On ilolink, keeping the link is the default and expiry is the exception you opt into. Publishing is free and accountless.",
+            a: "No. Many free or quick-drop hosts expire or cap free links — check their terms. On ilolink, keeping the link is the default and expiry is the exception you opt into. Publishing is free.",
           },
           {
             q: "Where are the docs hosted, and are they always up?",
