@@ -11,14 +11,17 @@ export const SITE_NAME = "ilolink";
 // home alongside the rest of the SEO registry.
 //
 // These lead with the artifact registry because that is what the product is.
-// The publishing line stays in the description on purpose: it is still a real,
-// shipped capability and it is what the ~60 guide pages are about, so dropping
-// it would leave the site's largest content surface describing something the
-// homepage no longer claims.
+// Document hosting leads, because that is what the ~60 guide pages are about
+// and what most first-time visitors can use immediately. The previous version
+// led with the registry and gave hosting four words at the end, prefixed with
+// "too" — which made the homepage the weakest document-hosting page on its own
+// site, and put the title at odds with the corpus pointing at it.
+//
+// Both halves are named, in the order people arrive.
 export const SITE_TITLE =
-  "ilolink — a shared artifact registry for your team's AI agents";
+  "ilolink — publish a document, see how it was read";
 export const SITE_DESCRIPTION =
-  "Push skills, specs, design docs, plans, workflows and session handoffs from any repo over MCP. Every teammate's agent pulls the same versioned set, with admin review before a change becomes team policy. Publish any document as a link, too.";
+  "Share Markdown, HTML, a PDF or a .docx as a link anyone can open without signing in. See views, read-through, heatmaps and comments — no cookies. Plus a shared registry that keeps your team's skills, specs and plans where every teammate's AI agent can read them.";
 
 // The live conversion surface. Publishing now needs a free account; the
 // composer is still the
