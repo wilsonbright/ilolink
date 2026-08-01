@@ -5,6 +5,23 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-01 — Phase 2: teamspaces, ownership convergence, invites
+- **Asked:** "now do phase 2", then "continue 2c, 2d, 2e".
+- **Migrations:** `0008_teamspaces.sql` (teamspaces / teamspace_members / invites), `0009_ownership.sql` (`documents.teamspace_id` + `created_by`, `document_shares`, workspace→user/teamspace binding).
+- **The load-bearing decision — `teamspaces.is_personal`:** every user gets an auto-created personal teamspace at first sign-in and *everything* is owned by a teamspace, never directly by a user. Without it we'd have replaced two ownership models with three. Solo users never see the concept (teamspace labels/links only render once a shared one exists).
+- **`lib/teamspace/permissions.ts` is now the only answer to document access.** Previously 7 API routes + 3 mcp-worker queries each re-derived ownership. Routes call `guardDoc(req, { require: "canX" })` and the pure resolver decides. Naming the capability per call site is what stops "can read analytics" silently becoming "can delete".
+- **Notable rules:** a member may delete only what they created (deletion drops R2 bodies irreversibly); shares never grant moderation; membership outranks a weaker direct share; a valid legacy manage token still grants full control until Phase 9; non-members get **404 not 403** so teamspace/doc ids can't be probed.
+- **`scripts/backfill-ownership.sql`** maps each workspace to a shadow teamspace and moves its docs. **Deliberately does not touch web-published docs** — their only proof is a manage token in one browser's localStorage, and a wrong guess would hand one person's analytics and delete button to another. They keep working via the legacy branch until claimed through `/api/claim`.
+- **2c** publish requires a session, stamps ownership, enforces per-teamspace quota. Composer at `/` still renders signed-out and gates at submit — gating the front door would invalidate the ~60-page SEO corpus that sells "no account needed".
+- **2d** `/dashboard` server-rendered from membership (was 100% localStorage — no server-side "list my documents" query existed at all). `ClaimBanner` volunteers local history to `/api/claim`.
+- **2e** invites (emailed nanoid(32), sha256 at rest, 14d, superseded on re-invite, idempotent accept), `/t/<id>` member management, last-owner removal refused **and** the UI stops offering it.
+- **Verified (observed):** vitest **93/93** (18 new permission-matrix cases + 2 new store-core), tsc clean on root + both workers, build clean. Over HTTP with two real accounts: publish 401 signed-out / 200 signed-in with ownership stamped; dashboard lists + redirects; invite emailed; signed-out invite link bounces to `/signin` preserving the token; accept joins as member, repeat is idempotent; member cannot invite (403); non-member 404; last owner cannot leave (409); member can leave (200); **Bob sees neither Alice's personal doc on his dashboard nor its analytics (403)**. Backfill idempotent (3 teamspaces after 2 runs). Browser-checked dashboard + teamspace pages.
+- **Fixed along the way:** `store-core` tests indexed bound params from the *end* of the array, so appending a column broke them while the code was correct — now resolved by column name.
+- **Incidents:** ran `npm run build` while `next dev` was live, which clobbered `.next/` and made every route 500 — looked like the new guard was broken; it wasn't. Don't run the production build against a running dev server.
+- **Files:** commits `79d746b` (2a), `308378b` (2b), `ccab716` (2c–2e).
+- **Local-only test config added to gitignored `.dev.vars`:** Cloudflare's documented always-passes Turnstile test secret, so publish is testable locally. Do not use in production.
+- **Pending:** rotate `RESEND_API_KEY`; `wrangler secret put` RESEND_API_KEY/EMAIL_FROM/SITE_ORIGIN/TURNSTILE_SECRET; apply 0007–0009 + backfill to remote D1; deploy 3 workers (content first). Phase 3 (folders, share/assign UI, named comments) next.
+
 ## 2026-08-01 — Phase 1: passwordless accounts (Resend sign-in codes + magic links + sessions)
 - **Asked:** "here is the resend api key… get started and implement."
 - **Done — migration `0007_accounts.sql`:** `users` (re-created after `0002_accountless.sql` dropped it; adds `email_norm` lookup key, `status`, `is_staff`, `token_epoch`), `sessions`, `auth_challenges`.
