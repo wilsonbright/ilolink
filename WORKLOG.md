@@ -5,6 +5,20 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-01 — Phase 6: pre-launch copy correction, CI worker type-checks, deploy runbook
+- **Asked:** "launch phase 6."
+- **Scope split stated up front:** deploying, rotating secrets, and re-running audit repros against live are user-owned (commit-only was chosen in Step 0). This entry covers everything else.
+- **The distinction that drove the whole sweep:** "no account" is **still true for readers** (they never sign in; `comments_mode` defaults to `anon`) and **now false for publishers**. "cookieless" is now *partly* false — analytics still are, the app origin sets a session cookie. A naive find-replace would have made the copy *less* accurate.
+- **privacy** — claimed "cookieless and accountless" and "we set no cookies on readers or publishers". Rewritten around what survives: readers never tracked, publishers have one strictly necessary session cookie. Added a **"What we store about you"** section (email, optional name, truncated one-way UA/IP hashes on session rows) — **cross-checked against migration 0007's actual columns**, because my own first draft said "an email address and nothing more", which would itself have been false.
+- **terms** — "no account to close" / "ilolink is accountless" → publishing needs a free email-only account, reading needs nothing, docs belong to a teamspace not a device, pre-accounts docs stay token-controlled until claimed.
+- **app/page.tsx + docs/launch/product-hunt.md** — launch draft led with "accountless" as the differentiator. Re-led on the true half (readers never sign in), added the team/skill-registry pillar. Taglines and pillar ordering flagged as a **positioning call for the author** — this pass corrects accuracy, not conversion.
+- **CI now type-checks both workers.** Root tsconfig excludes `content-worker/` and `mcp-worker/`, so until now a type error in either could reach main with CI green — and both just gained auth code. (Phase 0 item, finally closed.)
+- **Automated pass** removed the unambiguous "free and accountless" family across 16 files. **123 lines across 50 files remain and are NOT mechanical** — categorized in `docs/launch/copy-sweep.md` (21 READER keep / 40 PUBLISHER rewrite / 12 BOTH split / 50 REVIEW) with file + line.
+- **`docs/launch/deploy-runbook.md`** — load-bearing ordering: rotate the transcript-exposed Resend key first; **`MCP_HANDOFF_SECRET` must be identical on `ilolink` and `ilolink-mcp`** or approvals fail in a way that reads like a bug; **`SITE_ORIGIN` is baked into emails at send time and cannot be recalled**; content worker deploys first (owns the ViewCounter DO). Plus live verification list and known gaps.
+- **Verified:** vitest **113/113**, tsc clean on root + both workers, build clean.
+- **Files:** commit `7ca3f8b`.
+- **Known gaps carried into launch:** comment widget composer swap still unrendered in a real browser against a published doc; 123 lines of stale copy; `visibility='team'` deliberately out of scope.
+
 ## 2026-08-01 — Phase 4 close-out + Phase 5: PATs, URL-token retirement, plugin bundle
 - **Asked:** "yes" (close out Phase 4, then Phase 5).
 - **Migration:** `0013_api_tokens.sql`.
