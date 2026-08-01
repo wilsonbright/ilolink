@@ -76,7 +76,14 @@ export default async function OAuthAuthorizePage({
       <ul className="mb-6 space-y-2 text-ink-soft">
         <li>Publish documents to a shareable link, straight from your chat.</li>
         <li>Read views, scroll depth, and comments on those documents.</li>
-        <li>Read and write your teamspace&rsquo;s shared skills.</li>
+        {/* Says "registry", not "skills": since the artifact migration this
+            grant also reaches specs, plans, design docs and session handoffs.
+            A consent screen that understates what it is granting is the one
+            place in the product where vague copy is a real problem. */}
+        <li>
+          Read and write your teamspace&rsquo;s registry — skills, agents,
+          specs, plans, workflows and handoffs.
+        </li>
       </ul>
 
       <ApproveForm req={req} sig={sig} teamspaces={teamspaces.map((t) => ({
