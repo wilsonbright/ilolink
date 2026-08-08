@@ -13,6 +13,9 @@ import { queryFirst } from "@/lib/db/client";
 import { countProposals } from "@/lib/artifacts/store-core";
 import { env } from "@/lib/cf";
 import { MembersAdmin } from "./members-admin";
+import { Upgrade } from "./upgrade";
+import { planFor, isPlanId, type PlanId } from "@/lib/billing/plans";
+import { countDocuments } from "@/lib/billing/entitlements";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,10 +40,11 @@ export default async function TeamspacePage({
   // teamspace id exists.
   if (!role) notFound();
 
-  const teamspace = await queryFirst<{ name: string; is_personal: number }>(
-    "SELECT name, is_personal FROM teamspaces WHERE id = ?",
-    id,
-  );
+  const teamspace = await queryFirst<{
+    name: string;
+    is_personal: number;
+    plan: string;
+  }>("SELECT name, is_personal, plan FROM teamspaces WHERE id = ?", id);
   if (!teamspace) notFound();
 
   const isOwner = role === "owner";
@@ -57,6 +61,8 @@ export default async function TeamspacePage({
     countProposals({ DB: e.DB, DOCS: e.DOCS }, id),
   ]);
   const artifacts = Number(artifactCount?.n ?? 0);
+  const plan = planFor(teamspace.plan);
+  const docsUsed = await countDocuments(e.DB, id);
 
   return (
     <div>
@@ -70,8 +76,12 @@ export default async function TeamspacePage({
         </Link>
       </div>
       <p className="mb-8 leading-relaxed text-ink-soft">
-        {teamspace.is_personal
-          ? "Your personal teamspace. Invite someone and it becomes shared."
+        {/* Was "Invite someone and it becomes shared" — no longer true. A
+            personal teamspace is one seat, and inviting anyone requires a paid
+            plan. Promising an invite that the seat gate will refuse is the
+            worst version of this sentence. */}
+        {teamspace.is_personal && plan.seats <= 1
+          ? "Your personal teamspace — just you. Upgrade to a team plan to work with other people here."
           : `${members.length} ${members.length === 1 ? "person" : "people"}. Everyone here can see and edit its documents.`}
       </p>
 
@@ -138,6 +148,18 @@ export default async function TeamspacePage({
           </Link>
         </p>
       </section>
+
+      {/* Owner only. Anyone can SEE the plan they are on, but /api/billing/
+          checkout refuses a non-owner, so showing buttons to a member would
+          offer something the server will reject. */}
+      {isOwner && (
+        <Upgrade
+          teamspaceId={id}
+          currentPlan={(isPlanId(teamspace.plan) ? teamspace.plan : "free") as PlanId}
+          seatsUsed={members.length}
+          docsUsed={docsUsed}
+        />
+      )}
     </div>
   );
 }

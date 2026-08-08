@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -14,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "ilolink for developers — ilolink",
   description:
-    "Share a README, API doc, changelog, or spec as a clean page — no repo, no build, no account — then see whether teammates actually read it.",
+    "Share a README, API doc, changelog, or spec as a clean page — no repo, no build, no account to read — then see whether teammates actually read it.",
   alternates: { canonical: "/for/developers" },
 };
 
@@ -27,7 +28,7 @@ export default function Page() {
             path: "/for/developers",
             headline: "ilolink for developers",
             description:
-              "Share a README, API doc, changelog, or spec as a clean page — no repo, no build, no account — then see whether teammates read it.",
+              "Share a README, API doc, changelog, or spec as a clean page — no repo, no build, no account to read — then see whether teammates read it.",
             datePublished: "2026-07-22",
           }),
         ]}
@@ -44,8 +45,8 @@ export default function Page() {
         lead={
           <>
             Share a README, API doc, changelog, or spec as a clean page — no
-            repo, no build, no account — then see whether teammates actually
-            read it. Paste Markdown or HTML, get a link, and watch the
+            repo, no build, no account to read — then see whether teammates
+            actually read it. Paste Markdown or HTML, get a link, and watch the
             read-through instead of guessing.
           </>
         }
@@ -72,7 +73,7 @@ export default function Page() {
             and https/data images work.
           </li>
           <li>
-            <strong>Files</strong> — drop one, up to 2 MB per doc.
+            <strong>Files</strong> — drop one, up to 15 MB per doc.
           </li>
         </ul>
         <p>
@@ -147,8 +148,8 @@ export default function Page() {
           The link redirects to an isolated render origin under a strict content
           security policy, and pasted HTML is sanitized on the way in, so a
           shared doc is safe to hand around. Docs are immutable — revise the
-          README and you publish a new link; delete from the dashboard on the
-          browser you published from.
+          README and you publish a new link; delete from the dashboard on any
+          device you sign in on.
         </p>
       </Prose>
 
@@ -174,7 +175,7 @@ export default function Page() {
           },
           {
             q: "Is it free, and do I need an account?",
-            a: "Yes, it's free. Paste Markdown or HTML, or drop a file up to 2 MB, and get a link at no cost — no sign-up for you and none for the people reading it.",
+            a: `${FREE_LINE_YES} Paste Markdown or HTML, or drop a file up to 15 MB, and get a link at no cost. Publishing needs a free account; the people reading it never need one. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Can I keep an internal doc private?",

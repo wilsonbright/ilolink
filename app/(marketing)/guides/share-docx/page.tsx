@@ -37,7 +37,7 @@ export default function Page() {
             steps: [
               {
                 name: "Drop the .docx",
-                text: "Drop your Word .docx into the composer at ilolink.com. No account, no login. The cap is 15 MB per file.",
+                text: "Drop your Word .docx into the composer at ilolink.com. Publishing needs a free account. The cap is 15 MB per file.",
               },
               {
                 name: "ilolink converts it to clean HTML",
@@ -79,8 +79,8 @@ export default function Page() {
         <ol>
           <li>
             Drop your <code>.docx</code> into the composer at{" "}
-            <a href="/">ilolink.com</a>. No account needed. The cap is 15 MB per
-            file.
+            <a href="/">ilolink.com</a>. Publishing needs a free account. The cap
+            is 15 MB per file.
           </li>
           <li>
             ilolink <strong>converts it to clean HTML</strong> and renders it as
@@ -171,7 +171,7 @@ export default function Page() {
           },
           {
             q: "Does someone need an account to view it?",
-            a: "No. Readers just open ilolink.com/<slug> — no login, no signup. You don't need an account to publish either; ownership is a per-doc manage token kept in your browser.",
+            a: "No. Readers just open ilolink.com/<slug> — no login, no signup. Publishing needs a free account; your docs live in your teamspace, reachable from any device you sign in on.",
           },
         ]}
       />

@@ -92,7 +92,7 @@ export default function Page() {
           <li>
             <strong>Drop the image file into the composer.</strong> ilolink
             inlines it as a <code>data:</code> URI, so the image travels inside
-            the doc and always loads. Keep the whole doc under the 2 MB cap.
+            the doc and always loads. Keep the whole doc under the 15 MB cap.
           </li>
           <li>
             <strong>Ask the AI to embed images as data URIs.</strong> Prompt for
@@ -129,7 +129,7 @@ export default function Page() {
           },
           {
             q: "How do I embed an image so it always loads?",
-            a: "Drop the image file into the composer. ilolink inlines it as a data: URI that travels inside the doc, so it loads anywhere. Keep the whole doc under 2 MB.",
+            a: "Drop the image file into the composer. ilolink inlines it as a data: URI that travels inside the doc, so it loads anywhere. Keep the whole doc under 15 MB.",
           },
           {
             q: "The image was fine in ChatGPT or Claude — why not here?",

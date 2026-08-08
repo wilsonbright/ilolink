@@ -53,7 +53,7 @@ export default function Page() {
           Anything you have the right to share and that is safe to open:
           landing-page mockups, design comps, docs, memos, reports, and other
           output from an AI chatbot or your own work. CSS is kept so mockups
-          still look right. Uploads are capped at 2 MB per doc.
+          still look right. Uploads are capped at 15 MB per doc.
         </p>
 
         <h2>What's not allowed</h2>
@@ -93,8 +93,8 @@ export default function Page() {
           Anyone can flag a page. Use <a href="/report">/report</a> with the
           ilolink.com link and a short reason. We review reports and remove docs
           that break this policy. We don't need to reach the publisher first —
-          ownership is a manage token in a browser, not an account — so removal
-          may be the only action available.
+          we hold only the email on their account and no other profile — so
+          removal may be the only action available.
         </p>
 
         <h2>Enforcement</h2>
@@ -133,7 +133,7 @@ export default function Page() {
         ]}
       />
 
-      <Cta sub="Paste Markdown or HTML, get a link. No account." />
+      <Cta sub="Paste Markdown or HTML, get a link. Readers need no account." />
     </Article>
   );
 }

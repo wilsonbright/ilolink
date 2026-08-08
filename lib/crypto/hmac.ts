@@ -23,7 +23,13 @@ export function b64urlDecode(text: string): string {
   return decodeURIComponent(escape(atob(padded)));
 }
 
-export async function hmac(secret: string, msg: string): Promise<string> {
+export function hexFromBytes(bytes: ArrayBuffer): string {
+  let out = "";
+  for (const b of new Uint8Array(bytes)) out += b.toString(16).padStart(2, "0");
+  return out;
+}
+
+async function signRaw(secret: string, msg: string): Promise<ArrayBuffer> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -31,12 +37,23 @@ export async function hmac(secret: string, msg: string): Promise<string> {
     false,
     ["sign"],
   );
-  const sig = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(msg),
-  );
-  return b64urlFromBytes(sig);
+  return crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+}
+
+export async function hmac(secret: string, msg: string): Promise<string> {
+  return b64urlFromBytes(await signRaw(secret, msg));
+}
+
+// Same HMAC, hex-encoded.
+//
+// Everything in this codebase signs in base64url; Stripe does not. The
+// Stripe-Signature header is `t=<unix>,v1=<hex>`, so verifying a webhook
+// against a base64url digest silently never matches — the request would be
+// rejected as a forgery and the plan would never be granted, with no error
+// anywhere to explain it. Hence a second encoder rather than a conversion at
+// the call site. See lib/billing/stripe.ts.
+export async function hmacHex(secret: string, msg: string): Promise<string> {
+  return hexFromBytes(await signRaw(secret, msg));
 }
 
 // Length-independent, value-independent comparison.

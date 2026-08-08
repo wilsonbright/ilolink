@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -46,7 +47,7 @@ export default function Page() {
             Share a prototype, mockup, or design doc as a link and collect
             anchored comments on the exact spot people are reacting to — plus
             see where they actually looked with click and scroll heatmaps. No
-            account for you or your reviewers, no cookies.
+            account needed for your reviewers, no cookies.
           </>
         }
       />
@@ -56,8 +57,8 @@ export default function Page() {
           Drop an HTML mockup or an AI-generated landing page into the{" "}
           <a href="/">composer</a> and get an <code>ilolink.com/&lt;slug&gt;</code>{" "}
           link. Your CSS is kept, so the layout renders the way you built it —
-          type, spacing, color, grid. No login; ownership is a per-doc manage
-          token in your browser.
+          type, spacing, color, grid. Reviewers need no login, and your docs
+          live in your teamspace, reachable from any device you sign in on.
         </p>
         <p>
           One thing to know up front: <strong>by default, interactive JS is
@@ -141,7 +142,7 @@ export default function Page() {
           },
           {
             q: "Is it free?",
-            a: "Yes. Publishing is free — paste or drop your mockup and get a link. There are no paid tiers to quote.",
+            a: `${FREE_LINE_YES} Paste or drop your mockup and get a link. ${TEAM_LINE}`,
           },
         ]}
       />

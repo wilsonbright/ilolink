@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, howTo } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -41,7 +42,7 @@ export default function Page() {
               },
               {
                 name: "Paste or drop it into ilolink",
-                text: "Paste the Markdown, or drop the file, into the composer at ilolink.com. The cap is 2 MB per doc.",
+                text: "Paste the Markdown, or drop the file, into the composer at ilolink.com. The cap is 15 MB per doc.",
               },
               {
                 name: "Pick a visibility mode",
@@ -71,7 +72,7 @@ export default function Page() {
           <>
             Copy your Perplexity answer or report — citations and all — as
             Markdown into one file, paste or drop it into ilolink, and get
-            ilolink.com/&lt;slug&gt;: a real link anyone can open, no account.
+            ilolink.com/&lt;slug&gt;: a real link anyone can open, no account to read.
             Then see how many read it and how far they got — in aggregate, never
             by name.
           </>
@@ -126,7 +127,7 @@ export default function Page() {
           time, it&apos;s kept as-is and its own scripts run inside a sandboxed
           frame on the isolated origin. Keep styling as inline CSS and images as absolute{" "}
           <code>https:</code> or <code>data:</code> URLs — relative asset paths
-          and <code>http:</code> images won&apos;t load. The cap is 2 MB per
+          and <code>http:</code> images won&apos;t load. The cap is 15 MB per
           doc. If you started from raw Markdown, see{" "}
           <a href="/guides/markdown-to-web-page">
             turning Markdown into a web page
@@ -188,7 +189,7 @@ export default function Page() {
           },
           {
             q: "Is it free?",
-            a: "Yes — publishing is free. You paste the Markdown, or drop a file up to 2 MB, and get a link at no cost.",
+            a: `${FREE_LINE_YES} You paste the Markdown, or drop a file up to 15 MB, and get a link at no cost. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "What if my content has interactive JavaScript?",

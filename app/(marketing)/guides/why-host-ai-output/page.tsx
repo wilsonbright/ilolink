@@ -121,7 +121,7 @@ export default function Page() {
         </p>
         <Callout title="What you don't get, honestly">
           <p>
-            A hosted page isn&apos;t a full web host. Each doc caps at 2 MB, live
+            A hosted page isn&apos;t a full web host. Each doc caps at 15 MB, live
             JavaScript apps won&apos;t run by default (they&apos;re frozen to
             static unless you mark the doc trusted), and there&apos;s no audio or
             video hosting. Analytics are aggregate and
@@ -148,7 +148,7 @@ export default function Page() {
           },
           {
             q: "Do I need an account to publish?",
-            a: "No. Publishing is quick: paste Markdown or HTML, or drop a file, and get a link. Analytics, heatmaps, and feedback come with it.",
+            a: "Yes — a free one, and it's quick: sign in, paste Markdown or HTML or drop a file, and get a link. Readers need no account. Analytics, heatmaps, and feedback come with it.",
           },
         ]}
       />

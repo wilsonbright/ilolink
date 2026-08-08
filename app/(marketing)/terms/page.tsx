@@ -42,7 +42,7 @@ export default function Page() {
       />
       <Prose>
         <p>
-          <strong>Short version.</strong> Paste or upload lawful content, keep it under 2 MB
+          <strong>Short version.</strong> Paste or upload lawful content, keep it under 15 MB
           per doc, and don&apos;t use ilolink to attack, deceive, or harm anyone. What you
           publish stays yours. The service comes with no warranty and can change. These full
           terms sit on top of that summary. Also see our{" "}
@@ -133,7 +133,7 @@ export default function Page() {
           },
           {
             q: "What are the content limits?",
-            a: "Up to 2 MB per doc (raw body or file), and content must be lawful and follow the acceptable use policy.",
+            a: "Up to 15 MB per doc (raw body or file), and content must be lawful and follow the acceptable use policy.",
           },
         ]}
       />

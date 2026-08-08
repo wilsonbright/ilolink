@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "Limits and safety of hosting AI-generated HTML — ilolink",
   description:
-    "What ilolink strips from untrusted AI HTML, why interactive apps freeze, the 2 MB cap, and what's roadmap vs. live — with cookieless analytics on every doc.",
+    "What ilolink strips from untrusted AI HTML, why interactive apps freeze, the 15 MB cap, and what's roadmap vs. live — with cookieless analytics on every doc.",
   alternates: { canonical: "/guides/limitations" },
 };
 
@@ -27,7 +27,7 @@ export default function Page() {
             path: "/guides/limitations",
             headline: "Limits and safety of hosting AI-generated HTML",
             description:
-              "Exactly what ilolink sanitizes, why JavaScript is frozen to static, the 2 MB cap, and which features are roadmap rather than live.",
+              "Exactly what ilolink sanitizes, why JavaScript is frozen to static, the 15 MB cap, and which features are roadmap rather than live.",
             datePublished: "2026-07-22",
           }),
         ]}
@@ -46,7 +46,7 @@ export default function Page() {
             ilolink sanitizes untrusted HTML on ingest — scripts stripped,
             JavaScript frozen to static — serves every doc isolated on{" "}
             <code>view.ilolink.com</code> under a strict CSP (
-            <code>default-src &apos;none&apos;</code>), and caps docs at 2 MB.
+            <code>default-src &apos;none&apos;</code>), and caps docs at 15 MB.
             Here&apos;s exactly what that means, and what isn&apos;t supported
             yet.
           </>
@@ -95,13 +95,13 @@ export default function Page() {
 
         <h2>What&apos;s the size limit?</h2>
         <p>
-          2 MB per doc — that&apos;s the raw pasted body or the dropped file.
+          15 MB per doc — that&apos;s the raw pasted body or the dropped file.
           Images are allowed inline, and an AI-generated image can be embedded in
           an HTML or Markdown doc and published, as long as the whole thing fits
           under the cap. If you&apos;re over it, compress heavy assets: shrink or
           re-encode images, drop giant base64 blobs, and strip unused CSS the
           model left in. Most single-page mockups and Markdown docs are well
-          under 2 MB once the images are reasonable.
+          under 15 MB once the images are reasonable.
         </p>
 
         <h2>What isn&apos;t supported yet?</h2>
@@ -119,8 +119,8 @@ export default function Page() {
             share the new link.
           </li>
           <li>
-            <strong>Custom domains and pricing tiers</strong> — not offered.
-            Links live at <code>ilolink.com/&lt;slug&gt;</code>.
+            <strong>Custom domains</strong> — not offered. Links live at{" "}
+            <code>ilolink.com/&lt;slug&gt;</code>.
           </li>
         </ul>
         <p>
@@ -153,7 +153,7 @@ export default function Page() {
       <Callout title="The hard limits, in one place">
         By default no arbitrary JavaScript runs — interactive apps render frozen
         to static, unless you mark the doc trusted, which runs its scripts in a
-        sandboxed frame on the isolated origin. 2 MB per doc (raw body or file). Docs are immutable: no rollback or
+        sandboxed frame on the isolated origin. 15 MB per doc (raw body or file). Docs are immutable: no rollback or
         version history. No audio/video hosting and no format-specific
         (per-slide, per-page) metrics — those are roadmap. No custom domains. CSS
         is kept, so styled mockups look right.
@@ -167,7 +167,7 @@ export default function Page() {
           },
           {
             q: "What's the maximum doc size?",
-            a: "2 MB per doc — that's the raw pasted body or the dropped file, images included. If you're over, compress or re-encode images and strip unused CSS the model left in.",
+            a: "15 MB per doc — that's the raw pasted body or the dropped file, images included. If you're over, compress or re-encode images and strip unused CSS the model left in.",
           },
           {
             q: "Can I edit or roll back a published doc?",

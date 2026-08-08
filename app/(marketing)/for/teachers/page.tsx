@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -58,10 +59,11 @@ export default function Page() {
           <a href="/">ilolink.com</a>. You get{" "}
           <code>ilolink.com/&lt;slug&gt;</code>, a normal web page that opens in
           any browser. Students just open the link. No account for them, no
-          account for you, no sign-in wall between a student and the reading.
+          sign-in wall between a student and the reading; publishing takes a
+          free account on your side.
         </p>
         <p>
-          Post the link in your LMS, a class chat, or an email. The cap is 2 MB
+          Post the link in your LMS, a class chat, or an email. The cap is 15 MB
           per doc, it&apos;s served over HTTPS on a global edge, and pasted HTML
           is sanitized on the way in, so a page is safe to hand to a whole
           class.
@@ -124,7 +126,7 @@ export default function Page() {
           Docs are immutable — one version per link. Fix a typo or update a
           worksheet and you publish a fresh link, so an old copy never quietly
           changes under students who already opened it. You manage and delete
-          from the same browser you published in.
+          from your dashboard, on any device you sign in on.
         </p>
       </Prose>
 
@@ -143,11 +145,11 @@ export default function Page() {
           },
           {
             q: "Do students need an account?",
-            a: "No. The link opens as a normal web page in any browser. There's no sign-in wall between a student and the reading, and no account for you either.",
+            a: "No. The link opens as a normal web page in any browser, so there's no sign-in wall between a student and the reading. You need a free account to publish.",
           },
           {
             q: "Is it free?",
-            a: "Yes. Publishing is free — paste Markdown or HTML, or drop a file up to 2 MB, and get a link at no cost.",
+            a: `${FREE_LINE_YES} Paste Markdown or HTML, or drop a file up to 15 MB, and get a link at no cost. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Can I limit a page to one class?",

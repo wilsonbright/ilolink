@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
+import { FREE_DOC_COUNT, TEAM_LINE } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -14,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "Free HTML hosting: what free actually costs — ilolink",
   description:
-    "Free HTML hosting often means expiring links, small size caps, or watermarks. ilolink publishes HTML free — no account, no forced expiry, analytics included, 2 MB per doc.",
+    "Free HTML hosting often means expiring links, small size caps, or watermarks. ilolink publishes HTML free for one person — no forced expiry, analytics included, 15 MB per doc.",
   alternates: { canonical: "/guides/free-html-hosting" },
 };
 
@@ -44,10 +45,10 @@ export default function Page() {
         lead={
           <>
             &quot;Free&quot; HTML hosting often means expiring links, small size
-            caps, or a watermark on your page. ilolink publishes HTML free — no
-            account, no forced expiry, cookieless analytics included — capped at
-            2 MB per doc. Read each host&apos;s current terms before you rely on
-            one.
+            caps, or a watermark on your page. ilolink publishes HTML free for
+            one person — no forced expiry, cookieless analytics included —
+            capped at 15 MB per doc. Read each host&apos;s current terms before
+            you rely on one.
           </>
         }
       />
@@ -87,14 +88,15 @@ export default function Page() {
 
         <h2>What ilolink includes free</h2>
         <p>
-          ilolink&apos;s free path is the whole product, not a stripped tier.
-          You paste Markdown or HTML — or drop a file or image — and get a{" "}
+          For one person, ilolink&apos;s free path is the whole product, not a
+          stripped tier — up to {FREE_DOC_COUNT} published documents. You paste
+          Markdown or HTML — or drop a file or image — and get a{" "}
           <code>ilolink.com/&lt;slug&gt;</code> link. What comes with it:
         </p>
         <ul>
           <li>
-            <strong>No account.</strong> Publishing is accountless; control over
-            a doc is a per-doc manage token kept in your browser.
+            <strong>A free account.</strong> Publishing needs one; reading never
+            does, so anyone you send the link to just opens the page.
           </li>
           <li>
             <strong>Permanent by default.</strong> Links don&apos;t expire on a
@@ -134,7 +136,7 @@ export default function Page() {
         <Callout title="What ilolink won't do">
           <ul>
             <li>
-              <strong>2 MB per doc.</strong> A hard cap. Fine for pages, reports,
+              <strong>15 MB per doc.</strong> A hard cap. Fine for pages, reports,
               and mockups; not for heavy asset bundles.
             </li>
             <li>
@@ -170,10 +172,12 @@ export default function Page() {
         </p>
         <p>
           Reach for ilolink when the reading matters: when you want the page up
-          in one paste, safe to hand a stranger, permanent without an account,
+          in one paste, safe to hand a stranger, permanent without a server,
           and honest about how it landed. That&apos;s the trade — you give up
           custom domains and, unless you mark a doc trusted, live scripts; you
-          get analytics, heatmaps, and feedback with no tier to buy.
+          get analytics, heatmaps, and feedback on the free plan rather than as
+          a paid add-on. Team seats are the one thing you pay for — see{" "}
+          <a href="/pricing">pricing</a>.
         </p>
       </Prose>
 
@@ -181,7 +185,7 @@ export default function Page() {
         items={[
           {
             q: "Is ilolink really free?",
-            a: "Yes — publishing HTML, Markdown, and images is free, and publishing needs only a free account. There's no pricing tier to buy for the features described here.",
+            a: `Yes, for one person — publishing HTML, Markdown, and images is free on a free account, up to ${FREE_DOC_COUNT} published documents, and every feature described here is included. ${TEAM_LINE}`,
           },
           {
             q: "Do the free links expire?",
@@ -189,7 +193,7 @@ export default function Page() {
           },
           {
             q: "What's the size limit?",
-            a: "2 MB per doc — a hard cap. It's plenty for pages, reports, and mockups, but not for heavy asset bundles or embedded media.",
+            a: "15 MB per doc — a hard cap. It's plenty for pages, reports, and mockups, but not for heavy asset bundles or embedded media.",
           },
           {
             q: "Is there branding or a watermark on my page?",

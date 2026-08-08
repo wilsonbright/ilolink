@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
+import { FREE_LINE, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -60,8 +61,8 @@ export default function Page() {
           year opens the same way today.
         </p>
         <p>
-          Ownership works without an account: publishing is accountless, and
-          control over a doc is a per-doc manage token kept in your browser.
+          Ownership is tied to your free account: a doc you publish belongs to
+          your teamspace, so you can manage it from any device you sign in on.
           Keeping the link is the default state — you have to take an action to
           change it.
         </p>
@@ -139,7 +140,7 @@ export default function Page() {
           },
           {
             q: "Is permanence a paid feature like on some hosts?",
-            a: "No. Many free or quick-drop hosts expire or cap free links — check their terms. On ilolink, keeping the link is the default and expiry is the exception you opt into. Publishing is free.",
+            a: `No. Many free or quick-drop hosts expire or cap free links — check their terms. On ilolink, keeping the link is the default and expiry is the exception you opt into. ${FREE_LINE} ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Where are the docs hosted, and are they always up?",

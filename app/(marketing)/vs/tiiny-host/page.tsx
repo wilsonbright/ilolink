@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, softwareApplication } from "@/lib/seo/jsonld";
+import { FREE_LINE, TEAM_LINE } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -110,9 +111,11 @@ export default function Page() {
             doesn&apos;t do custom domains yet.
           </li>
           <li>
-            <strong>No 2 MB cap</strong> — ilolink caps each doc at 2 MB. A
-            larger static bundle or a page with heavy embedded assets may need a
-            plain host. Check tiiny.host&apos;s current size limits yourself.
+            <strong>Bigger or multi-file uploads</strong> — ilolink caps each
+            doc at 15 MB, and it&apos;s one document per link, not a folder. A
+            larger static bundle, a multi-page site, or a page with heavy
+            embedded assets may need a plain host. Check tiiny.host&apos;s
+            current size limits yourself.
           </li>
           <li>
             <strong>Its own paid features</strong> — tiiny.host has plans and
@@ -159,7 +162,7 @@ export default function Page() {
             [
               "File cap",
               "Varies — check current terms",
-              "2 MB per doc",
+              "15 MB per doc",
             ],
           ]}
           caption="Verify tiiny.host's current caps and pricing yourself — competitor specifics change."
@@ -185,7 +188,7 @@ export default function Page() {
           },
           {
             q: "Is ilolink free?",
-            a: "Publishing is free — paste or drop a file and get a link, no login. There are no paid tiers to quote, so we won't invent pricing here.",
+            a: `${FREE_LINE} You need a free account to publish; readers never need one. ${TEAM_LINE}`,
           },
           {
             q: "Can ilolink use a custom domain?",

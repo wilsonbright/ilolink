@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
 import {
+  FREE_AND_TEAMS,
+  FREE_DOC_COUNT,
+  TEAM_PRICE_SHORT,
+} from "@/lib/billing/copy";
+import {
   Article,
   Breadcrumbs,
   PageHeader,
@@ -12,8 +17,7 @@ import {
 
 export const metadata: Metadata = {
   title: "ilolink FAQ — accounts, privacy, formats & limits",
-  description:
-    "Straight answers: no account needed, publishing is free, no cookies, publish Markdown/HTML/images/files up to 2 MB, and links don't expire unless you set them to.",
+  description: `Straight answers: readers never need an account, publishing is free for one person, teams are a one-time ${TEAM_PRICE_SHORT}, no cookies, publish Markdown/HTML/images/files up to 15 MB, and links don't expire unless you set them to.`,
   alternates: { canonical: "/faq" },
 };
 
@@ -41,9 +45,11 @@ export default function Page() {
         title="ilolink FAQ"
         lead={
           <>
-            No, you don&apos;t need an account, and publishing is free. ilolink
-            uses no cookies. Paste Markdown or HTML, or drop an image or file, up
-            to 2 MB per doc. Links don&apos;t expire unless you set an expiry
+            Readers never need an account; publishing needs a free one, and it
+            costs nothing for one person with up to {FREE_DOC_COUNT} published
+            documents. Teams are a one-time {TEAM_PRICE_SHORT}. ilolink uses no
+            cookies. Paste Markdown or HTML, or drop an image or file, up to 15
+            MB per doc. Links don&apos;t expire unless you set an expiry
             yourself.
           </>
         }
@@ -60,11 +66,11 @@ export default function Page() {
         items={[
           {
             q: "Do I need an account?",
-            a: "No. Publishing needs a free account. Paste your Markdown or HTML, or drop a file, and you get an ilolink.com/<slug> link to share. You keep a private dashboard link for that doc.",
+            a: "To publish, yes — a free account. To read, no: anyone with the link opens the page. Paste your Markdown or HTML, or drop a file, and you get an ilolink.com/<slug> link to share. You keep a private dashboard link for that doc.",
           },
           {
             q: "Is it free?",
-            a: "Publishing is free.",
+            a: FREE_AND_TEAMS,
           },
           {
             q: "Do you use cookies or track readers?",
@@ -76,7 +82,7 @@ export default function Page() {
           },
           {
             q: "How big can a doc be?",
-            a: "Up to 2 MB per doc.",
+            a: "Up to 15 MB per doc.",
           },
           {
             q: "Do links expire?",

@@ -64,10 +64,10 @@ export default function Page() {
           as one self-contained HTML file all become the same thing: a link.
         </p>
         <p>
-          It&apos;s accountless — no login for you, none for the client. The link
-          opens immediately. Ownership lives as a manage token in your browser,
-          so you keep control of the doc without either of you creating an
-          account. The cap is 2&nbsp;MB per doc.
+          The client needs no login — the link opens immediately. Publishing
+          takes a free account, and your docs live in your teamspace, so you
+          keep control of them from any device you sign in on. The cap is
+          15&nbsp;MB per doc.
         </p>
 
         <h2>Protect it</h2>
@@ -112,10 +112,10 @@ export default function Page() {
 
       <Callout title="Where this isn't the right tool">
         <p>
-          If you need a custom domain on the deliverable, a doc over 2&nbsp;MB, or
+          If you need a custom domain on the deliverable, a doc over 15&nbsp;MB, or
           to edit a page in place after sending, a general static host fits
-          better — ilolink is built around a sanitized, tracked, accountless
-          link, not a full CMS.
+          better — ilolink is built around a sanitized, tracked link your
+          client opens without an account, not a full CMS.
         </p>
       </Callout>
 

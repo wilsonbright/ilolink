@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { JsonLd, article, softwareApplication } from "@/lib/seo/jsonld";
 import {
+  FREE_DOC_COUNT,
+  FREE_LINE,
+  TEAM_LINE,
+  TEAM_PRICE_SHORT,
+} from "@/lib/billing/copy";
+import {
   Article,
   Breadcrumbs,
   PageHeader,
@@ -126,21 +132,23 @@ export default function Page() {
               "Varies",
               "Sanitized under default-src 'none'",
             ],
-            ["File cap", "Large (varies)", "Small on free (varies)", "2 MB per doc"],
+            ["File cap", "Large (varies)", "Small on free (varies)", "15 MB per doc"],
           ]}
           caption="Specifics change — verify current caps and pricing on each host before you decide."
         />
 
         <Callout title="Be honest about ilolink's limits">
           <p>
-            ilolink caps each doc at 2 MB of raw body or file. By default,
+            ilolink caps each doc at 15 MB of raw body or file. By default,
             interactive JavaScript apps are frozen to static on ingest — the
             layout and CSS render, but scripts don&apos;t run, so a live React app
             won&apos;t stay interactive unless you mark the doc trusted, which
             runs it as-is inside a sandboxed frame on the isolated origin. Media
-            hosting (audio, video) isn&apos;t shipped. There
-            are no custom domains and no paid tiers to quote. If you need any of
-            those, a static host is the better fit.
+            hosting (audio, video) isn&apos;t shipped. There are no custom
+            domains, and the free plan is one person with{" "}
+            {FREE_DOC_COUNT} published documents — teams are a one-time{" "}
+            {TEAM_PRICE_SHORT} (<a href="/pricing">pricing</a>). If you need
+            custom domains, a static host is the better fit.
           </p>
         </Callout>
 
@@ -170,7 +178,7 @@ export default function Page() {
           },
           {
             q: "Is there a free tier?",
-            a: "Publishing is free — paste or drop a file and get a link, no login. There are no paid tiers to quote, so we won't invent pricing here.",
+            a: `Yes. ${FREE_LINE} You need a free account to publish; readers never need one. ${TEAM_LINE}`,
           },
           {
             q: "Can it host a whole framework app?",

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, howTo } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -45,7 +46,7 @@ export default function Page() {
               },
               {
                 name: "Paste or drop it into ilolink",
-                text: "Paste the HTML, or drop the .html file, into the composer at ilolink.com. The cap is 2 MB per doc.",
+                text: "Paste the HTML, or drop the .html file, into the composer at ilolink.com. The cap is 15 MB per doc.",
               },
               {
                 name: "Pick a visibility mode",
@@ -126,7 +127,7 @@ export default function Page() {
           designed — the CSS is kept. By default an interactive JS app is shown{" "}
           <strong>frozen</strong> to its static state rather than executing; if
           you mark the doc <strong>trusted</strong> at publish time it runs
-          as-is inside a sandboxed frame on that isolated origin. The cap is 2 MB
+          as-is inside a sandboxed frame on that isolated origin. The cap is 15 MB
           per doc. For
           the wider view of getting AI output onto the web, see{" "}
           <a href="/guides/share-ai-output">share AI output as a real link</a> and{" "}
@@ -194,7 +195,7 @@ export default function Page() {
           },
           {
             q: "Is it free?",
-            a: "Yes — publishing is free. You paste the HTML, or drop a file up to 2 MB, and get a link at no cost. No account and no login.",
+            a: `${FREE_LINE_YES} You paste the HTML, or drop a file up to 15 MB, and get a link at no cost. Publishing needs a free account; readers never need one. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Can I password-protect it?",

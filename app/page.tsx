@@ -27,9 +27,11 @@ import { PublishForm } from "@/app/(app)/publish/publish-form";
 import { PILLARS, LEGAL } from "@/lib/seo/site";
 import { NavAuth } from "@/app/nav-auth";
 import { ARTIFACT_KINDS, KINDS } from "@/lib/artifacts/kinds";
+import { PLANS, formatPrice } from "@/lib/billing/plans";
 
 // Safe to import into a static page: lib/artifacts/kinds is pure data with no
 // imports of its own — no bindings, no D1, nothing server-only to drag in.
+// lib/billing/plans is pure for the same reason — see the header comment there.
 
 // What each format becomes. Checked against lib/publish/formats.ts and
 // app/api/publish/route.ts, not written from memory.
@@ -194,6 +196,12 @@ const ACCESS = [
   ["Expiring", "Stops working on a date you choose."],
 ];
 
+// The three tiers, in order. Every number on the pricing card — price, seats,
+// documents, feature bullets — comes out of lib/billing/plans.ts, which is the
+// same file the Checkout line item and the server-side limit checks read. No
+// figure is retyped here, so this copy cannot drift away from what is enforced.
+const PRICING = [PLANS.free, PLANS.team5, PLANS.team10];
+
 export default function Home() {
   return (
     <>
@@ -207,6 +215,12 @@ export default function Home() {
               className="hidden transition-colors duration-150 hover:text-ink sm:inline"
             >
               For teams
+            </Link>
+            <Link
+              href="#pricing"
+              className="transition-colors duration-150 hover:text-ink"
+            >
+              Pricing
             </Link>
             <Link
               href="/connect"
@@ -520,6 +534,69 @@ export default function Home() {
             half-considered rule quietly becoming how everyone&rsquo;s agent
             behaves.
           </p>
+        </section>
+
+        {/* ── Pricing ───────────────────────────────────────────────────── */}
+        <section
+          id="pricing"
+          className="mt-20 scroll-mt-20 border-t border-hairline pt-12"
+        >
+          <h2 className="text-2xl font-semibold leading-tight text-ink sm:text-3xl">
+            Pay once, or don&rsquo;t pay at all
+          </h2>
+          <p className="mt-3 leading-relaxed text-ink-soft">
+            A team plan is a one-time payment, not a subscription. You pay for
+            the team size once and keep it: nothing recurs, nothing expires,
+            and there is no card kept on file. Working on your own is free.
+            What you pay for is bringing other people in.
+          </p>
+          <ul className="mt-8 grid gap-6 sm:grid-cols-3">
+            {PRICING.map((plan) => (
+              <li
+                key={plan.id}
+                className="flex flex-col rounded-xl border border-hairline p-6"
+              >
+                <h3 className="font-medium text-ink">{plan.label}</h3>
+                <p className="mt-3 flex items-baseline gap-1.5">
+                  <span className="text-3xl font-semibold text-ink">
+                    {formatPrice(plan.priceCents)}
+                  </span>
+                  {plan.priceCents > 0 && (
+                    <span className="text-sm text-ink-faint">
+                      one-time, paid once
+                    </span>
+                  )}
+                </p>
+                <p className="mt-3 leading-relaxed text-ink-soft">
+                  {plan.blurb}
+                </p>
+                {/* No seats/documents summary line here on purpose: the first
+                    two feature bullets in lib/billing/plans.ts already state
+                    both numbers, and printing them twice read as padding. */}
+                <ul className="mt-4 space-y-2 text-sm leading-relaxed text-ink-soft">
+                  {plan.features.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-8 leading-relaxed text-ink-soft">
+            Personal is one person: you. Inviting anybody — a teammate, a
+            co-founder, one reviewer who needs to write to the registry — takes
+            a team plan. That is the only thing the payment unlocks, and you
+            make it once.
+          </p>
+          <p className="mt-3 text-sm text-ink-faint">
+            Uploads are capped at 15 MB per document on every plan. Publishing
+            needs an account; reading never does.
+          </p>
+          <Link
+            href="/signin?next=%2Ft"
+            className="mt-6 inline-block rounded-lg bg-accent px-5 py-3 font-medium text-canvas transition-opacity duration-150 hover:opacity-90"
+          >
+            Start free
+          </Link>
         </section>
 
         {/* ── Connector ─────────────────────────────────────────────────── */}

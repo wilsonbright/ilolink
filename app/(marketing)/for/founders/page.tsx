@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -58,14 +59,15 @@ export default function Page() {
           you hit send. You don&apos;t know if the monthly update was opened,
           skimmed, or ignored. Paste the Markdown or HTML, or drop the file, and
           you get <code>ilolink.com/&lt;slug&gt;</code> — a real web page an
-          investor opens in a browser. It&apos;s accountless, opens immediately,
-          and the cap is 2&nbsp;MB per doc. The difference from an attachment is
-          that the link comes with signal.
+          investor opens in a browser — no account on their side, it opens
+          immediately, and the cap is 15&nbsp;MB per doc. The difference from
+          an attachment is that the link comes with signal.
         </p>
         <p>
-          Ownership lives as a manage token in the browser you published from,
-          so you keep control of the doc — change its visibility, delete it from
-          the dashboard — without you or your investors creating an account.
+          Your docs live in your teamspace, so you keep control of them —
+          change visibility, delete from the dashboard — on any device you
+          sign in on. Publishing takes a free account; your investors never
+          need one.
         </p>
 
         <h2>See if it landed</h2>
@@ -118,7 +120,7 @@ export default function Page() {
           },
           {
             q: "Is it free?",
-            a: "Yes. Publishing a doc and seeing its analytics is free, and it's accountless — no login for you and none for the people you send the link to.",
+            a: `${FREE_LINE_YES} Analytics come with it rather than sitting behind an upgrade. Publishing needs a free account; the people you send the link to never need one. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Can I password-protect a sensitive update?",

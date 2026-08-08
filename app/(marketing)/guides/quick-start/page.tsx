@@ -37,11 +37,11 @@ export default function Page() {
             steps: [
               {
                 name: "Get one self-contained output",
-                text: "Ask the AI for a single self-contained file — HTML with its CSS inline, or Markdown — not a folder of assets. One file, under 2 MB.",
+                text: "Ask the AI for a single self-contained file — HTML with its CSS inline, or Markdown — not a folder of assets. One file, under 15 MB.",
               },
               {
                 name: "Paste or drop it into ilolink",
-                text: "Paste the Markdown or HTML, or drop the file, into the composer at ilolink.com. No account and no login.",
+                text: "Paste the Markdown or HTML, or drop the file, into the composer at ilolink.com. Publishing takes a free account; readers need none.",
               },
               {
                 name: "Pick a visibility mode",
@@ -73,7 +73,7 @@ export default function Page() {
             The fastest path: copy the AI&apos;s output, paste or drop it into{" "}
             <a href="/">ilolink</a>, pick who can see it, and get a link. Then
             open your <a href="/dashboard">dashboard</a> and watch the first view
-            land — no account, nothing to install.
+            land — readers need no account, and there&apos;s nothing to install.
           </>
         }
       />
@@ -86,12 +86,12 @@ export default function Page() {
           <li>
             Get <strong>one self-contained output</strong> from the AI — a single
             HTML file with its CSS inline, or a block of Markdown. One file, not a
-            project split across assets. The cap is <strong>2 MB</strong> per doc.
+            project split across assets. The cap is <strong>15 MB</strong> per doc.
           </li>
           <li>
             <strong>Paste it, or drop the file,</strong> into the composer at{" "}
-            <a href="/">ilolink.com</a>. There&apos;s no account and no login —
-            you land straight on the composer.
+            <a href="/">ilolink.com</a>. Publishing takes a free account — sign
+            in once and you land straight on the composer.
           </li>
           <li>
             <strong>Pick a visibility mode</strong> — public, unlisted,
@@ -171,7 +171,7 @@ export default function Page() {
         items={[
           {
             q: "Do I need an account?",
-            a: "No. Publishing needs a free account — you land on the composer, paste or drop your file, and get a link. No sign-up and no login.",
+            a: "To publish, yes — a free one. Sign in, paste or drop your file on the composer, and get a link. Readers don't need an account to open it.",
           },
           {
             q: "How long does it take?",
@@ -202,7 +202,7 @@ export default function Page() {
             path: "/guides/requirements",
             title: "What ilolink accepts",
             blurb:
-              "Formats, the 2 MB cap, and what sanitizing does before you paste — so your first publish just works.",
+              "Formats, the 15 MB cap, and what sanitizing does before you paste — so your first publish just works.",
           },
         ]}
       />

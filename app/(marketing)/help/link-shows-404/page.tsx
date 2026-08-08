@@ -67,10 +67,10 @@ export default function Page() {
         <h2>It was deleted or unpublished</h2>
         <p>
           If you removed the doc from your dashboard, its link 404s from that
-          point on. Because the manage token lives in the browser you published
-          from, deletes happen from that same browser or device &mdash; check
-          whether you (or someone with access to that dashboard) took it down.
-          A deleted doc is gone; there&apos;s no undelete.
+          point on. Because docs belong to a teamspace, anyone signed in to that
+          teamspace can delete them &mdash; check whether you (or a teammate
+          with access) took it down. A deleted doc is gone; there&apos;s no
+          undelete.
         </p>
 
         <h2>The URL is wrong</h2>
@@ -120,7 +120,7 @@ export default function Page() {
           },
           {
             q: "The link worked yesterday — what changed?",
-            a: "Either it hit its expiry date, or the doc was deleted or unpublished from the dashboard in the browser it was published from. Republish to share it again.",
+            a: "Either it hit its expiry date, or the doc was deleted or unpublished from the dashboard by someone in its teamspace. Republish to share it again.",
           },
         ]}
       />
@@ -139,7 +139,7 @@ export default function Page() {
             path: "/help/delete-or-replace",
             title: "Delete or replace a doc",
             blurb:
-              "Docs are immutable, so replacing means publishing a new one. How to delete from the browser you published from.",
+              "Docs are immutable, so replacing means publishing a new one. How to delete one from your dashboard.",
           },
         ]}
       />

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, softwareApplication } from "@/lib/seo/jsonld";
+import { FREE_LINE, TEAM_LINE } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -28,7 +29,7 @@ export default function Page() {
             path: "/alternatives/tiiny-host",
             headline: "tiiny.host alternative with analytics",
             description:
-              "A tiiny.host alternative for people who want drag-and-drop HTML hosting plus built-in cookieless view analytics, heatmaps, and reader feedback — no account.",
+              "A tiiny.host alternative for people who want drag-and-drop HTML hosting plus built-in cookieless view analytics, heatmaps, and reader feedback — free to publish, and readers need no account.",
             datePublished: "2026-07-22",
           }),
           softwareApplication(),
@@ -106,8 +107,8 @@ export default function Page() {
 
         <h2>How ilolink covers it</h2>
         <p>
-          Each checklist item maps to something that ships today, on the free,
-          accountless publish flow:
+          Each checklist item maps to something that ships today, on the free
+          plan — publishing takes a free account, reading takes none:
         </p>
         <ComparisonTable
           columns={["What you want", "tiiny.host", "ilolink"]}
@@ -161,7 +162,7 @@ export default function Page() {
 
         <Callout title="Be honest about the trade-offs">
           <p>
-            ilolink caps each doc at 2 MB of raw body or file. By default,
+            ilolink caps each doc at 15 MB of raw body or file. By default,
             interactive JavaScript is frozen to static on ingest — layout and CSS
             render, but scripts don&apos;t run, so a live React app won&apos;t stay
             interactive unless you mark the doc trusted, in which case it runs
@@ -178,11 +179,11 @@ export default function Page() {
         items={[
           {
             q: "Is it really free?",
-            a: "Yes — publishing is free. Paste or drop a file and get a link, no login and no card. There are no paid tiers to quote, so we won't invent pricing here.",
+            a: `${FREE_LINE} No card, and readers never need an account. ${TEAM_LINE}`,
           },
           {
             q: "Do I need an account?",
-            a: "No. There's no login. Ownership of a doc is a per-doc manage token kept in your browser, not a server account — so keep that link to manage the doc later.",
+            a: "To publish, yes — a free one. Readers don't. Your docs belong to your teamspace, so they're in your dashboard on any device you sign in on.",
           },
           {
             q: "What analytics do I get?",

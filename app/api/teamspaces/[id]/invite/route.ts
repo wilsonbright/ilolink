@@ -9,13 +9,20 @@ import {
   canInvite,
   type TeamRole,
 } from "@/lib/teamspace/permissions";
-import { createInvite, INVITE_TTL_DAYS } from "@/lib/teamspace/invites";
+import {
+  createInvite,
+  listPendingInvites,
+  INVITE_TTL_DAYS,
+} from "@/lib/teamspace/invites";
 import { isPlausibleEmail, normalizeEmail } from "@/lib/auth/otp";
 import { mailerConfig, siteOrigin } from "@/lib/auth/config";
 import { sendEmail } from "@/lib/email/send";
 import { inviteEmail } from "@/lib/email/templates";
 import { queryFirst } from "@/lib/db/client";
 import { rateLimit } from "@/lib/ratelimit";
+import { env } from "@/lib/cf";
+import { planFor } from "@/lib/billing/plans";
+import { countMembers } from "@/lib/billing/entitlements";
 
 export const runtime = "nodejs";
 
@@ -83,8 +90,8 @@ export async function POST(
     );
   }
 
-  const teamspace = await queryFirst<{ name: string }>(
-    "SELECT name FROM teamspaces WHERE id = ?",
+  const teamspace = await queryFirst<{ name: string; plan: string }>(
+    "SELECT name, plan FROM teamspaces WHERE id = ?",
     teamspaceId,
   );
   if (!teamspace) {
@@ -102,6 +109,32 @@ export async function POST(
   );
   if (Number(already?.n ?? 0) > 0) {
     return NextResponse.json({ ok: true, alreadyMember: true });
+  }
+
+  // Seat check — NOT the authority. The real gate is inside the INSERT in
+  // lib/teamspace/invites.ts acceptInvite(); this one exists so an owner is
+  // told "your team is full" while they are looking at the invite form, rather
+  // than the invitee discovering it days later by clicking a dead link.
+  //
+  // It cannot be the authority on its own: invites live 14 days and several can
+  // be outstanding at once, so N invites all issued while there was room can
+  // all be accepted afterwards. That is why pending invites are counted here
+  // alongside members — it stops an owner over-issuing — and why the atomic
+  // check still has to exist at acceptance.
+  const plan = planFor(teamspace.plan);
+  const seatsUsed = await countMembers(env().DB, teamspaceId);
+  const pending = (await listPendingInvites(teamspaceId)).length;
+  if (seatsUsed + pending >= plan.seats) {
+    return NextResponse.json(
+      {
+        error:
+          plan.seats <= 1
+            ? "A personal teamspace is just you. Upgrade to a team plan to invite people."
+            : `This team is full — the ${plan.label} plan includes ${plan.seats} members (${seatsUsed} joined, ${pending} invited). Upgrade for more seats, or remove someone first.`,
+        upgrade: "/pricing",
+      },
+      { status: 403 },
+    );
   }
 
   const { token } = await createInvite(

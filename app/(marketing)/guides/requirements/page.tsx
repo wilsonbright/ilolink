@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "What you need to share an AI output — ilolink",
   description:
-    "The honest checklist: just the output. A file or pasted text — Markdown, HTML, an image — under 2 MB. No account, no server, no repo, no build step.",
+    "The honest checklist: just the output. A file or pasted text — Markdown, HTML, an image — under 15 MB, plus a free account. No server, no repo, no build step.",
   alternates: { canonical: "/guides/requirements" },
 };
 
@@ -27,13 +27,13 @@ export default function Page() {
             path: "/guides/requirements",
             headline: "What you need to share an AI output",
             description:
-              "The only requirement is the output itself — a file or pasted text under 2 MB. No account, no server, no repo, no build step.",
+              "The only requirement is the output itself — a file or pasted text under 15 MB — and a free account to publish it. No server, no repo, no build step.",
             datePublished: "2026-07-22",
           }),
           howTo({
             name: "Prepare your AI output for sharing",
             description:
-              "Get an AI output ready to publish on ilolink: have the file or text, keep it under 2 MB, and flatten anything that needs a build.",
+              "Get an AI output ready to publish on ilolink: have the file or text, keep it under 15 MB, and flatten anything that needs a build.",
             steps: [
               {
                 name: "Grab the output",
@@ -44,12 +44,12 @@ export default function Page() {
                 text: "If it's framework source with a package.json, run your build first and take the static HTML it produces. Interactive JS gets frozen to static on ingest, so export to static HTML if you can.",
               },
               {
-                name: "Keep it under 2 MB",
-                text: "The cap is 2 MB per doc. If it's bigger, trim it or share the key part.",
+                name: "Keep it under 15 MB",
+                text: "The cap is 15 MB per doc. If it's bigger, trim it or share the key part.",
               },
               {
                 name: "Paste or drop it in",
-                text: "Paste the text or drop the file into the composer at ilolink.com and get ilolink.com/<slug>. No account to publish or to view.",
+                text: "Paste the text or drop the file into the composer at ilolink.com and get ilolink.com/<slug>. Readers need no account; publishing needs a free one.",
               },
             ],
           }),
@@ -67,9 +67,9 @@ export default function Page() {
         lead={
           <>
             Just the output. A file or pasted text — Markdown, HTML, an image —
-            no server, no repo, no build step, and no account to publish or to
-            view. Paste it or drop it at <a href="/">ilolink.com</a> and you get
-            a link.
+            no server, no repo, no build step. Readers need no account;
+            publishing needs a free one. Paste it or drop it at{" "}
+            <a href="/">ilolink.com</a> and you get a link.
           </>
         }
       />
@@ -84,7 +84,7 @@ export default function Page() {
           <li>text you paste straight into the composer — Markdown or HTML.</li>
         </ul>
         <p>
-          Keep it under <strong>2 MB per doc</strong>. That&apos;s the whole
+          Keep it under <strong>15 MB per doc</strong>. That&apos;s the whole
           requirement. You paste or drop it at <a href="/">ilolink.com</a> and
           get <code>ilolink.com/&lt;slug&gt;</code>, which redirects to an
           isolated render origin served under a strict content-security policy.
@@ -96,8 +96,9 @@ export default function Page() {
         <p>None of the usual publishing overhead applies:</p>
         <ul>
           <li>
-            <strong>No account.</strong> No signup, no login — to publish or to
-            view. Ownership is a per-doc manage token kept in your browser.
+            <strong>No account to read.</strong> Readers just open the link.
+            Publishing takes a free account, and your docs live in your
+            teamspace — reachable from any device you sign in on.
           </li>
           <li>
             <strong>No server</strong> to run and no hosting to configure.
@@ -128,7 +129,7 @@ export default function Page() {
             and the layout, styling, and content come through.
           </li>
           <li>
-            <strong>Oversized files.</strong> Over 2 MB won&apos;t upload —{" "}
+            <strong>Oversized files.</strong> Over 15 MB won&apos;t upload —{" "}
             <strong>trim it or share the key part</strong>.
           </li>
         </ul>
@@ -141,7 +142,7 @@ export default function Page() {
       </Prose>
 
       <Callout title="The short version">
-        If it&apos;s a file or some text under 2 MB, you can share it right now.
+        If it&apos;s a file or some text under 15 MB, you can share it right now.
         If it needs a build to become a page, build it to static HTML first.
       </Callout>
 
@@ -149,11 +150,11 @@ export default function Page() {
         items={[
           {
             q: "Do I need an account?",
-            a: "No. You don't need an account to publish or to view. Ownership of a doc is a manage token kept in your browser, not a login.",
+            a: "To publish, yes — a free one. Readers don't: anyone with the link can open it without signing in. Your docs live in your teamspace, so they're reachable from any device you sign in on.",
           },
           {
             q: "What's the size limit?",
-            a: "2 MB per doc. That covers most write-ups, specs, HTML pages, and inline images. If it's bigger, trim it or share the key part.",
+            a: "15 MB per doc. That covers most write-ups, specs, HTML pages, and inline images. If it's bigger, trim it or share the key part.",
           },
           {
             q: "Can I publish a React app?",
@@ -180,7 +181,7 @@ export default function Page() {
             path: "/guides/limitations",
             title: "Limitations: what's in and out of scope",
             blurb:
-              "The honest boundaries — the 2 MB cap, frozen JS, no version rollback, and what's on the roadmap.",
+              "The honest boundaries — the 15 MB cap, frozen JS, no version rollback, and what's on the roadmap.",
           },
         ]}
       />

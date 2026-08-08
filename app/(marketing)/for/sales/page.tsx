@@ -64,10 +64,10 @@ export default function Page() {
           renders anywhere.
         </p>
         <p>
-          It&apos;s accountless — no login for you, none for the prospect. The
-          link opens on the first click. Ownership lives as a manage token in the
-          browser you published from, so you keep control of the doc without
-          either side creating an account. The cap is 2&nbsp;MB per doc.
+          The prospect needs no login — the link opens on the first click.
+          Publishing takes a free account, and your docs live in your
+          teamspace, so you keep control of them from any device you sign in
+          on. The cap is 15&nbsp;MB per doc.
         </p>
 
         <h2>Read the engagement signal</h2>
@@ -117,8 +117,8 @@ export default function Page() {
           If you need to know exactly which prospect opened a link, ilolink
           won&apos;t do that — it&apos;s aggregate and cookieless by design. For
           per-person send tracking tied to a named recipient, a sales-engagement
-          tool fits better. ilolink is built around a clean, tracked, accountless
-          link, not a per-contact CRM record.
+          tool fits better. ilolink is built around a clean, tracked link that
+          a prospect opens without an account, not a per-contact CRM record.
         </p>
       </Callout>
 

@@ -122,8 +122,7 @@ export default function Page() {
         <p>
           We acknowledge receipt, review the page against our policy, and act.
           Valid reports usually end in the page being removed or disabled;
-          because docs are immutable and ownership is just a per-doc manage token
-          in the publisher&rsquo;s browser, removal is the primary remedy. Where
+          because docs are immutable, removal is the primary remedy. Where
           we can identify the publisher by their contact details, we tell them
           what was removed and why. Clear-cut phishing or malware comes down
           fast; genuine disputes take longer.

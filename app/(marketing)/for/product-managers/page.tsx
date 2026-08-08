@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -14,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "ilolink for product managers — ilolink",
   description:
-    "Share a PRD, spec, or update as a clean link, then see if stakeholders read it: scroll depth, time on page, and where they clicked. No cookies, no accounts.",
+    "Share a PRD, spec, or update as a clean link, then see if stakeholders read it: scroll depth, time on page, and where they clicked. No cookies, no reader accounts.",
   alternates: { canonical: "/for/product-managers" },
 };
 
@@ -45,8 +46,8 @@ export default function Page() {
           <>
             Share a PRD, spec, or update as a clean link, then see whether
             stakeholders read it: scroll depth, time on page, and where
-            they clicked. No cookies, no accounts, no sign-in wall between them
-            and the doc.
+            they clicked. No cookies, no reader accounts, no sign-in wall
+            between them and the doc.
           </>
         }
       />
@@ -66,8 +67,8 @@ export default function Page() {
           Paste the Markdown or HTML — from ChatGPT, Claude, or your own editor —
           or drop a file, into the composer at <a href="/">ilolink.com</a>. You
           get <code>ilolink.com/&lt;slug&gt;</code>, a normal web page that opens
-          in any browser. No login for you, no login for the reader. Pick how
-          visible it is:
+          in any browser. A free account for you, no login for the reader. Pick
+          how visible it is:
         </p>
         <ul>
           <li>
@@ -86,7 +87,7 @@ export default function Page() {
         <p>
           The link redirects to an isolated render origin under a strict content
           security policy, and pasted HTML is sanitized on the way in, so a
-          shared spec is safe to hand around. The cap is 2 MB per doc.
+          shared spec is safe to hand around. The cap is 15 MB per doc.
         </p>
 
         <h2>See if it landed</h2>
@@ -163,7 +164,7 @@ export default function Page() {
           },
           {
             q: "Is it free?",
-            a: "Yes. Publishing is free — paste Markdown or HTML, or drop a file up to 2 MB, and get a link at no cost.",
+            a: `${FREE_LINE_YES} Paste Markdown or HTML, or drop a file up to 15 MB, and get a link at no cost. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Can I password-protect an internal spec?",
@@ -171,7 +172,7 @@ export default function Page() {
           },
           {
             q: "Do stakeholders need an account to read it?",
-            a: "No. The link opens as a normal web page in any browser — no sign-in wall between a reader and the doc, and no account for you either.",
+            a: "No. The link opens as a normal web page in any browser — no sign-in wall between a reader and the doc. You just need a free account to publish.",
           },
         ]}
       />

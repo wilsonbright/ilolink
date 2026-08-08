@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "ilolink for marketers — ilolink",
   description:
-    "Publish a landing-page mockup or campaign page as a link and see where attention went — click and scroll heatmaps, cookieless, no account.",
+    "Publish a landing-page mockup or campaign page as a link and see where attention went — click and scroll heatmaps, cookieless, no account to read.",
   alternates: { canonical: "/for/marketers" },
 };
 
@@ -45,8 +45,8 @@ export default function Page() {
         lead={
           <>
             Publish a landing-page mockup or campaign page as a link and see
-            where attention went with click and scroll heatmaps — no account,
-            cookieless, and safe to share AI-generated HTML that&apos;s
+            where attention went with click and scroll heatmaps — no account to
+            read, cookieless, and safe to share AI-generated HTML that&apos;s
             sanitized on the way in.
           </>
         }
@@ -60,8 +60,8 @@ export default function Page() {
           opens in a browser, not a screenshot in a deck. Your CSS is kept, so
           the layout and type look the way you built them. Inline{" "}
           <code>&lt;style&gt;</code> and Google Fonts render. The cap is
-          2&nbsp;MB per doc, and it&apos;s accountless — no login for you or the
-          people you send it to.
+          15&nbsp;MB per doc, and the people you send it to need no login —
+          publishing takes a free account, opening the link takes none.
         </p>
         <p>
           One honest limit up front: by default, uploaded HTML is sanitized on
@@ -105,7 +105,7 @@ export default function Page() {
           password get in. If a launch page should stop working after a date,
           set <strong>expiring</strong> visibility — expiry is opt-in, so a link
           never expires unless you choose it. You manage or delete the doc from
-          the dashboard in the browser you published from.
+          the dashboard, on any device you sign in on.
         </p>
       </Prose>
 
@@ -113,8 +113,8 @@ export default function Page() {
         <p>
           If the page needs live interactivity, a custom domain, or a form that
           actually collects submissions, a general host fits better — ilolink is
-          built around a sanitized, tracked, accountless link, and interactive
-          JS is frozen to static.
+          built around a sanitized, tracked link that opens without an account,
+          and interactive JS is frozen to static.
         </p>
       </Callout>
 

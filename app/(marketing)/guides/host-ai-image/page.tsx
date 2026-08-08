@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, howTo } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -37,7 +38,7 @@ export default function Page() {
             steps: [
               {
                 name: "Save the image file",
-                text: "Save the image your model generated (PNG, JPG, or WebP). If it's a large render, compress it so the whole doc stays under the 2 MB cap.",
+                text: "Save the image your model generated (PNG, JPG, or WebP). If it's a large render, compress it so the whole doc stays under the 15 MB cap.",
               },
               {
                 name: "Put it in a small doc",
@@ -45,7 +46,7 @@ export default function Page() {
               },
               {
                 name: "Paste or drop into ilolink",
-                text: "Open the composer at the ilolink home page and paste the HTML or Markdown, or drop the image file. No login is required.",
+                text: "Open the composer at the ilolink home page and paste the HTML or Markdown, or drop the image file. Publishing takes a free account; readers need none.",
               },
               {
                 name: "Set visibility and publish",
@@ -72,8 +73,8 @@ export default function Page() {
           <>
             Put your AI-generated image in a small HTML or Markdown doc, publish
             it on ilolink, and get a link. Then see who opened it — views,
-            referrers, countries, and device class — with no account and no
-            cookies.
+            referrers, countries, and device class — with no cookies and no
+            account on the reader&apos;s side.
           </>
         }
       />
@@ -101,7 +102,7 @@ export default function Page() {
           </li>
         </ul>
         <p>
-          Mind the <strong>2 MB per-doc cap</strong> — it covers the raw body or
+          Mind the <strong>15 MB per-doc cap</strong> — it covers the raw body or
           file. AI renders are often big, so compress large PNGs (or export as
           WebP) before you publish. One image comfortably fits; a gallery of
           full-resolution renders may not.
@@ -111,7 +112,7 @@ export default function Page() {
         <ol>
           <li>
             Save the image your model gave you. If it&apos;s a heavy render,
-            compress it so the doc stays under 2 MB.
+            compress it so the doc stays under 15 MB.
           </li>
           <li>
             Put it in a small doc — an <code>&lt;img&gt;</code> in HTML, a
@@ -120,7 +121,7 @@ export default function Page() {
           <li>
             Open the{" "}
             <a href="/">composer</a> and paste the HTML or Markdown, or drop the
-            file. No login.
+            file. Publishing takes a free account.
           </li>
           <li>
             Pick visibility — public, unlisted, password, or an opt-in expiry —
@@ -130,8 +131,8 @@ export default function Page() {
           </li>
           <li>
             Share the link. Track it in your{" "}
-            <a href="/dashboard">dashboard</a> — ownership is a per-doc manage
-            token kept in your browser, so keep that tab or device.
+            <a href="/dashboard">dashboard</a> — it belongs to your teamspace,
+            so it is there on any device you sign in on.
           </li>
         </ol>
 
@@ -174,7 +175,7 @@ export default function Page() {
           <p>
             No audio or video hosting — media isn&apos;t shipped, so this is for
             still images embedded in a doc. Docs are immutable: to change the
-            image you publish a new one. The 2 MB cap is firm, so compress before
+            image you publish a new one. The 15 MB cap is firm, so compress before
             you upload rather than after you hit it.
           </p>
         </Callout>
@@ -188,7 +189,7 @@ export default function Page() {
           },
           {
             q: "Is there a size limit?",
-            a: "Yes — 2 MB per doc, covering the raw body or file. AI renders are often large, so compress big PNGs or export as WebP before publishing.",
+            a: "Yes — 15 MB per doc, covering the raw body or file. AI renders are often large, so compress big PNGs or export as WebP before publishing.",
           },
           {
             q: "Does someone need an account to view the image?",
@@ -196,7 +197,7 @@ export default function Page() {
           },
           {
             q: "Is it free?",
-            a: "Yes. Publishing is free — paste or drop the image and get a link. There are no paid tiers to quote.",
+            a: `${FREE_LINE_YES} Paste or drop the image and get a link. ${TEAM_LINE}`,
           },
         ]}
       />

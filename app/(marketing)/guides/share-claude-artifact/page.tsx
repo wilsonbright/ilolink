@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, howTo } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -41,7 +42,7 @@ export default function Page() {
               },
               {
                 name: "Paste or drop it into ilolink",
-                text: "Paste the HTML or Markdown, or drop the file, into the composer at ilolink.com. The cap is 2 MB per doc.",
+                text: "Paste the HTML or Markdown, or drop the file, into the composer at ilolink.com. The cap is 15 MB per doc.",
               },
               {
                 name: "Pick a visibility mode",
@@ -68,7 +69,7 @@ export default function Page() {
           <>
             Export the artifact as one self-contained HTML file (or copy its
             Markdown), paste or drop it into ilolink, and get
-            ilolink.com/&lt;slug&gt; — a real link anyone can open, no account.
+            ilolink.com/&lt;slug&gt; — a real link anyone can open, no account to read.
             Then see who opened it and how far they read.
           </>
         }
@@ -123,7 +124,7 @@ export default function Page() {
           That&apos;s the default. If you instead mark an HTML doc as{" "}
           <strong>trusted</strong> at publish time, it&apos;s kept as-is and its
           own scripts run — contained inside a sandboxed frame on that same
-          isolated origin. The cap is 2 MB per doc. If you&apos;re weighing formats, see{" "}
+          isolated origin. The cap is 15 MB per doc. If you&apos;re weighing formats, see{" "}
           <a href="/guides/best-way-to-share-ai-html">
             the best way to share AI-generated HTML
           </a>
@@ -190,7 +191,7 @@ export default function Page() {
           },
           {
             q: "Is it free?",
-            a: "Yes — publishing is free. You paste the HTML or Markdown, or drop a file up to 2 MB, and get a link at no cost.",
+            a: `${FREE_LINE_YES} You paste the HTML or Markdown, or drop a file up to 15 MB, and get a link at no cost. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Can I password-protect it?",

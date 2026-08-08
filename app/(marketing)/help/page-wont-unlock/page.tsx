@@ -95,10 +95,10 @@ export default function Page() {
         </ol>
         <Callout title="Where the delete lives">
           <p>
-            Publishing needs a free account. The manage token for each doc is stored in
-            the <strong>browser you published from</strong>, so your dashboard —
-            and the delete button — works from that same browser and device. If
-            you published from a different machine, delete from that one.
+            Publishing needs a free account. Each doc belongs to{" "}
+            <strong>your teamspace</strong>, so your dashboard — and the delete
+            button — works from any device you sign in on. It doesn&apos;t
+            matter which machine you published from.
           </p>
         </Callout>
 
@@ -125,7 +125,7 @@ export default function Page() {
           },
           {
             q: "Where do I delete the old one?",
-            a: "From your dashboard, on the browser you published from. ilolink is accountless, so each doc's manage token lives in that browser and device.",
+            a: "From your dashboard, signed in with the free account you published from. Each doc belongs to your teamspace, so any device works.",
           },
           {
             q: "Is there a password reset?",
@@ -139,7 +139,7 @@ export default function Page() {
           {
             path: "/help/delete-or-replace",
             title: "Delete or replace a doc",
-            blurb: "Remove the old link and publish a new copy — from the browser you published on.",
+            blurb: "Remove the old link and publish a new copy — from your dashboard, on any device.",
           },
           {
             path: "/guides/do-links-expire",

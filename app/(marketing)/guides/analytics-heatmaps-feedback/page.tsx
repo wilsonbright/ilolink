@@ -155,7 +155,7 @@ export default function Page() {
             path: "/guides/share-ai-output",
             title: "Share anything an AI made, as a real link",
             blurb:
-              "Paste Markdown or HTML, or drop a file, and get a shareable ilolink.com link — no account.",
+              "Paste Markdown or HTML, or drop a file, and get a shareable ilolink.com link — readers need no account.",
           },
           {
             path: "/guides/best-way-to-share-ai-html",

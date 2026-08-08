@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, howTo } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -41,7 +42,7 @@ export default function Page() {
               },
               {
                 name: "Paste or drop it into ilolink",
-                text: "Paste the Markdown or HTML, or drop the file, into the composer at ilolink.com. The cap is 2 MB per doc.",
+                text: "Paste the Markdown or HTML, or drop the file, into the composer at ilolink.com. The cap is 15 MB per doc.",
               },
               {
                 name: "Pick a visibility mode",
@@ -68,8 +69,8 @@ export default function Page() {
           <>
             Take ChatGPT, Claude, or Gemini output — HTML, Markdown, an image, a
             file — and publish it as a normal web page anyone can open at
-            ilolink.com/&lt;slug&gt;. No account. Then see how it was read: views,
-            scroll depth, heatmaps, feedback.
+            ilolink.com/&lt;slug&gt;. Readers need no account. Then see how it
+            was read: views, scroll depth, heatmaps, feedback.
           </>
         }
       />
@@ -119,7 +120,7 @@ export default function Page() {
           <strong>frozen</strong> to its static state rather than executing —
           unless you mark the doc trusted at publish time, in which case it runs
           as-is inside a sandboxed frame on that same isolated origin. The cap is
-          2 MB per doc.
+          15 MB per doc.
         </p>
 
         <h2>What can I share this way?</h2>
@@ -137,7 +138,7 @@ export default function Page() {
             <strong>AI-generated images</strong>.
           </li>
           <li>
-            <strong>Files</strong> — under the 2 MB cap.
+            <strong>Files</strong> — under the 15 MB cap.
           </li>
         </ul>
         <p>
@@ -199,11 +200,11 @@ export default function Page() {
         items={[
           {
             q: "Do I need an account?",
-            a: "No. There's no login and no server-side account. You paste or drop your content and get a link. Ownership is a per-doc manage token kept in your browser.",
+            a: "To publish, yes — a free one. Readers never do. You sign in, paste or drop your content, and get a link; your docs live in your teamspace, reachable from any device you sign in on.",
           },
           {
             q: "Is it free?",
-            a: "Yes — publishing is free. You paste Markdown or HTML, or drop a file up to 2 MB, and get a link at no cost.",
+            a: `${FREE_LINE_YES} You paste Markdown or HTML, or drop a file up to 15 MB, and get a link at no cost. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Can I password-protect it?",

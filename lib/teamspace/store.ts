@@ -14,12 +14,25 @@ export interface TeamspaceRow {
   id: string;
   name: string;
   created_by: string | null;
+  /** Plan id — see lib/billing/plans.ts. May hold legacy values; use planFor(). */
   plan: string;
+  /**
+   * LEGACY. The pre-billing document ceiling (default 200). Seats and document
+   * caps now derive from `plan`, so this is no longer the authority — it is
+   * left in place because migration 0015 is additive and nothing backfills it.
+   * Do not read it for new limits.
+   */
   quota_docs: number;
   status: string;
   is_personal: number;
   legacy_workspace_id: string | null;
   created_at: number;
+  // Billing (migration 0015). Nullable: a teamspace that never paid has none.
+  stripe_customer_id: string | null;
+  stripe_session_id: string | null;
+  /** 'default' | 'stripe' | 'comp' — how this teamspace got its plan. */
+  plan_source: string;
+  plan_updated_at: number | null;
 }
 
 export interface MemberRow {

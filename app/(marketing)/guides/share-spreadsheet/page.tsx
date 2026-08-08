@@ -41,7 +41,7 @@ export default function Page() {
               },
               {
                 name: "Paste it (or drop the .csv)",
-                text: "Paste the CSV or TSV into the composer at ilolink.com, or drop a .csv file. No account, no login.",
+                text: "Paste the CSV or TSV into the composer at ilolink.com, or drop a .csv file. Publishing needs a free account.",
               },
               {
                 name: "Let ilolink render the table",
@@ -86,8 +86,8 @@ export default function Page() {
           </li>
           <li>
             <strong>Paste it</strong> into the composer at{" "}
-            <a href="/">ilolink.com</a> — or drop the <code>.csv</code> file. No
-            account needed.
+            <a href="/">ilolink.com</a> — or drop the <code>.csv</code> file.
+            Publishing needs a free account.
           </li>
           <li>
             ilolink <strong>detects the delimiters</strong> (comma or tab) and
@@ -202,7 +202,7 @@ export default function Page() {
           },
           {
             q: "How big can it be?",
-            a: "Pasted or text CSV is capped at 2 MB per doc. The 15 MB cap is for binary uploads like PDF, DOCX, or images — not CSV.",
+            a: "15 MB per doc — the same cap whether you paste the CSV as text or drop the .csv file. Binary uploads like PDF, DOCX, and images share that ceiling too.",
           },
           {
             q: "Can I see which cells people looked at?",
@@ -210,7 +210,7 @@ export default function Page() {
           },
           {
             q: "Does someone need an account to view it?",
-            a: "No. Readers just open ilolink.com/<slug> — no login, no signup. You don't need an account to publish either; ownership is a per-doc manage token kept in your browser.",
+            a: "No. Readers just open ilolink.com/<slug> — no login, no signup. Publishing needs a free account; your docs live in your teamspace, reachable from any device you sign in on.",
           },
         ]}
       />

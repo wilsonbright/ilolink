@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, howTo } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -41,7 +42,7 @@ export default function Page() {
               },
               {
                 name: "Paste or drop it into ilolink",
-                text: "Paste the HTML, or drop the file, into the composer at ilolink.com. The cap is 2 MB per doc.",
+                text: "Paste the HTML, or drop the file, into the composer at ilolink.com. The cap is 15 MB per doc.",
               },
               {
                 name: "Pick a visibility mode",
@@ -122,7 +123,7 @@ export default function Page() {
           scripts run inside a sandboxed frame on that same isolated origin.
           Inline CSS, Google Fonts, and{" "}
           <code>https</code> and <code>data</code> images render, so the design
-          survives — the app just doesn&apos;t execute. The cap is 2 MB per doc,
+          survives — the app just doesn&apos;t execute. The cap is 15 MB per doc,
           and every doc loads on its own isolated origin.
         </p>
 
@@ -175,11 +176,11 @@ export default function Page() {
         items={[
           {
             q: "Do readers need an account to view it?",
-            a: "No. Anyone with the link can open the page. There's no login to view, and no login to publish either — ownership is a per-doc manage token kept in your browser.",
+            a: "No. Anyone with the link can open the page — there's no login to view. Publishing is the other half: that needs a free account, and your docs live in your teamspace, reachable from any device you sign in on.",
           },
           {
             q: "Is it free?",
-            a: "Yes — publishing is free. Paste HTML or drop a file up to 2 MB and get a link at no cost.",
+            a: `${FREE_LINE_YES} Paste HTML or drop a file up to 15 MB and get a link at no cost. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Will my Lovable app actually run on the page?",

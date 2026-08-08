@@ -201,7 +201,7 @@ export async function updateDoc(
     // Keep the original interpretation (md vs html) from the doc.
     sourceType = doc.source_type === "html" ? "html" : "md";
     if (byteLength(raw) > MAX_TEXT_BYTES) {
-      throw new PublishError("Content exceeds the 2 MB text limit — attach a file or trim it.");
+      throw new PublishError("Content exceeds the 15 MB text limit — attach a file or trim it.");
     }
     const r = renderContent(raw, sourceType);
     assertNotAbusive(raw, r.html);

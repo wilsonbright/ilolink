@@ -45,7 +45,8 @@ export default function Page() {
           <>
             ilolink gives you a link for anything an AI made, then shows you who
             read it: cookieless analytics, click and scroll heatmaps, reactions,
-            and anchored comments. No account. Paste or drop a file, get{" "}
+            and anchored comments. Readers need no account. Paste or drop a
+            file, get{" "}
             <code>ilolink.com/&lt;slug&gt;</code>, served isolated on
             Cloudflare&apos;s edge.
           </>
@@ -54,8 +55,9 @@ export default function Page() {
       <Prose>
         <h2>Publish anything an AI made</h2>
         <p>
-          Paste Markdown or HTML, or drop a file — up to 2 MB per doc — and get a
-          link in seconds. No account, no setup. Images work: an AI-generated
+          Paste Markdown or HTML, or drop a file — up to 15 MB per doc — and get a
+          link in seconds. Publishing needs a free account; there is nothing
+          else to set up. Images work: an AI-generated
           picture embedded in a doc, or hosted on its own. What you publish is
           sanitized on ingest and served isolated on a separate render origin,{" "}
           <code>view.ilolink.com</code>, so a doc you didn&apos;t write
@@ -182,7 +184,7 @@ export default function Page() {
         items={[
           {
             q: "Do I need an account?",
-            a: "No. Paste Markdown or HTML, or drop a file up to 2 MB, and you get an ilolink.com/<slug> link. Publishing and reading analytics are accountless, and readers don't need an account to react or comment.",
+            a: "To publish, yes — a free one. Sign in, paste Markdown or HTML, or drop a file up to 15 MB, and you get an ilolink.com/<slug> link. Readers don't need an account to open a doc, react, or comment.",
           },
           {
             q: "Does the analytics use cookies?",

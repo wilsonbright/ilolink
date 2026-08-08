@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, howTo } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -37,7 +38,7 @@ export default function Page() {
             steps: [
               {
                 name: "Paste your Markdown",
-                text: "Paste the Markdown into the composer at ilolink.com. No account, no login. The cap is 2 MB per doc.",
+                text: "Paste the Markdown into the composer at ilolink.com. Publishing takes a free account; readers need none. The cap is 15 MB per doc.",
               },
               {
                 name: "See it render in a reading shell",
@@ -67,7 +68,8 @@ export default function Page() {
         lead={
           <>
             Paste Markdown into ilolink and get a clean reading page at
-            ilolink.com/&lt;slug&gt; — no account, no login. Then see how far
+            ilolink.com/&lt;slug&gt; — readers need no account, no login. Then
+            see how far
             people actually read it with a scroll-depth funnel bucketed at 0 / 25
             / 50 / 75 / 100%.
           </>
@@ -96,7 +98,7 @@ export default function Page() {
         <ol>
           <li>
             Paste your Markdown into the composer at{" "}
-            <a href="/">ilolink.com</a>. No account needed.
+            <a href="/">ilolink.com</a>. Publishing needs a free account.
           </li>
           <li>
             It renders in a <strong>clean reading shell</strong> — headings,
@@ -110,7 +112,7 @@ export default function Page() {
         <p>
           The branded link 302-redirects to an isolated render origin,{" "}
           <code>view.ilolink.com</code>, served under a strict content-security
-          policy (<code>default-src &apos;none&apos;</code>). The cap is 2 MB per
+          policy (<code>default-src &apos;none&apos;</code>). The cap is 15 MB per
           doc — plenty for a spec, brief, or write-up, and enough to embed an
           image inline if you need one. If you have HTML instead of Markdown, the{" "}
           <a href="/guides/best-way-to-share-ai-html">
@@ -169,11 +171,11 @@ export default function Page() {
           },
           {
             q: "Does someone need an account to view it?",
-            a: "No. Readers just open ilolink.com/<slug> — no login, no signup. You don't need an account to publish either; ownership is a per-doc manage token kept in your browser.",
+            a: "No. Readers just open ilolink.com/<slug> — no login, no signup. Publishing does take a free account, and your docs live in your teamspace, reachable from any device you sign in on.",
           },
           {
             q: "Is it free?",
-            a: "Yes. Publishing is free. Paste Markdown up to 2 MB and get a link at no cost.",
+            a: `${FREE_LINE_YES} Paste Markdown up to 15 MB and get a link at no cost. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "Can I password-protect it?",

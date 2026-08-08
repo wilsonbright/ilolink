@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article, howTo } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -41,7 +42,7 @@ export default function Page() {
               },
               {
                 name: "Paste or drop it into ilolink",
-                text: "Paste the HTML or Markdown, or drop the file, into the composer at ilolink.com. The cap is 2 MB per doc.",
+                text: "Paste the HTML or Markdown, or drop the file, into the composer at ilolink.com. The cap is 15 MB per doc.",
               },
               {
                 name: "Pick a visibility mode",
@@ -92,8 +93,8 @@ export default function Page() {
         </p>
         <p>
           ilolink turns that content into a standalone public page at{" "}
-          <code>ilolink.com/&lt;slug&gt;</code> — no account for you to publish,
-          no account for anyone to read it.
+          <code>ilolink.com/&lt;slug&gt;</code> — a free account for you to publish,
+          no account at all for anyone to read it.
         </p>
 
         <h2>How to publish Mistral Le Chat output</h2>
@@ -124,7 +125,7 @@ export default function Page() {
           and <code>javascript:</code> URLs are dropped, and interactive
           JavaScript is <strong>frozen to static</strong> — the layout and CSS
           render, but scripts don&apos;t run. Inline CSS, Google Fonts, and
-          https/data images work. The cap is 2 MB per doc.
+          https/data images work. The cap is 15 MB per doc.
         </p>
 
         <h2>What you learn after sharing</h2>
@@ -177,11 +178,11 @@ export default function Page() {
         items={[
           {
             q: "Do readers need an account to view it?",
-            a: "No. Anyone with the link can open the page. There's no login to view, and no login to publish either — ownership is a per-doc manage token kept in your browser.",
+            a: "No. Anyone with the link can open the page — there's no login to view. Publishing is the other half: that needs a free account, and your docs live in your teamspace, reachable from any device you sign in on.",
           },
           {
             q: "Is it free?",
-            a: "Yes — publishing is free. Paste HTML or Markdown, or drop a file up to 2 MB, and get a link at no cost.",
+            a: `${FREE_LINE_YES} Paste HTML or Markdown, or drop a file up to 15 MB, and get a link at no cost. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "What if the Le Chat output has interactive JavaScript?",

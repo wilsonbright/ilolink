@@ -23,9 +23,10 @@ export const SITE_TITLE =
 export const SITE_DESCRIPTION =
   "Share Markdown, HTML, a PDF or a .docx as a link anyone can open without signing in. See views, read-through, heatmaps and comments — no cookies. Plus a shared registry that keeps your team's skills, specs and plans where every teammate's AI agent can read them.";
 
-// The live conversion surface. Publishing now needs a free account; the
-// composer is still the
-// signup, so every marketing CTA points here rather than at a /pricing page.
+// The live conversion surface: the composer doubles as the signup, so most
+// marketing CTAs point here. As of 2026-08-09 there IS a /pricing page (see
+// REFERENCE.pricing) — the note that previously claimed otherwise predated
+// paid plans.
 export const COMPOSE_URL = "/";
 
 // Build date, kept explicit so sitemap output is deterministic across builds
@@ -142,7 +143,7 @@ export const GETTING_STARTED = {
   requirements: {
     path: "/guides/requirements",
     title: "What you need to share an AI output",
-    blurb: "Spoiler: just the output. No server, no repo, no build step, no account.",
+    blurb: "Spoiler: just the output and a free account. No server, no repo, no build step.",
     group: "guide",
     priority: 0.7,
   },
@@ -409,6 +410,17 @@ export const DEEP_GUIDES = {
 // Glossary = short quotable definitions (prime AI-citation material). Use cases
 // = examples paired with the analytics question each one answers.
 export const REFERENCE = {
+  // Registered here so it reaches the sitemap. app/sitemap.ts derives ENTIRELY
+  // from ALL_PAGES, so a page missing from this registry is invisible to search
+  // no matter how well it renders — /pricing shipped orphaned exactly that way.
+  pricing: {
+    path: "/pricing",
+    title: "Pricing — free for one person, one-time payment for teams",
+    blurb:
+      "What ilolink costs: free solo, and a single payment for a team. No subscription.",
+    group: "reference",
+    priority: 0.8,
+  },
   glossary: {
     path: "/glossary",
     title: "Glossary: AI output, artifacts, static hosting & GEO",
@@ -463,7 +475,7 @@ export const HELP = {
   large: {
     path: "/help/file-too-large",
     title: "My file is too large",
-    blurb: "The 2 MB per-doc cap, why it exists, and how to get under it.",
+    blurb: "The 15 MB per-doc cap, why it exists, and how to get under it.",
     group: "help",
     priority: 0.5,
   },

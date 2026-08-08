@@ -25,6 +25,12 @@ const MESSAGES: Record<string, string> = {
   expired: "This invitation has expired. Ask for a new one.",
   revoked: "This invitation was withdrawn.",
   already_accepted: "This invitation has already been used.",
+  // Without this entry the fallback below would say "this invitation link
+  // isn't valid", which is false and sends the invitee chasing the wrong
+  // problem. The link is fine; the team has no free seat, and only someone
+  // who runs the team can fix it.
+  seats_full:
+    "This team has no seats left. Ask whoever invited you to upgrade the plan or free up a seat, then use this link again.",
 };
 
 export default async function InvitePage({

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -44,8 +45,8 @@ export default function Page() {
           <>
             Share a draft, essay, or newsletter as a clean link and see how far
             readers got — scroll depth and time on page — plus the reactions and
-            comments they leave in place. No account for you to publish, and none
-            for your readers to respond.
+            comments they leave in place. A free account to publish, and none
+            needed for your readers to respond.
           </>
         }
       />
@@ -60,9 +61,9 @@ export default function Page() {
           first line. They click, they read.
         </p>
         <p>
-          HTML works too if you write in it, and files up to 2 MB. Ownership is a
-          per-doc manage token kept in your browser, so there&apos;s nothing to
-          sign up for. Docs are immutable — to post a revised draft you publish a
+          HTML works too if you write in it, and files up to 15 MB. Your docs
+          live in your teamspace, so you can manage them from any device you
+          sign in on. Docs are immutable — to post a revised draft you publish a
           new one, so an old link never quietly changes under a reader.
         </p>
 
@@ -119,11 +120,11 @@ export default function Page() {
           },
           {
             q: "Can I revise a draft after sharing?",
-            a: "Docs are immutable, so a shared link never changes under a reader. To post a revised draft you publish a new doc and share the new link. You can delete a doc from the dashboard on the browser that published it.",
+            a: "Docs are immutable, so a shared link never changes under a reader. To post a revised draft you publish a new doc and share the new link. You can delete a doc from the dashboard on any device you sign in on.",
           },
           {
             q: "Is it free?",
-            a: "Yes. Publishing is free — paste your Markdown and get a link. There are no paid tiers to quote.",
+            a: `${FREE_LINE_YES} Paste your Markdown and get a link. ${TEAM_LINE}`,
           },
         ]}
       />

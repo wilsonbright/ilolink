@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "Delete or replace a published doc — ilolink help",
   description:
-    "ilolink docs are immutable. To change the content, publish a new doc and share the new link. To take one down, delete it from your dashboard on the publishing browser.",
+    "ilolink docs are immutable. To change the content, publish a new doc and share the new link. To take one down, delete it from your dashboard on any device you sign in on.",
   alternates: { canonical: "/help/delete-or-replace" },
 };
 
@@ -27,21 +27,21 @@ export default function Page() {
             path: "/help/delete-or-replace",
             headline: "How to delete or replace a published doc",
             description:
-              "ilolink docs are immutable. To change the content, publish a new doc for a new link. To take one down, delete it from the dashboard on the browser you published from.",
+              "ilolink docs are immutable. To change the content, publish a new doc for a new link. To take one down, delete it from the dashboard in your ilolink account.",
             datePublished: "2026-07-22",
           }),
           howTo({
             name: "Delete a published ilolink doc",
             description:
-              "Remove a published document so its link 404s, using the per-doc manage token stored in the browser you published from.",
+              "Remove a published document so its link 404s, from the dashboard in the free account you published with.",
             steps: [
               {
-                name: "Open the publishing browser",
-                text: "Use the same browser and device you published the doc from. The per-doc manage token is stored there — there is no account to sign into.",
+                name: "Sign in to your account",
+                text: "Sign in with the free account you published from. Documents belong to your teamspace, so any device works.",
               },
               {
                 name: "Open your dashboard",
-                text: "Go to your dashboard. It lists the docs you published from this browser, each with its manage token.",
+                text: "Go to your dashboard. It lists every doc in your teamspace, each with its own controls.",
               },
               {
                 name: "Delete the doc",
@@ -64,8 +64,8 @@ export default function Page() {
           <>
             ilolink docs are immutable: to change the content you publish a new
             doc, which gives you a new link to share. To take one down, you
-            delete it from your dashboard. The manage token lives in the browser
-            you published from — no account.
+            delete it from your dashboard — signed in with the free account you
+            published from, on any device.
           </>
         }
       />
@@ -113,30 +113,30 @@ export default function Page() {
 
         <h2>To delete a doc</h2>
         <p>
-          Open your <a href="/dashboard">dashboard</a> on the browser and device
-          you published from. The per-doc manage token is stored there — no
-          account, no login — so that browser is what proves the doc is yours.
-          Find the doc, delete it, and the link starts returning a 404. Deletion
+          Open your <a href="/dashboard">dashboard</a>, signed in with the free
+          account you published from. Docs belong to your teamspace, not to one
+          browser, so signing in is what proves the doc is yours. Find the doc,
+          delete it, and the link starts returning a 404. Deletion
           is how you take a page down for good; there&apos;s no unpublish that
           keeps the slug alive.
         </p>
 
         <h2>If you published from another device</h2>
         <p>
-          Without that browser&apos;s manage token, you can&apos;t manage or
-          delete the doc — a different device simply doesn&apos;t hold the token
-          that authorizes it. That&apos;s the accountless trade-off: no email, no
-          password, nothing to phish, but also nothing to recover from a fresh
-          browser. If you still have the original browser, use it. If you
-          cleared its storage or lost the device, the token is gone with it.
+          It doesn&apos;t matter which one. Your docs live in your teamspace, so
+          they show up in the dashboard on any device you sign in on — laptop,
+          phone, a browser you&apos;ve never used before. Clearing site data or
+          losing the machine you published from doesn&apos;t cost you the doc;
+          sign in again and it&apos;s there. Only the account that owns the
+          teamspace — or a teammate in it — can delete or replace anything.
         </p>
       </Prose>
 
-      <Callout title="Publishing from a browser you'll keep">
-        Because the manage token lives in the browser, publish from one you
-        control and won&apos;t wipe — not a shared or incognito window — if you
-        expect to delete or replace the doc later. Incognito discards the token
-        the moment you close it.
+      <Callout title="Publish from an account you'll keep">
+        Because docs belong to the account that published them, sign in with one
+        you&apos;ll keep using — not a throwaway address — if you expect to
+        delete or replace the doc later. The browser doesn&apos;t matter; the
+        account does.
       </Callout>
 
       <Faq
@@ -147,11 +147,11 @@ export default function Page() {
           },
           {
             q: "Where's my delete button?",
-            a: "In your dashboard, opened on the same browser and device you published from. The per-doc manage token is stored in that browser, so that's where the doc shows up and where you can delete it.",
+            a: "In your dashboard, once you're signed in with the account you published from. Every doc in your teamspace is listed there, so that's where you delete it.",
           },
           {
             q: "I lost the device — can I still delete the doc?",
-            a: "Not without the manage token. It lives only in the browser you published from, and there's no account to recover it through. If that browser or device is gone, so is the ability to manage that doc.",
+            a: "Yes. Docs belong to your teamspace, not to one browser, so sign in on any other device and the doc is in your dashboard waiting to be deleted.",
           },
           {
             q: "Does deleting free up the old link?",
@@ -174,7 +174,7 @@ export default function Page() {
             path: "/guides/requirements",
             title: "What you need to share an AI output",
             blurb:
-              "The honest checklist: a file or pasted text under 2 MB, no account — and the browser that holds your manage token.",
+              "The honest checklist: a file or pasted text under 15 MB, and a free account to publish it from.",
           },
         ]}
       />

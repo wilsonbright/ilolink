@@ -22,6 +22,12 @@ import { currentUser } from "@/lib/auth/current-user";
 import { ensurePersonalTeamspace, getMembership } from "@/lib/teamspace/store";
 import { canPublishInto } from "@/lib/teamspace/permissions";
 import { queryFirst } from "@/lib/db/client";
+import { env } from "@/lib/cf";
+import { siteOrigin } from "@/lib/auth/config";
+import {
+  checkDocumentAllowance,
+  documentLimitMessage,
+} from "@/lib/billing/entitlements";
 import { scanContent } from "@/lib/abuse/scan";
 import {
   MAX_BODY_BYTES,
@@ -143,7 +149,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
       sourceTypeRaw = "html"; // re-derived from content below; placeholder
     } else {
       if (file.size > MAX_BODY_BYTES) {
-        return bad("File exceeds the 2 MB limit.", 413);
+        return bad("File exceeds the 15 MB limit.", 413);
       }
       content = await file.text();
       // Prefer an explicit sourceType field, else infer from the filename.
@@ -203,7 +209,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     sourceTypeRaw = upload === "pdf" ? "pdf" : "html";
   } else {
     if (byteLength(content) > MAX_BODY_BYTES) {
-      return bad("Document exceeds the 2 MB limit.", 413);
+      return bad("Document exceeds the 15 MB limit.", 413);
     }
     if (!isSourceType(sourceTypeRaw)) {
       return bad("Field 'sourceType' must be 'md' or 'html'.");
@@ -291,15 +297,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     return bad("That teamspace is suspended.", 403);
   }
 
-  const used = await queryFirst<{ n: number }>(
-    "SELECT COUNT(*) AS n FROM documents WHERE teamspace_id = ? AND unpublished_at IS NULL",
-    teamspace.id,
-  );
-  if (Number(used?.n ?? 0) >= teamspace.quota_docs) {
-    return bad(
-      `That teamspace has reached its limit of ${teamspace.quota_docs} published documents.`,
-      403,
-    );
+  // The document cap now comes from the teamspace's PLAN, not the legacy
+  // quota_docs column (which still holds its pre-billing default of 200 on
+  // every existing row and is deliberately not backfilled — migration 0015 is
+  // additive). See lib/billing/plans.ts.
+  const allowance = await checkDocumentAllowance(env().DB, teamspace.id);
+  if (!allowance.allowed) {
+    return bad(documentLimitMessage(allowance, `${siteOrigin()}/pricing`), 403);
   }
 
   if (!(await verifyTurnstile(input.turnstileToken, ip))) {

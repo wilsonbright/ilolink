@@ -34,19 +34,27 @@ export default function DocumentDetailPage() {
 
       {entry === undefined ? null : entry === null ? (
         <div className="mt-6 max-w-prose space-y-3">
+          {/* This is the LEGACY path: documents published before accounts
+              existed are unlocked by a per-doc token kept in the publishing
+              browser. Documents published since belong to a teamspace and are
+              reachable from any device you sign in on. The old copy stated the
+              browser-key rule unconditionally, which is false for every
+              document published since the accounts pivot — and it told people
+              to go hunting for the wrong browser when signing in was the
+              answer. */}
           <h1 className="text-2xl font-semibold text-ink">
-            Not published from this browser
+            Can&rsquo;t open these analytics
           </h1>
           <p className="leading-relaxed text-ink-soft">
-            ilolink keeps the key that unlocks a document&rsquo;s stats and
-            comments in the browser that published it. This browser doesn&rsquo;t
-            have the key for{" "}
-            <span className="text-ink">/{slug}</span>, so its private analytics
-            can&rsquo;t be shown here.
+            <span className="text-ink">/{slug}</span> isn&rsquo;t in a teamspace
+            you&rsquo;re signed in to, and this browser doesn&rsquo;t hold the
+            key for it either.
           </p>
-          <p className="text-sm text-ink-faint">
-            Open this page in the browser you published from, or publish a new
-            document to start fresh.
+          <p className="text-sm leading-relaxed text-ink-faint">
+            If you published it recently, sign in with the account you used. If
+            you published it before ilolink had accounts, its analytics are
+            unlocked by the browser you published from — open it there, and you
+            can add it to your account from your dashboard.
           </p>
         </div>
       ) : (

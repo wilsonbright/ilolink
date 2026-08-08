@@ -37,7 +37,7 @@ export default function Page() {
             steps: [
               {
                 name: "Drop your PDF into ilolink",
-                text: "Drop a PDF into the composer at ilolink.com. No account, no login. The cap is 15 MB per PDF.",
+                text: "Drop a PDF into the composer at ilolink.com. Publishing needs a free account. The cap is 15 MB per PDF.",
               },
               {
                 name: "Pick a visibility mode",
@@ -74,8 +74,9 @@ export default function Page() {
         <p>Three steps:</p>
         <ol>
           <li>
-            Drop your PDF into the composer at <a href="/">ilolink.com</a>. No
-            account needed. The cap is <strong>15 MB</strong> per PDF.
+            Drop your PDF into the composer at <a href="/">ilolink.com</a>.
+            Publishing needs a free account. The cap is <strong>15 MB</strong>
+            per PDF.
           </li>
           <li>Pick a visibility mode — public, unlisted, password, or expiring.</li>
           <li>

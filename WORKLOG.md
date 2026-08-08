@@ -5,6 +5,54 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-09 — Stripe billing: one-time team plans, seat and document limits
+
+- **Asked (ultracode):** "build an integration with stripe for subscription… it's a one time fee of $9 for 5 team members and $19 for 10… add upgrade to add a team member for collab, free for personal for upto 3 documents… make changes to copy in landing page."
+- **SECURITY: a LIVE Stripe restricted key (`rk_live_…`) was pasted in the request.** It is in the transcript, so it is compromised. Not used, not written to any file. Must be rolled in the Stripe Dashboard. Same standing issue as `RESEND_API_KEY`.
+- **The brief contradicted itself** — "subscription" vs "one time fee" are different Stripe integrations (`mode:"subscription"` vs `mode:"payment"`, different webhooks, different failure semantics). Settled with the user before writing code: **one-time, lifetime**. Also settled: free = solo, limits apply to everyone, doc caps 3 / 100 / 500.
+
+### Shape
+`lib/billing/plans.ts` is the single source of truth — pure data (no bindings), so the statically prerendered landing page can import it. Three consumers that must never disagree read from it: the pricing copy, the Stripe line item, and the server-side limit checks. `lib/billing/copy.ts` derives every marketing pricing sentence from the same numbers, so a price change cannot leave a stale figure in prose or in a `<title>`.
+- Free: 1 seat, 3 docs. Team of 5: $9 once, 5 seats, 100 docs. Team of 10: $19 once, 10 seats, 500 docs.
+- `migrations/0015_billing.sql`, strictly additive. **No new limit columns**: seats/docs derive from `teamspaces.plan`, which already existed with `DEFAULT 'free'` and was read by nothing — so every existing row was already on the free plan with **no backfill at all**. `planFor()` is total, degrading legacy values (`'anon'`, `'team'`) to free rather than throwing inside the publish path.
+- No `plan_status` / `period_end` columns: a one-time purchase has no lifecycle, and those columns would invite code to check an expiry that does not exist.
+
+### The bug that had to be fixed before anything could be priced
+The MCP publish path counted `WHERE workspace_id = ?`, but the web path never writes `workspace_id`. **Measured in production: 21 of 27 live documents had `workspace_id` NULL — the MCP quota was blind to 78% of documents.** Harmless at a generous 200-doc quota nobody sold; the obvious bypass the moment free means 3 (publish three on the web, then publish forever over MCP). Both paths now count by `teamspace_id`. A legacy grant with no teamspace is counted by workspace against the free cap rather than falling through to an empty id, which would have matched nothing and never bound.
+
+### Enforcement
+- **Seats — atomic, inside the INSERT** (`lib/teamspace/invites.ts`). D1 has no transaction across the member INSERT and the invite-consume UPDATE, so a JS count-then-insert lets two people accepting two invites at the same instant both pass and sell a sixth seat on a five-seat plan. The limit lives in the `WHERE`, and `meta.changes` reports the outcome; `changes === 0` is disambiguated by re-reading, because `ON CONFLICT` also produces 0 for a harmless double-accept. Placed after the existing-member short-circuit so re-accepting stays idempotent and never consumes a second seat.
+- New `seats_full` reason — without it the page's fallback said "this invitation link isn't valid", which is false and sends the invitee chasing the wrong problem.
+- Non-authoritative pre-check at invite *creation* counts members + pending invites, so an owner learns the team is full while looking at the form. It cannot be the authority: invites live 14 days and several can be outstanding.
+- **Documents** — read-then-write, deliberately not atomic. The race is a user against themselves and costs one extra row.
+
+### Stripe
+Plain `fetch`, no SDK — the convention `lib/email/send.ts` set, and the SDK needs `createSubtleCryptoProvider` + `createFetchHttpClient` shims on workerd anyway. Inline `price_data`, so **nothing needs configuring in the Stripe Dashboard** except the webhook endpoint, and there is no price id to drift from `plans.ts`.
+- **Signature verification needed a new encoder.** Everything here signs base64url; Stripe signs **hex**. Verifying a `t=…,v1=<hex>` header against a base64url digest never matches — every real webhook would be rejected as a forgery with nothing to explain it. Added `hmacHex`.
+- The webhook is the **only** place a plan is granted — never the checkout success redirect, which anyone can visit without paying. Idempotency in **D1, not KV** (`stripe_events`, `INSERT OR IGNORE` + `meta.changes`): KV is eventually consistent and `lib/ratelimit.ts` already documents that it loses races, which is fine for rate limits and not for granting a paid plan.
+- Grants only on `payment_status === "paid"` — `checkout.session.completed` alone can mean a delayed payment still pending.
+- Fails **closed**: no `STRIPE_WEBHOOK_SECRET` → every webhook rejected. Web Crypto refuses a zero-length key, so without the explicit guard this would throw a 500 that Stripe retries for three days.
+
+### Verified against production, not inferred
+- Unsigned webhook → **400**; forged signature → **400**; `stripe_events` stayed **empty** and BlockSurvey's plan was **unchanged** (still `comp`, not `stripe`).
+- Anonymous checkout → **401**. Owner checkout with no key set → **503** (fail-closed, not a crash).
+- Free teamspace at 3/3: web publish → **403** with the real numbers; **MCP publish → refused with the same message** — the bypass is closed.
+- Invite on a solo teamspace → **403**.
+- `○ /` and `○ /pricing` both still statically prerendered; `/pricing` reaches the sitemap (58 URLs).
+- All probe data deleted; baseline re-confirmed `users 8, docs 27, qa_left 0, stripe_events 0, stripe_grants 0`.
+
+### Comped, per the user's decision
+BlockSurvey → `team10`, Research → `team5`, both `plan_source='comp'` so they are distinguishable from real revenue. Without this, enforcing seats immediately would have locked an 8-person org out of inviting — above even the $9 tier.
+
+### Copy
+New `/pricing`, a `#pricing` landing section, and a sweep of the marketing corpus. **Three multi-agent workflows** (map → copy → accountless sweep), each ending in an adversarial verifier. The verifiers earned their place: the first caught that a sweep agent's own `grep "2 MB"` could not match `2&nbsp;MB` and had missed 5 live claims plus **three user-facing error strings still naming the old 2 MB limit**; the second caught 5 surviving false claims including one in `lib/seo/site.ts`, which no agent had searched because all four grepped `app/**/*.tsx` only. Both sets fixed by hand afterwards.
+- Also corrected: `/publish` upload error said 2 MB while enforcing 15 MB; the dashboard's "not published from this browser" screen stated the legacy manage-token rule unconditionally, which is false for every document published since accounts.
+
+- **Deployed:** mcp `6319383d`, app `873ebb75`. 196 tests green, three typechecks clean.
+- **Outstanding, user-owned:** roll the exposed Stripe key, then `wrangler secret put STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`; create the webhook endpoint at `https://ilolink.com/api/stripe/webhook` for `checkout.session.completed`. Until then checkout returns 503 by design. Also still pending: rotate `RESEND_API_KEY`, `ADMIN_SECRET`, the Cloudflare API token, and enforce PAT scopes per tool.
+
+---
+
 ## 2026-08-08 — four bugs from a teammate's first run, all root-caused against production
 - **Asked:** feedback from a teammate who tried publishing with ilolink — "It has a 2 MB file-size limit. When the file is under 2 MB, some components are missing from the published file. For connecting the MCP, after logging into the platform, it was difficult to find where to initiate the connection. During the connection process, it showed an error immediately after connecting and then displayed as 'Disconnected.' I tried connecting around 4 times before it finally connected."
 - **All four reproduced against production before any code changed.** No guessing; four hypotheses were formed and *disconfirmed* along the way (a `getOrCreateForTeamspace` insert race, a deploy landing mid-attempt, `safeRedirect` eating the `next` param, and a `canPublishInto` 403 on the teamspace picker — each ruled out with evidence rather than argument).

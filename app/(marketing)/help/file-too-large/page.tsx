@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "My file is too large — ilolink help",
   description:
-    "ilolink caps each document at 2 MB. If yours is over, compress or resize embedded images, drop unused assets, or paste only the part you want to share.",
+    "ilolink caps each document at 15 MB. If yours is over, compress or resize embedded images, drop unused assets, or paste only the part you want to share.",
   alternates: { canonical: "/help/file-too-large" },
 };
 
@@ -27,7 +27,7 @@ export default function Page() {
             path: "/help/file-too-large",
             headline: "My file is too large",
             description:
-              "ilolink caps each document at 2 MB. Compress or resize embedded images, strip unused assets, or paste only the section you want to share.",
+              "ilolink caps each document at 15 MB. Compress or resize embedded images, strip unused assets, or paste only the section you want to share.",
             datePublished: "2026-07-22",
           }),
         ]}
@@ -43,7 +43,7 @@ export default function Page() {
         title="My file is too large"
         lead={
           <>
-            ilolink caps each document at 2 MB. If yours is over, compress or
+            ilolink caps each document at 15 MB. If yours is over, compress or
             resize the embedded images, remove unused assets, or paste only the
             part you want to share. The images are almost always what pushed you
             over.
@@ -53,10 +53,10 @@ export default function Page() {
       <Prose>
         <h2>The limit</h2>
         <p>
-          <strong>2 MB per doc.</strong> That&apos;s the whole raw body — the
+          <strong>15 MB per doc.</strong> That&apos;s the whole raw body — the
           Markdown or HTML you paste, or the file you drop, counting every
           inline image and asset baked into it. Not a page, not a project: one
-          document, 2 MB. Most write-ups, specs, and HTML pages sit well under
+          document, 15 MB. Most write-ups, specs, and HTML pages sit well under
           it, so if you&apos;re over, something heavy is embedded.
         </p>
 
@@ -64,8 +64,8 @@ export default function Page() {
         <p>
           Two reasons, both in your favor. Every doc is served from{" "}
           <a href="/guides/where-hosted">Cloudflare&apos;s global edge</a>, and a
-          small document loads fast from anywhere — a multi-megabyte page
-          doesn&apos;t. And every doc is sanitized on ingest before it&apos;s
+          lean document loads fast from anywhere — a 15 MB page doesn&apos;t.
+          And every doc is sanitized on ingest before it&apos;s
           published; keeping bodies bounded keeps that pass quick and
           predictable. The cap is what makes a paste-and-share link feel instant.
         </p>
@@ -75,17 +75,19 @@ export default function Page() {
         <ul>
           <li>
             <strong>Compress or resize images before embedding.</strong> A
-            full-resolution photo or screenshot is often 1–4 MB on its own. Drop
-            it to a sensible display width and re-export as compressed JPEG or
-            WebP before it goes into the doc.
+            full-resolution photo or screenshot is often 1–4 MB on its own, so a
+            handful of them clears 15 MB fast. Drop each to a sensible display
+            width and re-export as compressed JPEG or WebP before it goes into
+            the doc.
           </li>
           <li>
             <strong>Strip large <code>data:</code> URI images and link them
             instead.</strong> If your HTML has a giant{" "}
-            <code>data:image/png;base64,…</code> blob inline, that single string
-            can be the whole 2 MB. Host the image somewhere on{" "}
-            <code>https</code> and reference it by URL — the doc drops to a few
-            kilobytes. See{" "}
+            <code>data:image/png;base64,…</code> blob inline, base64 adds
+            roughly a third to the original size, and a few of those strings can
+            be most of the 15 MB on their own. Host the images somewhere on{" "}
+            <code>https</code> and reference them by URL — the doc drops to a
+            few kilobytes. See{" "}
             <a href="/guides/host-ai-image">how to host an AI image</a>.
           </li>
           <li>
@@ -119,7 +121,7 @@ export default function Page() {
         items={[
           {
             q: "What's the exact cap?",
-            a: "2 MB per doc. That's the raw body — the pasted Markdown or HTML, or the dropped file — including every inline image and asset in it.",
+            a: "15 MB per doc. That's the raw body — the pasted Markdown or HTML, or the dropped file — including every inline image and asset in it.",
           },
           {
             q: "Can I host a video?",
@@ -131,7 +133,7 @@ export default function Page() {
           },
           {
             q: "Does the cap count images separately?",
-            a: "No. It's the whole document body as one number. Inline images count against the same 2 MB as your text, which is why they're the usual culprit when you're over.",
+            a: "No. It's the whole document body as one number. Inline images count against the same 15 MB as your text, which is why they're the usual culprit when you're over.",
           },
         ]}
       />
@@ -150,7 +152,7 @@ export default function Page() {
             path: "/guides/requirements",
             title: "What you need to share an AI output",
             blurb:
-              "The honest checklist: a file or pasted text under 2 MB. No account, no server, no build step.",
+              "The honest checklist: a file or pasted text under 15 MB, a free account, no server, no build step.",
           },
         ]}
       />

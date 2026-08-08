@@ -101,7 +101,7 @@ export default function Page() {
         <ul>
           <li>
             <strong>The document you publish.</strong> The Markdown, HTML, or
-            file you paste or drop, up to 2 MB per doc. By default, uploaded
+            file you paste or drop, up to 15 MB per doc. By default, uploaded
             HTML is sanitized on ingest before it is stored or served. If you
             explicitly mark a document as trusted at publish time, it is stored
             and served unsanitized inside a sandboxed frame on the isolated
@@ -183,13 +183,14 @@ export default function Page() {
 
         <h2>Your rights (GDPR / CCPA)</h2>
         <p>
-          <em>Placeholder — pending legal review.</em> Because we hold no
-          accounts and build no personal profiles, there is little personal data
-          tied to you to begin with. Where applicable law gives you rights to
-          access, correct, or delete personal data, you can{" "}
-          <a href="/report">reach us through the report channel</a> and we will
-          act on valid requests. Publishers can delete a doc they control using
-          its manage token, which removes the doc and its associated analytics.
+          <em>Placeholder — pending legal review.</em> Because a publisher
+          account holds only an email address and we build no personal profiles,
+          there is little personal data tied to you to begin with. Where
+          applicable law gives you rights to access, correct, or delete personal
+          data, you can <a href="/report">reach us through the report channel</a>{" "}
+          and we will act on valid requests. Publishers can delete a doc they
+          control from their dashboard, which removes the doc and its associated
+          analytics.
           This section will be expanded with formal request procedures during
           legal review.
         </p>

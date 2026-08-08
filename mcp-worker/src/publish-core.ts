@@ -22,6 +22,8 @@ import { generateSlug, isValidCustomSlug } from "@/lib/slug";
 import { hashPassword } from "@/lib/crypto/password";
 import { scanContent } from "@/lib/abuse/scan";
 import type { SourceType, Visibility } from "@/lib/types";
+import { checkDocumentAllowance } from "@/lib/billing/entitlements";
+import { PLANS } from "@/lib/billing/plans";
 
 export const MAX_TEXT_BYTES = 15 * 1024 * 1024; // 15 MB, matches the web path
 
@@ -130,27 +132,62 @@ export async function publishForWorkspace(
   input: PublishToolInput,
   owner?: { teamspaceId: string; userId: string },
 ): Promise<PublishResult> {
-  // 0. Workspace status + quota.
-  const q = await b.DB.prepare(
-    "SELECT quota_docs, status FROM workspaces WHERE id = ?",
-  )
+  // 0. Workspace status.
+  const q = await b.DB.prepare("SELECT status FROM workspaces WHERE id = ?")
     .bind(workspaceId)
-    .first<{ quota_docs: number; status: string }>();
+    .first<{ status: string }>();
   if (!q || q.status !== "active") {
     throw new PublishError(
       "This workspace is suspended. If you believe this is a mistake, contact abuse@ilolink.com.",
     );
   }
-  const quota = q.quota_docs ?? 50;
-  const cnt = await b.DB.prepare(
-    "SELECT COUNT(*) AS n FROM documents WHERE workspace_id = ? AND unpublished_at IS NULL",
-  )
-    .bind(workspaceId)
-    .first<{ n: number }>();
-  if ((cnt?.n ?? 0) >= quota) {
-    throw new PublishError(
-      `You've reached your ${quota}-document limit. Unpublish one, or manage documents on your dashboard.`,
-    );
+
+  // 0b. Document allowance — counted on the TEAMSPACE, not the workspace.
+  //
+  // This check used to read workspaces.quota_docs and count
+  // `WHERE workspace_id = ?`. Both halves were wrong:
+  //
+  //   - The web publish path never writes documents.workspace_id (it passes
+  //     only teamspace_id — lib/publish/store-core.ts). Measured against
+  //     production on 2026-08-08: 21 of 27 live documents had workspace_id
+  //     NULL, so this counter missed 78% of them.
+  //   - workspaces.quota_docs is a SNAPSHOT taken when the workspace row was
+  //     first minted (see getOrCreateForTeamspace), so a plan upgrade written
+  //     to the teamspace would never have reached it.
+  //
+  // Harmless while the quota was a generous 200 and nothing was sold on it.
+  // The moment the free plan is 3 documents it becomes the obvious bypass:
+  // publish three on the web, then publish forever over MCP. Counting by
+  // teamspace makes both paths share one number.
+  //
+  // A connection with no teamspace is a legacy grant that predates accounts.
+  // It must NOT fall through to checkDocumentAllowance with an empty id:
+  // counting `teamspace_id = ''` matches nothing, so the count would be 0 on
+  // every call and the cap would never bind — an unlimited bypass reachable by
+  // holding an old grant. Count by workspace instead, against the free cap.
+  if (owner?.teamspaceId) {
+    const allowance = await checkDocumentAllowance(b.DB, owner.teamspaceId);
+    if (!allowance.allowed) {
+      throw new PublishError(
+        `You've published ${allowance.used} of ${allowance.limit} documents on the ` +
+          `${allowance.plan.label} plan. Unpublish one to free a slot, or upgrade ` +
+          `at https://ilolink.com/pricing.`,
+      );
+    }
+  } else {
+    const free = PLANS.free;
+    const legacy = await b.DB.prepare(
+      "SELECT COUNT(*) AS n FROM documents WHERE workspace_id = ? AND unpublished_at IS NULL",
+    )
+      .bind(workspaceId)
+      .first<{ n: number }>();
+    if ((legacy?.n ?? 0) >= free.docs) {
+      throw new PublishError(
+        `You've reached the ${free.docs}-document limit for this connection. ` +
+          `Reconnect ilolink from your assistant's settings to attach it to a ` +
+          `teamspace, or upgrade at https://ilolink.com/pricing.`,
+      );
+    }
   }
 
   // 1. Assemble the raw content (inline text or a data URL from base64).
@@ -210,7 +247,7 @@ export async function publishForWorkspace(
     }
   } else {
     if (byteLength(content) > MAX_TEXT_BYTES) {
-      throw new PublishError("Content exceeds the 2 MB text limit — attach a file or trim it.");
+      throw new PublishError("Content exceeds the 15 MB text limit — attach a file or trim it.");
     }
     // Honour an explicit html hint; otherwise let renderContent detect
     // md/json/csv/image from the content.

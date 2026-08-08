@@ -37,3 +37,20 @@ SITE_ORIGIN="https://ilolink.com"
 # Useful before the sending domain is verified. Defaults on when
 # RESEND_API_KEY is empty, so local dev works with no Resend account at all.
 EMAIL_DRY_RUN="1"
+
+# ── Billing (Stripe) ─────────────────────────────────────────────────────────
+
+# App worker (ilolink) — Stripe secret key. A RESTRICTED key is enough and is
+# what you should use: it only needs write access to Checkout Sessions. Never a
+# publishable key, and never commit either one.
+STRIPE_SECRET_KEY=""
+
+# App worker (ilolink) — signing secret for /api/stripe/webhook, shown once when
+# you create the endpoint in the Stripe Dashboard (whsec_...). This is the ONLY
+# authentication that endpoint has, so a deploy that forgets it fails closed:
+# every webhook is rejected and no purchase is ever granted. Set it.
+STRIPE_WEBHOOK_SECRET=""
+
+# These two are required in production but were missing from this template.
+MCP_HANDOFF_SECRET=""
+MCP_ORIGIN="https://mcp.ilolink.com"

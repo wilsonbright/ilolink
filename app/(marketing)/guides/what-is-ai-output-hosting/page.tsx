@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd, article } from "@/lib/seo/jsonld";
+import { FREE_LINE_YES, TEAM_LINE_SHORT } from "@/lib/billing/copy";
 import {
   Article,
   Breadcrumbs,
@@ -151,15 +152,15 @@ export default function Page() {
           },
           {
             q: "Do I need to know how to code?",
-            a: "No. You paste Markdown or HTML, or drop a file, and get a link. There's no account, no deploy step, and nothing to configure. If the chatbot gave you the output, you can host it.",
+            a: "No. You paste Markdown or HTML, or drop a file, and get a link. Publishing takes a free account, but there's no deploy step and nothing to configure. If the chatbot gave you the output, you can host it.",
           },
           {
             q: "Is it free?",
-            a: "Yes — publishing is free. You paste the HTML or Markdown, or drop a file up to 2 MB, and get a link at ilolink.com/<slug> at no cost.",
+            a: `${FREE_LINE_YES} You paste the HTML or Markdown, or drop a file up to 15 MB, and get a link at ilolink.com/<slug> at no cost. ${TEAM_LINE_SHORT}`,
           },
           {
             q: "What can't it host?",
-            a: "It hosts one self-contained document up to 2 MB, not a multi-file project or an app that needs a running server. By default, interactive JavaScript is frozen to static rather than executed — unless you mark the HTML doc as trusted at publish time, in which case its scripts run inside a sandboxed frame on the isolated origin — and there's no audio or video hosting.",
+            a: "It hosts one self-contained document up to 15 MB, not a multi-file project or an app that needs a running server. By default, interactive JavaScript is frozen to static rather than executed — unless you mark the HTML doc as trusted at publish time, in which case its scripts run inside a sandboxed frame on the isolated origin — and there's no audio or video hosting.",
           },
         ]}
       />

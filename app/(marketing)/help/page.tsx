@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: "ilolink help center — fixes & guides",
   description:
-    "Quick fixes for a page that looks broken once hosted, images that won't load, and files over the 2 MB cap — plus how to get more from your analytics.",
+    "Quick fixes for a page that looks broken once hosted, images that won't load, and files over the 15 MB cap — plus how to get more from your analytics.",
   alternates: { canonical: "/help" },
 };
 
@@ -26,7 +26,7 @@ export default function Page() {
             path: "/help",
             headline: "ilolink help center",
             description:
-              "Quick fixes for the most common issues — a page that looks broken once hosted, images that don't load, files over the 2 MB cap — plus how to get more from your analytics.",
+              "Quick fixes for the most common issues — a page that looks broken once hosted, images that don't load, files over the 15 MB cap — plus how to get more from your analytics.",
             datePublished: "2026-07-22",
           }),
         ]}
@@ -42,7 +42,7 @@ export default function Page() {
         lead={
           <>
             Quick fixes for the most common issues: a page that looks broken
-            once hosted, images that don&apos;t load, and files over the 2 MB
+            once hosted, images that don&apos;t load, and files over the 15 MB
             cap — plus where to get the most from your analytics. Start with the
             fix that matches what you&apos;re seeing.
           </>
@@ -74,7 +74,7 @@ export default function Page() {
             absolute <code>https://</code> or <code>data:</code> images.
           </li>
           <li>
-            <a href="/help/file-too-large">My file is over 2 MB</a> — the per-doc
+            <a href="/help/file-too-large">My file is over 15 MB</a> — the per-doc
             cap; trim it, split it, or share the key part.
           </li>
         </ul>
@@ -104,7 +104,7 @@ export default function Page() {
           },
           {
             q: "Is there a size limit?",
-            a: "Yes — 2 MB per doc. That covers most write-ups, specs, HTML pages, and inline images. If it's bigger, trim it, split it, or share the key part.",
+            a: "Yes — 15 MB per doc. That covers most write-ups, specs, HTML pages, and inline images. If it's bigger, trim it, split it, or share the key part.",
           },
         ]}
       />
@@ -117,13 +117,13 @@ export default function Page() {
             path: "/guides/requirements",
             title: "What you need to share an AI output",
             blurb:
-              "The honest checklist — a file or text under 2 MB, no account, no server, no build step.",
+              "The honest checklist — a file or text under 15 MB, a free account, no server, no build step.",
           },
           {
             path: "/guides/limitations",
             title: "Limitations: what's in and out of scope",
             blurb:
-              "The boundaries — the 2 MB cap, frozen JS, no version rollback, and what's on the roadmap.",
+              "The boundaries — the 15 MB cap, frozen JS, no version rollback, and what's on the roadmap.",
           },
         ]}
       />

@@ -11,6 +11,7 @@ import { nanoid } from "nanoid";
 import { execute, queryAll, queryFirst } from "@/lib/db/client";
 import { hashToken, newOpaqueToken } from "@/lib/crypto/token";
 import type { TeamRole } from "./permissions";
+import { planFor } from "@/lib/billing/plans";
 
 export const INVITE_TTL_DAYS = 14;
 
@@ -30,7 +31,13 @@ export type AcceptFailure =
   | "not_found"
   | "expired"
   | "revoked"
-  | "already_accepted";
+  | "already_accepted"
+  // The team is at its plan's seat limit. A distinct reason on purpose: the
+  // caller's message map falls back to "this invitation link isn't valid",
+  // which would be actively misleading here — the link is perfectly valid, the
+  // team is just full, and the fix is someone else's (upgrade or remove a
+  // member), not the invitee's.
+  | "seats_full";
 
 export class InviteError extends Error {
   constructor(public reason: AcceptFailure) {
@@ -107,16 +114,57 @@ export async function acceptInvite(
   if (invite.accepted_at) throw new InviteError("already_accepted");
 
   const now = Date.now();
-  await execute(
+
+  // THE SEAT GATE. Note where it sits: after the existing-member short-circuit
+  // above, so re-accepting an invite you already accepted stays idempotent and
+  // never consumes a second seat.
+  //
+  // The limit is inside the INSERT, not a count() before it, and that is not
+  // fussiness. D1 gives no transaction across these two statements, so a
+  // JS-side count lets two people accepting two different invites at the same
+  // moment both read "4 of 5 used" and both insert — selling a sixth seat on a
+  // five-seat plan. Folding the count into the WHERE makes SQLite evaluate it
+  // as one statement, and `meta.changes` reports whether the row went in.
+  //
+  // ON CONFLICT still matters: it keeps the double-accept case at 0 changes
+  // rather than erroring, which is why changes === 0 has to be disambiguated
+  // below rather than assumed to mean "full".
+  const plan = planFor(
+    (
+      await queryFirst<{ plan: string }>(
+        "SELECT plan FROM teamspaces WHERE id = ?",
+        invite.teamspace_id,
+      )
+    )?.plan,
+  );
+
+  const res = await execute(
     `INSERT INTO teamspace_members (teamspace_id, user_id, role, invited_by, joined_at)
-     VALUES (?, ?, ?, ?, ?)
+     SELECT ?, ?, ?, ?, ?
+      WHERE (SELECT COUNT(*) FROM teamspace_members WHERE teamspace_id = ?) < ?
      ON CONFLICT(teamspace_id, user_id) DO NOTHING`,
     invite.teamspace_id,
     userId,
     invite.role,
     invite.invited_by,
     now,
+    invite.teamspace_id,
+    plan.seats,
   );
+
+  if (!res.meta.changes) {
+    // Nothing was inserted. Either the team is full, or another request
+    // inserted this same user a moment ago (ON CONFLICT). Re-read to tell them
+    // apart: reporting "team is full" to someone who is already a member would
+    // be both wrong and alarming.
+    const nowMember = await queryFirst<{ role: TeamRole }>(
+      "SELECT role FROM teamspace_members WHERE teamspace_id = ? AND user_id = ?",
+      invite.teamspace_id,
+      userId,
+    );
+    if (!nowMember) throw new InviteError("seats_full");
+    return { teamspaceId: invite.teamspace_id, role: nowMember.role };
+  }
   // Conditional so two concurrent accepts cannot both consume the invite.
   await execute(
     "UPDATE invites SET accepted_at = ?, accepted_by = ? WHERE id = ? AND accepted_at IS NULL",
