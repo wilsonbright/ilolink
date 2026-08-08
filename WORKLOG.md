@@ -5,6 +5,19 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-08 — v2 pushed off-machine and merged to `main`
+- **Asked:** "git pull" → then "push it" → then "merge."
+- **`git pull` failed for a reason worth recording:** HEAD was on `fix/pre-launch-security`, which existed **only locally** and had no upstream, so git had nothing to merge from. `git fetch origin` returned zero new commits — `origin/main` was untouched at `e7a8f8a` since 2026-07-23.
+- **The real finding: the entire v2 pivot existed on one laptop.** 31 unpushed commits — accounts, teamspaces, the artifact registry, the MCP handoff, the `.docx` fix, the landing rewrite — all of it **already running in production** with no off-machine copy. `wrangler deploy` uploads the working tree, not a commit, so "deployed" never implied "pushed." Backup and deploy state had silently decoupled weeks earlier.
+- **Scanned before pushing, because the repo is PUBLIC** (`gh repo view` → `isPrivate: false`). Swept all 31 commits for `re_*`, `sk-*`, `ilo_pat_*`, `AKIA*`, `ghp_*` and PEM private-key headers: **no matches**. `.dev.vars.example` carries only empty placeholders; the one tracked env file, `.env.production`, holds solely `NEXT_PUBLIC_TURNSTILE_SITEKEY` (a Turnstile **site** key — public by design). Emails in the diff are own-domain, test fixtures, or `delivered@resend.dev`.
+- **Pushed, then merged `--ff-only`** (`main` was a strict ancestor, so history stays linear and the merge was provably content-neutral). **149 tests pass across 15 files** — the v2 plan had predicted "51 existing tests must stay green"; the suite nearly tripled, with `permissions.test.ts` alone contributing 29.
+- **Verified against the server, not local refs:** `git ls-remote origin refs/heads/main` → `704262b5…`, identical to local HEAD, 0 unpushed on both branches.
+- **Consequence now live:** the v2 codebase is publicly readable. Security does not depend on it being hidden, but the two known weaknesses are now auditable by strangers — **PAT scopes are stored but not enforced per tool** (a `skills:read` token can publish) and `update_document` has no concurrency control.
+- **Files touched:** `WORKLOG.md` only. No source changed — a fast-forward moves a pointer, not files.
+- **Still outstanding, user-owned:** rotate `RESEND_API_KEY` (exposed, live, sending real invitations), `ADMIN_SECRET`, and the Cloudflare API token.
+
+---
+
 ## 2026-08-01 — .docx has never worked; landing page rewritten around documents + registry
 - **Asked (ultracode):** "ensure that regular html, pdf, document hosting is supported too for peer review. I see it is completely missing in the landing page. add usecases… all things being emitted from ai being shared across entire org for best practices. review the landing page. communicate better."
 - **The complaint was right, and measurable.** An audit found document hosting was **~60 words, ~6% of body copy, section 5 of 9**, under a heading that literally began *"And still…"*. The word **PDF appeared exactly once on the entire page**; `upload`, `password`, `expir`, `comment` and `peer` appeared **zero** times. `lib/seo/site.ts` led with the registry and gave hosting four words at the end prefixed with "too" — making the homepage the weakest document-hosting page on its own site, while ~60 guide pages send publish-intent traffic to it.
