@@ -24,9 +24,14 @@ export default function PublishPage() {
         <h1 className="text-3xl font-semibold leading-tight text-ink">
           Publish a document
         </h1>
+        {/* Said "No account needed" until 2026-08-08 — left over from the
+            accountless era and contradicted by the comment above this
+            component: /api/publish returns 401 without a session. Readers
+            still need no account, and that is the half worth saying. */}
         <p className="mt-3 max-w-prose leading-relaxed text-ink-soft">
           Paste your Markdown or HTML, or drop a file. You get a link, and you
-          can see how people actually read it. No account needed.
+          can see how people actually read it. Anyone can open it &mdash; no
+          account needed to read.
         </p>
         <PublishForm />
       </div>
