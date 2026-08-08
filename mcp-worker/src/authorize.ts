@@ -27,6 +27,7 @@ import {
   constantTimeEqual,
   verifyPayload,
 } from "../../lib/crypto/hmac";
+import { canonicalResource } from "./canonical-path";
 
 interface OAuthHelpers {
   parseAuthRequest(request: Request): Promise<{ clientId?: string; scope?: string[] } & Record<string, unknown>>;
@@ -69,6 +70,22 @@ export const authorizeHandler = {
 
     // Step 1 — validate the OAuth request, then hand off to the app.
     if (url.pathname === "/authorize" && request.method === "GET") {
+      // Canonicalise the RFC 8707 `resource` BEFORE the provider parses it.
+      // Whatever arrives here becomes the audience of the issued access token,
+      // and a token minted for "…/mcp." is rejected against the "…/mcp"
+      // resource server on every single request, with an "Invalid audience"
+      // 401 — which is what a real user hit after pasting the connector URL
+      // with a sentence's full stop attached. Fixing the path alone does not
+      // help: the token is already stamped with the wrong audience by then.
+      const rawResource = url.searchParams.get("resource");
+      if (rawResource) {
+        const fixed = canonicalResource(rawResource);
+        if (fixed !== rawResource) {
+          url.searchParams.set("resource", fixed);
+          request = new Request(url.toString(), request);
+        }
+      }
+
       const oauthReq = await helpers.parseAuthRequest(request);
       const client = oauthReq.clientId
         ? await helpers.lookupClient(oauthReq.clientId).catch(() => null)

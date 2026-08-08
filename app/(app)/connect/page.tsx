@@ -18,6 +18,7 @@ import {
 } from "@/lib/teamspace/store";
 import { env } from "@/lib/cf";
 import { TokenMinter } from "./token-minter";
+import { CopyField } from "./copy-field";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,11 +54,18 @@ export default async function ConnectPage() {
           Claude, and anything that supports OAuth
         </h2>
         <p className="mb-3 leading-relaxed text-ink-soft">
-          Add a custom connector pointing at{" "}
-          <code className="text-ink">{connectorUrl}</code>. You&rsquo;ll be
-          asked to approve it here and to choose which teamspace it may publish
-          into. Nothing is copied by hand, and you can disconnect it at any
-          time.
+          Add a custom connector pointing at this URL:
+        </p>
+        {/* Deliberately NOT inline in the sentence. It used to read
+            `<code>{connectorUrl}</code>.` — the full stop sat flush against the
+            URL, someone selected it along with the address, and connecting to
+            `/mcp.` cost them four attempts because OAuth succeeds and only the
+            transport 404s. Give people a button instead of a selection task. */}
+        <CopyField value={connectorUrl} label="the connector URL" />
+        <p className="mt-3 leading-relaxed text-ink-soft">
+          You&rsquo;ll be asked to approve it here and to choose which teamspace
+          it may publish into. Nothing is copied by hand, and you can disconnect
+          it at any time.
         </p>
         {/* The teamspace is sealed into the OAuth grant at approval time, so
             this is not a preference that can be changed later — it is chosen

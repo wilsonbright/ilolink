@@ -39,6 +39,21 @@ export default async function AppLayout({
                 Teamspaces
               </Link>
             )}
+            {/* The marketing header offers "Connect", and signing in used to
+                take it away: this nav had no link to /connect, /dashboard links
+                only to /publish, and /t links only to /dashboard. The single
+                remaining route in was a teamspace DETAIL page you had to
+                already know to open. A tester reported exactly that — "after
+                logging into the platform, it was difficult to find where to
+                initiate the connection". */}
+            {user && (
+              <Link
+                href="/connect"
+                className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"
+              >
+                Connect
+              </Link>
+            )}
             <Link
               href="/publish"
               className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"

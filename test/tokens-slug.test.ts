@@ -7,6 +7,7 @@ import {
 import { generateSlug, isValidCustomSlug } from "@/lib/slug";
 import {
   MAX_BODY_BYTES,
+  MAX_BINARY_BYTES,
   byteLength,
   isVisibility,
   isSourceType,
@@ -64,8 +65,12 @@ describe("publish input guards", () => {
     expect(byteLength("😀")).toBe(4);
   });
 
-  it("MAX_BODY_BYTES is 2 MB", () => {
-    expect(MAX_BODY_BYTES).toBe(2 * 1024 * 1024);
+  it("text and binary uploads share one 15 MB ceiling", () => {
+    // Text was capped at 2 MB while PDFs got 15 MB, so an exported HTML page
+    // was refused at a size a PDF sailed through — reported by a tester as
+    // "it has a 2 MB file-size limit". The two must not drift apart again.
+    expect(MAX_BODY_BYTES).toBe(15 * 1024 * 1024);
+    expect(MAX_BODY_BYTES).toBe(MAX_BINARY_BYTES);
   });
 
   it("visibility + source-type type guards", () => {

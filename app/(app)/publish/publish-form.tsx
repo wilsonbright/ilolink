@@ -42,6 +42,11 @@ interface PublishResult {
   slug: string;
   url: string;
   manageToken: string;
+  // Tag name → count of elements the sanitizer dropped. Absent when nothing
+  // was removed. Surfaced on the share card so a page never quietly loses
+  // pieces of itself, which is what a tester hit: "some components are missing
+  // from the published file", with nothing anywhere saying so.
+  removed?: Record<string, number>;
 }
 
 const VISIBILITY: { value: Visibility; label: string; hint: string }[] = [
@@ -136,11 +141,21 @@ export function PublishForm() {
       );
       return;
     }
-    // Binary formats (PDF/DOCX/images) get a larger ceiling than text.
-    const cap = isBinary ? 15_000_000 : isImage ? 15_000_000 : 2_000_000;
+    // One ceiling for every format. Text used to be capped at 2 MB while a PDF
+    // of the same size published fine, which read as an arbitrary refusal.
+    const cap = 15_000_000;
     if (file.size > cap) {
       const mb = Math.round(cap / 1_000_000);
-      setError(`That file is over ${mb} MB. Trim it down or paste a smaller part.`);
+      const actual = (file.size / 1_000_000).toFixed(1);
+      // Say the actual size and the usual cause. An exported HTML page is
+      // mostly its inlined base64 images, and "trim it down" gave no clue that
+      // linking them instead is what makes the difference.
+      setError(
+        `That file is ${actual} MB, over the ${mb} MB limit.` +
+          (isText
+            ? " Exported pages are usually mostly inlined images — linking them instead of embedding them will shrink it a lot."
+            : ""),
+      );
       return;
     }
     setError(null);
@@ -287,7 +302,12 @@ export function PublishForm() {
         manageToken,
       });
 
-      setResult({ slug: outSlug, url: outUrl, manageToken });
+      const removed =
+        obj.removed && typeof obj.removed === "object"
+          ? (obj.removed as Record<string, number>)
+          : undefined;
+
+      setResult({ slug: outSlug, url: outUrl, manageToken, removed });
     } catch {
       setTurnstileToken("");
       window.turnstile?.reset();
@@ -771,10 +791,52 @@ function ShareCard({
     }
   }
 
+  // Name the elements the way the person who wrote the page thinks of them,
+  // not by tag. "3 scripts" is actionable; "3 <script>" reads like an error.
+  const REMOVED_LABEL: Record<string, [string, string]> = {
+    script: ["script", "scripts"],
+    iframe: ["embedded frame", "embedded frames"],
+    link: ["external stylesheet or font", "external stylesheets or fonts"],
+    object: ["embedded object", "embedded objects"],
+    embed: ["embedded object", "embedded objects"],
+    canvas: ["canvas", "canvases"],
+    video: ["video", "videos"],
+    audio: ["audio clip", "audio clips"],
+    meta: ["meta tag", "meta tags"],
+    base: ["base tag", "base tags"],
+    foreignobject: ["foreign object", "foreign objects"],
+  };
+
+  const removedParts = Object.entries(result.removed ?? {})
+    .sort((a, b) => b[1] - a[1])
+    .map(([tag, n]) => {
+      const [one, many] = REMOVED_LABEL[tag] ?? [tag, `${tag} elements`];
+      return `${n} ${n === 1 ? one : many}`;
+    });
+
   return (
     <div className="mt-12">
       <p className="text-sm font-medium text-accent">Published</p>
       <h2 className="mt-2 text-2xl font-semibold text-ink">Your link is ready</h2>
+
+      {/* Removal used to be entirely silent. A tester published a page, saw
+          pieces of it missing, and had nothing to go on — the trusted-HTML
+          option that would have kept them was off by default AND hidden behind
+          a collapsed disclosure. Say what went, and say what to do about it. */}
+      {removedParts.length > 0 && (
+        <div className="mt-6 rounded-lg border border-hairline bg-surface p-4">
+          <p className="text-sm text-ink">
+            Removed for safety: {removedParts.join(", ")}.
+          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-ink-faint">
+            Everything else published normally. If this page needs its scripts
+            to work, publish it again with{" "}
+            <span className="text-ink-soft">Run this page&rsquo;s scripts</span>{" "}
+            turned on under Options — that keeps the page exactly as you wrote
+            it, so only do it for HTML you trust.
+          </p>
+        </div>
+      )}
 
       <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:items-start">
         <div className="min-w-0 flex-1 space-y-3">

@@ -15,6 +15,7 @@
 import { OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { IlolinkMCP, type Env } from "./agent";
 import { authorizeHandler } from "./authorize";
+import { isMcpPath, isCanonicalMcpPath } from "./canonical-path";
 import { resolveApiToken, touchApiToken, PAT_PREFIX } from "../../lib/mcp/api-tokens";
 
 export { IlolinkMCP };
@@ -46,7 +47,19 @@ function rpcError(message: string): Response {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
+    let url = new URL(request.url);
+
+    // Accept the connector URL however it was pasted. A trailing full stop
+    // copied off our own /connect page cost a real user four failed attempts:
+    // the OAuth flow completed, the assistant said "connected", and only the
+    // first transport call 404'd — so it flipped to "Disconnected" with nothing
+    // to act on. `/mcp/`, `/MCP` and `/mcp%20` failed identically. See
+    // ./canonical-path.ts for the measured table and why we rewrite rather than
+    // redirect (clients store the URL and may not re-POST a body after a 3xx).
+    if (!isCanonicalMcpPath(url.pathname) && isMcpPath(url.pathname)) {
+      url.pathname = "/mcp";
+      request = new Request(url.toString(), request);
+    }
 
     // The retired URL-token path. Answer clearly rather than 404ing, so an
     // assistant still holding an old connector URL tells its user what to do.

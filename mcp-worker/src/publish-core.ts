@@ -23,7 +23,7 @@ import { hashPassword } from "@/lib/crypto/password";
 import { scanContent } from "@/lib/abuse/scan";
 import type { SourceType, Visibility } from "@/lib/types";
 
-export const MAX_TEXT_BYTES = 2 * 1024 * 1024; // 2 MB, matches the web path
+export const MAX_TEXT_BYTES = 15 * 1024 * 1024; // 15 MB, matches the web path
 
 // Flagged publishes before a workspace is auto-suspended.
 const ABUSE_FLAG_LIMIT = 5;

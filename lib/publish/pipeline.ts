@@ -13,7 +13,13 @@ import type { DocumentVersion, SourceType, Visibility } from "@/lib/types";
 const appBindings = () => ({ DB: env().DB, DOCS: env().DOCS, KV: env().KV });
 
 // Upload ceiling for both raw bodies and file uploads.
-export const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
+//
+// Was 2 MB, while PDFs and .docx were allowed 15 MB (MAX_BINARY_BYTES). That
+// split was invisible and backwards from the user's side: an exported HTML page
+// with its images inlined as data URLs is *text*, so it hit the small cap, and
+// a tester reported "it has a 2 MB file-size limit" on a file a PDF of the same
+// size would have accepted. One number for every format removes the surprise.
+export const MAX_BODY_BYTES = 15 * 1024 * 1024; // 15 MB, matches MAX_BINARY_BYTES
 
 // Isolated content origin where the untrusted doc HTML is actually rendered.
 export const VIEW_ORIGIN = "https://view.ilolink.com";
@@ -50,6 +56,9 @@ export {
 export interface RenderResult {
   html: string;
   title: string | null;
+  // Tag name → count dropped by the sanitizer. Carried out to the publish
+  // response so the publisher is told; see lib/sanitize/html.ts.
+  removed?: Record<string, number>;
 }
 
 // Auto-detect the format (markdown / html / JSON / CSV / image) from the content

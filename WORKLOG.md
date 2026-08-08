@@ -5,6 +5,43 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-08 — four bugs from a teammate's first run, all root-caused against production
+- **Asked:** feedback from a teammate who tried publishing with ilolink — "It has a 2 MB file-size limit. When the file is under 2 MB, some components are missing from the published file. For connecting the MCP, after logging into the platform, it was difficult to find where to initiate the connection. During the connection process, it showed an error immediately after connecting and then displayed as 'Disconnected.' I tried connecting around 4 times before it finally connected."
+- **All four reproduced against production before any code changed.** No guessing; four hypotheses were formed and *disconfirmed* along the way (a `getOrCreateForTeamspace` insert race, a deploy landing mid-attempt, `safeRedirect` eating the `next` param, and a `canPublishInto` 403 on the teamspace picker — each ruled out with evidence rather than argument).
+
+### 1. The 2 MB limit was real, and applied only to text
+`MAX_BODY_BYTES` was 2 MB for md/html/json/csv while `MAX_BINARY_BYTES` gave pdf/docx/images **15 MB**. An exported HTML page with its images inlined as data URLs is *text*, so it hit the small cap — a PDF of identical size published fine. Raised text to 15 MB in all three enforcement points (`lib/publish/pipeline.ts`, `mcp-worker/src/publish-core.ts`, the client-side pre-check). The error now states the actual file size and names the usual cause (inlined base64 images). The existing test that pinned 2 MB was rewritten to assert the two ceilings stay **equal**, so they cannot silently drift apart again.
+
+### 2. "Components missing" — the sanitizer, removing things silently
+`sanitizeDocument` stripped `<svg>` along with script/iframe/canvas, and **reported nothing**: `SanitizeResult` was `{html, title}`, with no record of what was dropped. The escape hatch existed but was off by default *and* hidden inside a collapsed `showOptions` disclosure (`useState(false)`), so a first-time publisher could not discover it. Two fixes:
+- **SVG is now allowed as a closed inert subset.** `<foreignObject>` (re-enters HTML parsing), SMIL `<animate>`/`<set>` (can retarget `href` at runtime), and SVG `<a>` are deliberately excluded; `<use>` is permitted but its href is restricted to same-document `#fragments` via `transformTags`, because "https" is an allowed scheme generally and must not be here. 12 new tests pin both the preservation and every blocked route back to script.
+- **`summarizeRemovals` reports what went**, surfaced on the share card as *"Removed for safety: 2 scripts, 1 embedded frame"* with a pointer to the trusted-HTML option. Explicitly a report, not a boundary — `sanitizeHtml` remains the boundary, so an approximate tag regex is safe here.
+
+### 3. Signing in *removed* the way to connect
+The marketing header links to `/connect`; `app/(app)/layout.tsx` did not. `/dashboard` linked only to `/publish`, `/t` only to `/dashboard`. The single remaining route in was a teamspace **detail** page you had to already know to open. Added Connect to the signed-in nav.
+
+### 4. A trailing full stop — and it was our own copy that supplied it
+Recovered the actual grants from `OAUTH_KV`. Four for `reshma@blocksurvey.org` within four minutes, and the `resource` each recorded:
+```
+08-07 14:59:05  https://mcp.ilolink.com/mcp.   <- failed
+08-07 14:59:54  https://mcp.ilolink.com/mcp.   <- failed
+08-07 15:00:23  https://mcp.ilolink.com/mcp.   <- failed
+08-07 15:03:44  https://mcp.ilolink.com/mcp    <- connected
+```
+No other user's grant has it. Source: `app/(app)/connect/page.tsx` rendered `<code>{connectorUrl}</code>.` — the sentence's full stop flush against the URL, **with no copy button**, so connecting required selecting the text by hand.
+- **The path was only half of it.** `POST /mcp.` 404s, but the deeper failure is RFC 8707: the `resource` sent to `/authorize` becomes the **access token's audience**, so the dot minted a token for `…/mcp.` that the `…/mcp` resource server rejects on *every* request — `401 "Token audience does not match resource server"`. Fixing the path alone would NOT have helped; verified by deploying the path fix first and watching a dotted-resource token still 401 at a clean `/mcp`.
+- Both are now canonicalised (`mcp-worker/src/canonical-path.ts`): the request path, and the `resource` before the provider ever parses it. Rewrite rather than redirect, since clients store the URL and may not re-POST a body after a 3xx. Forgiveness is bounded — `/mcpx` and `/mcp/extra` still do not resolve to the transport.
+- `/connect` now shows the URL in its own field with a **Copy** button.
+
+- **Measured before the fix (production):** `/mcp` 200; `/mcp.` `/mcp/` `/mcp,` `/mcp%20` `/MCP` `/mcp;` all **404**. A trailing **slash** — what browsers add unprompted — was as broken as the dot.
+- **Verified after, end to end:** completed the whole OAuth dance using the dotted URL, then connected successfully at `/mcp`, `/mcp.`, `/mcp/`, `/MCP`, `/mcp%20` — all 200. Published a document containing SVG + 2 scripts + an iframe through MCP: the `<path>` survives and **renders** (browser reports `viewBox` parsed as 24×24 and the path painted at 32×22, confirming the HTML parser restores the lowercased attribute), scripts and iframe gone. Screenshotted the removal notice and the new nav in a real browser.
+- **Caught a deploy trap:** the root deploy is `opennextjs-cloudflare build && … deploy`; a bare `wrangler deploy` silently shipped a **week-old** `.open-next` bundle (Aug 1 21:14). Re-deployed properly. `wrangler deploy` at the repo root is not a deploy.
+- **Test/verification hygiene:** every probe used disposable QA accounts; all rows, R2 objects, KV slug records, grants, tokens and OAuth clients deleted afterwards, baseline re-confirmed (`users 8, qa_left 0, qa_ts 0`, probe tokens 401, test docs 404).
+- **Files:** `lib/sanitize/html.ts`, `lib/types.ts`, `lib/publish/pipeline.ts`, `app/api/publish/route.ts`, `app/(app)/publish/publish-form.tsx`, `app/(app)/layout.tsx`, `app/(app)/connect/page.tsx`, new `app/(app)/connect/copy-field.tsx`, new `mcp-worker/src/canonical-path.ts`, `mcp-worker/src/{index,authorize,publish-core}.ts`, new `test/{canonical-path,sanitize-svg}.test.ts`, `test/tokens-slug.test.ts`. **178 tests green**, three typechecks clean, `○ /` still static.
+- **Noticed, not fixed:** `/publish` still says *"No account needed"* — accountless-era copy that is now false. Part of the outstanding `docs/launch/copy-sweep.md` backlog.
+
+---
+
 ## 2026-08-08 — v2 pushed off-machine and merged to `main`
 - **Asked:** "git pull" → then "push it" → then "merge."
 - **`git pull` failed for a reason worth recording:** HEAD was on `fix/pre-launch-security`, which existed **only locally** and had no upstream, so git had nothing to merge from. `git fetch origin` returned zero new commits — `origin/main` was untouched at `e7a8f8a` since 2026-07-23.

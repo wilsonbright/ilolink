@@ -332,6 +332,10 @@ export async function POST(req: Request): Promise<NextResponse> {
   let store: (docId: string) => Promise<DocumentVersion>;
 
   let scanHtml = ""; // rendered HTML fed to the abuse scan (empty for pdf bytes)
+  // What the sanitizer dropped, so the response can say so. Removal used to be
+  // invisible: a page published with its icons and scripts quietly gone and
+  // nothing in the response mentioned it.
+  let removed: Record<string, number> | undefined;
   if (input.upload) {
     const bytes = decodeDataUrl(input.content);
     if (!bytes) return bad("Malformed upload — expected a base64 data URL.");
@@ -360,11 +364,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     // Trusted HTML bypasses the sanitizer (publisher opt-in); everything else
     // goes through the sanitize boundary as usual. Either way the rendered body
     // is stored and later served under a CSP matched to `trusted`.
-    const { html, title: t } = input.trusted
+    const { html, title: t, removed: r } = input.trusted
       ? renderTrusted(input.content)
       : renderAndSanitize(input.content, input.sourceType);
     title = input.title ?? t ?? "Untitled";
     scanHtml = html;
+    removed = r;
     store = (docId) => storeVersion(docId, input.content, html, input.sourceType);
   }
 
@@ -414,7 +419,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   });
 
   return NextResponse.json(
-    { slug, url: viewUrl(slug), manageToken },
+    { slug, url: viewUrl(slug), manageToken, ...(removed ? { removed } : {}) },
     { status: 201 },
   );
 }

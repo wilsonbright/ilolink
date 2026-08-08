@@ -80,4 +80,8 @@ export type CommentsMode = "off" | "anon" | "signed";
 export interface SanitizeResult {
   html: string;
   title: string | null;
+  // Tag name → how many were dropped by the sanitizer, present only when
+  // something actually was. The publish response surfaces this so removal is
+  // never silent; see lib/sanitize/html.ts summarizeRemovals.
+  removed?: Record<string, number>;
 }
