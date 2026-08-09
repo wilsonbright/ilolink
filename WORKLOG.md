@@ -5,6 +5,23 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-09 — Stripe secrets set on the `ilolink` worker
+
+- **Asked:** resume from prior session's outstanding item — set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`.
+- **User pasted both live values directly in chat** (a restricted key `rkth_live_...` and `whsec_...`). Same issue flagged in the 2026-08-09 billing entry: a secret typed into the conversation is compromised the moment it's sent, independent of what's done with it afterward.
+- Set both via `npx wrangler secret put NAME --name ilolink`, value piped through stdin (`printf '%s' '<value>' | wrangler secret put ...`) — not a shell arg, not written to a file, so not in `.bash_history` or a wrangler log.
+- **Verified against production, not inferred:** `POST /api/stripe/webhook` unsigned → `400` (was `503` before secrets existed — confirms fail-closed path now has a secret to check against). `POST /api/billing/checkout` anonymous → `401` (was `503` — confirms `STRIPE_SECRET_KEY` reads correctly before the auth check even completes the flow).
+- **Told the user to rotate again**, this time entering the new value only at wrangler's interactive prompt in their own terminal — never pasted into chat. Did not attempt this rotation myself; it requires Stripe Dashboard access I don't have.
+- No files touched — Cloudflare Worker secrets only, no repo changes.
+
+### Follow-up: first key was invalid, second checkout verified live
+- Asked to "check if checkout is working." A 401/503 status check isn't proof the Stripe call itself succeeds, so probed for real: inserted a throwaway session row directly in D1 (SHA-256-hashed token, `sessions` table) scoped to the user's own account (`wilson@blocksurvey.org`, personal teamspace `t_fl48zYMT_iGvBKHe`), called `POST /api/billing/checkout` as an authenticated owner, then deleted the probe row.
+- **First key (`rkth_live_...`) was rejected by Stripe** — `wrangler tail` showed `Invalid API Key provided`. Not a valid Stripe prefix (`rkth_` isn't one Stripe issues; valid ones are `sk_`/`rk_` + `live`/`test`). Reported broken rather than assumed fixed.
+- User supplied a corrected key (`rk_live_...`, same suffix — looks like the same key, correct prefix this time). Re-set, re-probed: first call after `secret put` still 502 (secret propagation lag across Cloudflare edge, a few seconds), second call **200** with a real `cs_live_...` Checkout Session URL from `checkout.stripe.com`. Session never completed/paid; Stripe auto-expires unpaid sessions in 24h, so no cleanup needed there beyond the DB probe row.
+- Confirms `createCheckoutSession` in `lib/billing/stripe.ts` is live and correct end-to-end against production Stripe, not just "secret is present."
+
+---
+
 ## 2026-08-09 — Stripe billing: one-time team plans, seat and document limits
 
 - **Asked (ultracode):** "build an integration with stripe for subscription… it's a one time fee of $9 for 5 team members and $19 for 10… add upgrade to add a team member for collab, free for personal for upto 3 documents… make changes to copy in landing page."

@@ -70,7 +70,7 @@ export function Upgrade({
       {offers.length === 0 ? (
         <p className="mt-3 text-sm text-ink-faint">
           This is the largest plan. Need more room?{" "}
-          <a href="mailto:hello@ilolink.com" className="text-accent underline">
+          <a href="mailto:hello@sacca.ai" className="text-accent underline">
             Get in touch
           </a>
           .
