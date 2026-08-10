@@ -5,6 +5,17 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-10 — /dashboard splits into tabs by teamspace
+
+- **Asked:** "for ease of access to team items - can you create quick access from home page or a dashboard where personal and team is easily accessible." Brainstormed to a scoped design before touching code — confirmed "home page" meant `/dashboard`, the friction was docs from every teamspace sitting in one flat list, and the fix should be tabs (Personal | each team), state kept in `?ts=` so a tab is linkable/bookmarkable.
+- **No new client component.** `/dashboard` was already a server component; Next's App Router hands `searchParams` straight to page components, so each tab is a plain `<Link href="/dashboard?ts=<id>">` — same pattern `/t` already used. Zero new client JS, works with JS disabled, matches every other page in `app/(app)` except `ClaimBanner` (which is client only because it reads `localStorage`).
+- **New `lib/teamspace/dashboard-tabs.ts`** — pure grouping extracted so it's unit-testable without D1: `groupDocsByTab` buckets by `teamspace_id`, except docs shared directly (`via === "shared"`) which go under a virtual `"shared"` tab since their real `teamspace_id` isn't one of the viewer's own teamspaces. `resolveActiveTab` falls back to the personal teamspace (always first, per `listTeamspacesForUser`'s existing ordering) on a missing or invalid `?ts=`. `buildDashboardTabs` always includes every teamspace even at 0 docs — a team should stay reachable, not disappear because it's currently empty.
+- `showTeamspace` (the per-doc "which team" tag) now only fires on the shared tab — inside a single team's own tab every doc is already in that team, so the tag would be redundant.
+- 8 new tests for the grouping/fallback logic (`test/dashboard-tabs.test.ts`). Full suite 204/204, `tsc --noEmit` clean, `next build` clean.
+- Files: `app/(app)/dashboard/page.tsx`, `lib/teamspace/dashboard-tabs.ts` (new), `test/dashboard-tabs.test.ts` (new).
+
+---
+
 ## 2026-08-09 — Stripe secrets set on the `ilolink` worker
 
 - **Asked:** resume from prior session's outstanding item — set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`.

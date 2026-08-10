@@ -15,6 +15,11 @@ import {
   listTeamspacesForUser,
   type DashboardDoc,
 } from "@/lib/teamspace/store";
+import {
+  buildDashboardTabs,
+  groupDocsByTab,
+  resolveActiveTab,
+} from "@/lib/teamspace/dashboard-tabs";
 import { ClaimBanner } from "./claim-banner";
 
 export const runtime = "nodejs";
@@ -34,16 +39,27 @@ function when(ts: number | null): string {
   });
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ts?: string }>;
+}) {
   const user = await currentUser();
   if (!user) redirect("/signin?next=%2Fdashboard");
 
+  const { ts } = await searchParams;
   const [docs, teamspaces] = await Promise.all([
     listDashboardDocs(user.id),
     listTeamspacesForUser(user.id),
   ]);
 
-  const live = docs.filter((d) => !d.unpublished_at);
+  const docsByTab = groupDocsByTab(docs);
+  const tabs = buildDashboardTabs(teamspaces, docsByTab);
+  const activeTab = resolveActiveTab(ts, tabs);
+  const activeDocs = docsByTab.get(activeTab) ?? [];
+  const activeLabel = tabs.find((t) => t.id === activeTab)?.label ?? "";
+
+  const live = activeDocs.filter((d) => !d.unpublished_at);
   // Group by folder, root first. Folders exist per teamspace, so two teamspaces
   // may each have one called "Drafts"; keying by id keeps them apart while the
   // heading shows the name.
@@ -57,10 +73,11 @@ export default async function DashboardPage() {
   const folderGroups = [...groups.entries()]
     .filter(([k]) => k !== "")
     .sort((a, b) => (a[1].name ?? "").localeCompare(b[1].name ?? ""));
-  const unpublished = docs.filter((d) => d.unpublished_at);
+  const unpublished = activeDocs.filter((d) => d.unpublished_at);
   // Only worth naming teamspaces once there is more than the personal one —
-  // a solo user should never meet the concept.
-  const showTeamspace = teamspaces.some((t) => !t.is_personal);
+  // a solo user should never meet the concept. Within a single tab every doc
+  // is already in one teamspace, so this only ever matters for the shared tab.
+  const showTeamspace = activeTab === "shared";
 
   return (
     <div>
@@ -76,9 +93,33 @@ export default async function DashboardPage() {
 
       <ClaimBanner knownSlugs={docs.map((d) => d.slug)} />
 
+      {tabs.length > 1 && (
+        <div className="mb-8 flex flex-wrap gap-2 border-b border-hairline pb-3">
+          {tabs.map((tab) => (
+            <Link
+              key={tab.id}
+              href={tab.id === tabs[0].id ? "/dashboard" : `/dashboard?ts=${tab.id}`}
+              className={
+                "rounded-full px-3 py-1 text-sm transition-colors duration-150 " +
+                (tab.id === activeTab
+                  ? "bg-accent-soft text-ink"
+                  : "text-ink-soft hover:text-ink")
+              }
+            >
+              {tab.label}
+              <span className="ml-1.5 tabular-nums text-ink-faint">
+                {tab.count}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
       {live.length === 0 && unpublished.length === 0 ? (
         <div className="rounded-lg border border-hairline bg-surface px-5 py-8">
-          <p className="mb-2 text-ink">Nothing published yet.</p>
+          <p className="mb-2 text-ink">
+            Nothing published yet{tabs.length > 1 ? ` in ${activeLabel}` : ""}.
+          </p>
           <p className="leading-relaxed text-ink-soft">
             Publish a document and it will appear here, on every device you sign
             in from.{" "}
