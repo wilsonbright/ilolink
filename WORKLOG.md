@@ -5,6 +5,16 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — Comped wilson@blocksurvey.org to team10 (highest plan)
+
+- **Asked:** hit the "published 8 of 3 documents on the Personal plan" limit banner on `https://ilolink.com/publish`; wanted own account bumped to the highest plan, free.
+- No admin UI for granting plans exists — only path that ever writes `teamspaces.plan` is the Stripe webhook (`app/api/stripe/webhook/route.ts`) after a real paid checkout. Schema already reserves `plan_source = 'comp'` for exactly this case (`migrations/0015_billing.sql`) but nothing wrote it before now.
+- Confirmed via screenshot the error was on **live prod** (`ilolink.com`), not local dev — same D1 database serves both, distinguished only by `--local`/`--remote` on `wrangler d1 execute`. Asked user to confirm before running against prod.
+- Ran directly against remote D1: `UPDATE teamspaces SET plan = 'team10', plan_source = 'comp', plan_updated_at = <epoch_ms> WHERE id = 't_fl48zYMT_iGvBKHe'` (wilson's Personal teamspace). Verified row after: `plan=team10`, `plan_source=comp`. `team10` = 10 seats / 500 docs, well above the 8 already published.
+- No repo files touched — production D1 data only, via `npx wrangler d1 execute ilolink --remote`.
+
+---
+
 ## 2026-08-10 — /dashboard splits into tabs by teamspace
 
 - **Asked:** "for ease of access to team items - can you create quick access from home page or a dashboard where personal and team is easily accessible." Brainstormed to a scoped design before touching code — confirmed "home page" meant `/dashboard`, the friction was docs from every teamspace sitting in one flat list, and the fix should be tabs (Personal | each team), state kept in `?ts=` so a tab is linkable/bookmarkable.

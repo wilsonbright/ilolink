@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SignInForm } from "@/app/(app)/signin/signin-form";
 import type { SourceType, Visibility } from "@/lib/types";
+import type { PublishTarget } from "@/lib/teamspace/publish-target";
 import { addToHistory } from "@/lib/history";
 
 // Cloudflare Turnstile, run HIDDEN: the widget verifies silently and only shows
@@ -83,7 +84,16 @@ function detectSource(text: string): SourceType {
   return "md";
 }
 
-export function PublishForm() {
+// `teamspaces` is empty for a signed-out visitor (the homepage composer renders
+// this with no props at all), in which case there is nothing to pick and
+// /api/publish falls back to the personal teamspace as it always did.
+export function PublishForm({
+  teamspaces = [],
+  initialTeamspaceId,
+}: {
+  teamspaces?: PublishTarget[];
+  initialTeamspaceId?: string;
+} = {}) {
   const [content, setContent] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [source, setSource] = useState<SourceType>("md");
@@ -98,6 +108,11 @@ export function PublishForm() {
   const [showSlug, setShowSlug] = useState(false);
   const [slug, setSlug] = useState("");
   const [showOptions, setShowOptions] = useState(false);
+  // Which teamspace the document lands in. Seeded from ?ts= (the /dashboard tab
+  // you came from) and resolved server-side; the picker below can override it.
+  const [teamspaceId, setTeamspaceId] = useState<string | undefined>(
+    initialTeamspaceId,
+  );
 
   const [dragging, setDragging] = useState(false);
   // Depth counter so dragging over child nodes doesn't flicker the overlay:
@@ -253,6 +268,11 @@ export function PublishForm() {
           ...(visibility === "expiring" ? { expiresAt: expiresMs } : {}),
           ...(wantSlug ? { customSlug: wantSlug } : {}),
           ...(source === "html" && trusted ? { trusted: true } : {}),
+          // The wire name is `teamspace`, not `teamspaceId` — see readInput in
+          // app/api/publish/route.ts. Omitting it entirely (signed out, or a
+          // single teamspace) leaves the route on its personal-teamspace
+          // default, which is the correct behaviour for both.
+          ...(teamspaceId ? { teamspace: teamspaceId } : {}),
         }),
       });
       const data: unknown = await res.json().catch(() => ({}));
@@ -508,6 +528,35 @@ export function PublishForm() {
       {/* Publish sits directly under the composer so it's never hunted for; */}
       {/* everything optional collapses behind the Options disclosure. */}
       <div className="space-y-4">
+        {/* Deliberately NOT behind the Options disclosure. Until now the form
+            sent no teamspace at all and every document silently landed in the
+            personal teamspace; hiding the control that fixes that would just
+            reproduce the same surprise one click deeper. Shown only when there
+            is a real choice — a solo user still never meets the concept. */}
+        {teamspaces.length > 1 && (
+          <div>
+            <label
+              htmlFor="teamspace"
+              className="mb-1.5 block text-sm font-medium text-ink"
+            >
+              Publish into
+            </label>
+            <select
+              id="teamspace"
+              name="teamspace"
+              value={teamspaceId ?? teamspaces[0].id}
+              onChange={(e) => setTeamspaceId(e.target.value)}
+              className="w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none sm:w-auto"
+            >
+              {teamspaces.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {needsAuth && (
           <div className="rounded-lg border border-hairline bg-surface p-4">
             <p className="mb-1 text-sm font-medium text-ink">
@@ -561,6 +610,17 @@ export function PublishForm() {
           <span className="text-ink-soft">
             {VISIBILITY.find((v) => v.value === visibility)?.label}
           </span>
+          {/* Name the destination in the summary too, so someone who never
+              opens the picker still sees where the document is going. */}
+          {teamspaces.length > 1 && (
+            <>
+              {" into "}
+              <span className="text-ink-soft">
+                {teamspaces.find((t) => t.id === teamspaceId)?.label ??
+                  teamspaces[0].label}
+              </span>
+            </>
+          )}
           {showSlug && slug.trim() ? ` at /${slug.trim()}` : ""}.
         </p>
       </div>

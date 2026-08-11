@@ -19,6 +19,7 @@ import {
   buildDashboardTabs,
   groupDocsByTab,
   resolveActiveTab,
+  SHARED_TAB_ID,
 } from "@/lib/teamspace/dashboard-tabs";
 import { ClaimBanner } from "./claim-banner";
 
@@ -78,13 +79,19 @@ export default async function DashboardPage({
   // a solo user should never meet the concept. Within a single tab every doc
   // is already in one teamspace, so this only ever matters for the shared tab.
   const showTeamspace = activeTab === "shared";
+  // Carry the tab you are looking at into the composer, so "Publish new" from
+  // the BlockSurvey tab actually publishes into BlockSurvey. "Shared with me"
+  // is a virtual tab, not a teamspace you can publish into, so it carries
+  // nothing and /publish falls back to personal.
+  const publishHref =
+    activeTab === SHARED_TAB_ID ? "/publish" : `/publish?ts=${activeTab}`;
 
   return (
     <div>
       <div className="mb-8 flex items-baseline justify-between">
         <h1 className="text-2xl font-medium text-ink">Your documents</h1>
         <Link
-          href="/publish"
+          href={publishHref}
           className="text-sm text-accent transition-colors duration-150 hover:text-ink"
         >
           Publish new
@@ -123,7 +130,7 @@ export default async function DashboardPage({
           <p className="leading-relaxed text-ink-soft">
             Publish a document and it will appear here, on every device you sign
             in from.{" "}
-            <Link href="/publish" className="text-accent underline">
+            <Link href={publishHref} className="text-accent underline">
               Publish your first document
             </Link>
             .
