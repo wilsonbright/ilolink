@@ -102,26 +102,29 @@ export function TokenMinter({
   }
 
   return (
-    <form onSubmit={mint} className="space-y-3">
-      <label htmlFor="tname" className="block text-sm text-ink-soft">
-        Name this connector (so you can tell them apart later)
-      </label>
-      <div className="flex gap-2">
+    // One bordered card, with the button after every field it consumes. The
+    // name input used to share a row with "Create token" and the teamspace
+    // picker hung underneath it, so the control that decides WHERE a token may
+    // write appeared after the button that mints it — people read the button as
+    // belonging to the name alone and submitted before seeing the picker. The
+    // card is deliberately the same shape as the receipt below, which replaces
+    // it in place once the token exists.
+    <form
+      onSubmit={mint}
+      className="space-y-4 rounded-lg border border-hairline bg-surface p-4"
+    >
+      <div>
+        <label htmlFor="tname" className="block text-sm text-ink-soft">
+          Name this connector (so you can tell them apart later)
+        </label>
         <input
           id="tname"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="ChatGPT"
           maxLength={60}
-          className="min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+          className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
         />
-        <button
-          type="submit"
-          disabled={busy}
-          className="shrink-0 rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
-        >
-          {busy ? "Creating…" : "Create token"}
-        </button>
       </div>
 
       {/* A token binds to exactly one teamspace for its whole life. Without
@@ -146,6 +149,14 @@ export function TokenMinter({
           </select>
         </div>
       )}
+
+      <button
+        type="submit"
+        disabled={busy}
+        className="w-full rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
+      >
+        {busy ? "Creating…" : "Create token"}
+      </button>
 
       {error && <p className="text-sm text-ink">{error}</p>}
     </form>

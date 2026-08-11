@@ -356,6 +356,12 @@ export function PublishForm({
     return <ShareCard result={result} onAnother={reset} />;
   }
 
+  // The composer has three looks: an empty field dressed as a dropzone, a chip
+  // for binary uploads, and the plain textarea the moment there is text. Naming
+  // the two conditions keeps the JSX below readable.
+  const isFileUpload = content.startsWith("data:");
+  const isEmpty = content.length === 0;
+
   return (
     <form onSubmit={onSubmit} className="mt-12 space-y-8">
       {/* Composer ─────────────────────────────────────────── */}
@@ -368,8 +374,14 @@ export function PublishForm({
           onDragOver={(e) => e.preventDefault()}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
-          className={`relative rounded-lg border bg-surface transition-colors duration-150 ${
-            dragging ? "border-accent ring-2 ring-accent/30" : "border-hairline"
+          className={`relative rounded-lg border bg-surface transition-colors duration-150 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent-soft ${
+            dragging
+              ? "border-accent ring-2 ring-accent/30"
+              : isEmpty
+                ? // Dashed only while the field is empty: it reads as a target to
+                  // drop onto, and goes solid the moment it holds real content.
+                  "border-dashed border-hairline"
+                : "border-hairline"
           }`}
         >
           {dragging ? (
@@ -394,7 +406,52 @@ export function PublishForm({
               </p>
             </div>
           ) : null}
-          {content.startsWith("data:") ? (
+          {isEmpty && !dragging ? (
+            // An empty field looked like a plain box with a sentence in it and
+            // nobody read it as somewhere to drop a file. This is the dropzone
+            // treatment painted OVER the textarea: it lets clicks through, so
+            // clicking anywhere still puts the cursor in the field and
+            // paste-to-publish — the core flow — is untouched. Only the picker
+            // button opts back into pointer events.
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
+              <svg
+                className="h-8 w-8 text-ink-faint"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M12 16V4" />
+                <path d="m6 10 6-6 6 6" />
+                <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              <p className="text-sm font-medium text-ink">
+                Drag and drop your file here, or{" "}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="pointer-events-auto rounded-sm text-accent transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+                >
+                  click to choose a file
+                </button>
+              </p>
+              <p id="doc-hint" className="text-xs text-ink-faint">
+                You can also click anywhere below and paste Markdown or HTML
+              </p>
+              <div className="mt-1 flex items-center gap-1.5" aria-hidden>
+                <span className="rounded border border-hairline px-2 py-0.5 font-mono text-xs text-ink-faint">
+                  .md
+                </span>
+                <span className="rounded border border-hairline px-2 py-0.5 font-mono text-xs text-ink-faint">
+                  .html
+                </span>
+              </div>
+            </div>
+          ) : null}
+          {isFileUpload ? (
             // Binary/data uploads: the content is a base64 data URL — never show
             // that wall of text. Show a friendly file chip instead.
             <div className="flex h-72 flex-col items-center justify-center gap-3 px-4 text-center">
@@ -437,91 +494,114 @@ export function PublishForm({
               id="doc"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Paste Markdown or HTML here — or drop a file anywhere in this box."
+              // No placeholder: while the field is empty the dropzone copy above
+              // occupies the same space, and two sets of instructions on top of
+              // each other is what made this box hard to read. Screen readers get
+              // the same hint through aria-describedby.
+              aria-describedby={isEmpty ? "doc-hint" : undefined}
               spellCheck={false}
-              className="block h-72 w-full resize-y rounded-lg bg-transparent px-4 py-3.5 font-mono text-sm leading-relaxed text-ink placeholder:text-ink-faint focus:outline-none"
+              className="block h-72 w-full resize-y rounded-lg bg-transparent px-4 py-3.5 font-mono text-sm leading-relaxed text-ink focus:outline-none"
             />
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-faint">
-          <span className="flex items-center gap-1.5">
-            <svg
-              className="h-4 w-4 text-ink-faint"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M12 16V4" />
-              <path d="m6 10 6-6 6 6" />
-              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-            </svg>
-            Drag &amp; drop a file, or
-          </span>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="text-accent transition-colors duration-150 hover:text-ink"
-          >
-            Choose a file
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".md,.markdown,.html,.htm,.txt,.json,.csv,.tsv,.log,.yaml,.yml,.xml,.png,.jpg,.jpeg,.gif,.webp,.svg,.pdf,.docx,text/*,image/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void loadFile(file);
-              e.target.value = "";
-            }}
-          />
+        {/* One picker for both entry points — the button inside the empty
+            dropzone and the replace link below open this same input. */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".md,.markdown,.html,.htm,.txt,.json,.csv,.tsv,.log,.yaml,.yml,.xml,.png,.jpg,.jpeg,.gif,.webp,.svg,.pdf,.docx,text/*,image/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void loadFile(file);
+            e.target.value = "";
+          }}
+        />
 
-          {fileName && <span className="truncate text-ink-soft">{fileName}</span>}
-
-          <span className="ml-auto flex items-center gap-2">
-            {content.startsWith("data:") ? (
-              // Binary/data uploads render server-side by type — no md/html choice.
-              <span>
-                {content.startsWith("data:application/pdf")
-                  ? "PDF — native viewer"
-                  : content.startsWith(
-                        "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                      )
-                    ? "Word document"
-                    : content.startsWith("data:image/")
-                      ? "Image"
-                      : "File"}
-              </span>
-            ) : content.trim() ? (
-              <>
-                <span>Reading as {source === "md" ? "Markdown" : "HTML"}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSourceLocked(true);
-                    setSource((s) => (s === "md" ? "html" : "md"));
-                  }}
-                  className="text-accent transition-colors duration-150 hover:text-ink"
+        {isEmpty ? (
+          <>
+            <p className="text-sm text-ink-faint">Markdown or HTML</p>
+            {/* Guidance for the empty state, which is the only place it helps:
+                once something is in the box the format is already settled, and
+                a full paragraph at the same size as the file name was exactly
+                what made that cluster unreadable. */}
+            <p className="text-xs leading-relaxed text-ink-faint">
+              ilolink renders whatever your AI emits — Markdown, HTML, JSON, CSV,
+              code, images, PDF, and DOCX. Auto-detected, no need to choose a
+              format.
+            </p>
+          </>
+        ) : (
+          // Loudest first: what you just did (the file name), then how it will be
+          // read, then the quiet way to swap it. These three used to share one
+          // size, weight and colour and read as a single undifferentiated line.
+          <div className="space-y-1.5">
+            {fileName && (
+              <span className="flex min-w-0 items-center gap-1.5">
+                <svg
+                  className="h-4 w-4 shrink-0 text-ink-faint"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
                 >
-                  switch to {source === "md" ? "HTML" : "Markdown"}
-                </button>
-              </>
-            ) : (
-              <span>Markdown or HTML</span>
+                  <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7Z" />
+                  <path d="M14 2v5h5" />
+                </svg>
+                <span className="truncate text-sm font-medium text-ink">
+                  {fileName}
+                </span>
+              </span>
             )}
-          </span>
-        </div>
 
-        {/* One-line hint: any format works, nothing to pick. */}
-        <p className="text-sm text-ink-faint">
-          ilolink renders whatever your AI emits — Markdown, HTML, JSON, CSV, code,
-          images, PDF, and DOCX. Auto-detected, no need to choose a format.
-        </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              <span className="flex items-center gap-2 text-ink-soft">
+                {isFileUpload ? (
+                  // Binary/data uploads render server-side by type — no md/html choice.
+                  <span>
+                    {content.startsWith("data:application/pdf")
+                      ? "PDF — native viewer"
+                      : content.startsWith(
+                            "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                          )
+                        ? "Word document"
+                        : content.startsWith("data:image/")
+                          ? "Image"
+                          : "File"}
+                  </span>
+                ) : content.trim() ? (
+                  <>
+                    <span>Reading as {source === "md" ? "Markdown" : "HTML"}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSourceLocked(true);
+                        setSource((s) => (s === "md" ? "html" : "md"));
+                      }}
+                      className="rounded-sm text-accent transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+                    >
+                      switch to {source === "md" ? "HTML" : "Markdown"}
+                    </button>
+                  </>
+                ) : (
+                  <span>Markdown or HTML</span>
+                )}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="ml-auto rounded-sm text-ink-faint transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+              >
+                {fileName ? "Choose a different file" : "Choose a file"}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Primary action ───────────────────────────────────── */}
@@ -900,7 +980,11 @@ function ShareCard({
 
       <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:items-start">
         <div className="min-w-0 flex-1 space-y-3">
-          <div className="flex items-stretch overflow-hidden rounded-md border border-hairline bg-surface">
+          {/* Open and Copy are icons now — the pattern people already know from
+              every other AI tool, and it stops two words of chrome competing
+              with the link itself. Both keep an aria-label and a title so the
+              meaning survives without the word. */}
+          <div className="flex items-stretch overflow-hidden rounded-md border border-hairline bg-surface transition-colors duration-150 focus-within:border-accent">
             <input
               readOnly
               value={result.url}
@@ -912,33 +996,88 @@ function ShareCard({
               href={result.url}
               target="_blank"
               rel="noreferrer"
-              className="flex shrink-0 items-center border-l border-hairline px-4 text-sm font-medium text-ink-soft transition-colors duration-150 hover:bg-accent-soft hover:text-ink"
+              aria-label="Open the published page in a new tab"
+              title="Open in a new tab"
+              className="flex shrink-0 items-center border-l border-hairline px-3.5 text-ink-soft transition-colors duration-150 hover:bg-accent-soft hover:text-ink focus:outline-2 focus:-outline-offset-2 focus:outline-accent"
             >
-              Open
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M15 3h6v6" />
+                <path d="M10 14 21 3" />
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              </svg>
             </a>
             <button
               type="button"
               onClick={copy}
-              className="shrink-0 border-l border-hairline px-4 text-sm font-medium text-accent transition-colors duration-150 hover:bg-accent-soft"
+              aria-label={copied ? "Link copied" : "Copy link"}
+              title={copied ? "Copied" : "Copy link"}
+              className="flex shrink-0 items-center border-l border-hairline px-3.5 text-accent transition-colors duration-150 hover:bg-accent-soft focus:outline-2 focus:-outline-offset-2 focus:outline-accent"
             >
-              {copied ? "Copied" : "Copy"}
+              {copied ? (
+                // The word "Copied" was the only confirmation; with the label
+                // gone the tick has to carry it, and it clears on the same
+                // 1600 ms timer.
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="m20 6-11 11-5-5" />
+                </svg>
+              ) : (
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <rect x="9" y="9" width="12" height="12" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              )}
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <a
-              href="/dashboard"
-              className="font-medium text-accent transition-colors duration-150 hover:text-ink"
-            >
-              Your documents →
-            </a>
+          {/* A tick is no help to a screen reader, so announce the copy too. */}
+          <p role="status" aria-live="polite" className="sr-only">
+            {copied ? "Link copied to clipboard" : ""}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            {/* Publishing another was a grey text link with less weight than the
+                QR caption, so the most likely next action looked like the least
+                likely one. It carries the same treatment as Publish itself. */}
             <button
               type="button"
               onClick={onAnother}
-              className="text-ink-soft transition-colors duration-150 hover:text-ink"
+              className="inline-flex w-full items-center justify-center rounded-md bg-accent px-8 py-3 text-sm font-medium text-canvas transition-opacity duration-150 hover:opacity-90 focus:outline-2 focus:outline-offset-2 focus:outline-accent sm:w-auto"
             >
               Publish another
             </button>
+            <a
+              href="/dashboard"
+              className="rounded-sm text-sm font-medium text-accent transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+            >
+              Your documents →
+            </a>
           </div>
         </div>
 

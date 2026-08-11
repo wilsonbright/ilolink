@@ -35,11 +35,15 @@ export function CopyField({ value, label }: { value: string; label: string }) {
       <code className="min-w-0 flex-1 overflow-x-auto rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink">
         {value}
       </code>
+      {/* Filled rather than a hairline outline: at rest it used to be faint
+          border + ink-soft label, which review read as a disabled control —
+          on the one screen where copying is the whole point. The reserved
+          width keeps it from jumping when the label becomes "Copied". */}
       <button
         type="button"
         onClick={copy}
         aria-label={`Copy ${label}`}
-        className="shrink-0 rounded-lg border border-hairline px-3 py-2 text-sm text-ink-soft transition-colors duration-150 hover:border-accent hover:text-ink"
+        className="min-w-20 shrink-0 rounded-lg border border-accent bg-accent-soft px-3 py-2 text-center text-sm font-medium text-accent transition-colors duration-150 hover:bg-accent hover:text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {copied ? "Copied" : "Copy"}
       </button>

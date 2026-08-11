@@ -55,56 +55,74 @@ export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3">
-      <label htmlFor="ts-name" className="block text-sm text-ink-soft">
-        Name a new teamspace
-      </label>
-      <div className="flex gap-2">
-        <input
-          id="ts-name"
-          type="text"
-          required
-          maxLength={MAX_NAME}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Acme Design"
-          className="min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={busy || !name.trim()}
-          className="shrink-0 rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
-        >
-          {busy ? "Creating…" : "Create"}
-        </button>
+    // scroll-mt so the "New teamspace" button at the top of /t, which is only
+    // an anchor to this card, does not land it flush against the viewport edge.
+    <form
+      id="new-teamspace"
+      onSubmit={submit}
+      className="scroll-mt-6 rounded-lg border border-hairline bg-surface p-5"
+    >
+      <h2 className="font-medium text-ink">Create a new teamspace</h2>
+
+      {/* items-end so the two controls sit on one line even though the copy
+          label is long enough to wrap above its select. */}
+      <div
+        className={
+          "mt-4 grid gap-4 sm:items-end" +
+          (sources.length > 0 ? " sm:grid-cols-2" : "")
+        }
+      >
+        <div>
+          <label htmlFor="ts-name" className="block text-sm text-ink-soft">
+            Teamspace name
+          </label>
+          <input
+            id="ts-name"
+            type="text"
+            required
+            maxLength={MAX_NAME}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Acme Design"
+            className="mt-1 w-full min-w-0 rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
+          />
+        </div>
+
+        {/* Skills are hard-scoped per teamspace, so a new one starts with none.
+            Offering the copy here is the only moment it is cheap — afterwards it
+            means re-writing each skill by hand. */}
+        {sources.length > 0 && (
+          <div>
+            <label htmlFor="ts-copy" className="block text-sm text-ink-soft">
+              Start with a copy of another teamspace&rsquo;s skills (optional)
+            </label>
+            <select
+              id="ts-copy"
+              value={copyFrom}
+              onChange={(e) => setCopyFrom(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
+            >
+              <option value="">Don&rsquo;t copy — start empty</option>
+              {sources.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.skillCount}{" "}
+                  {s.skillCount === 1 ? "skill" : "skills"})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      {/* Skills are hard-scoped per teamspace, so a new one starts with none.
-          Offering the copy here is the only moment it is cheap — afterwards it
-          means re-writing each skill by hand. */}
-      {sources.length > 0 && (
-        <div>
-          <label htmlFor="ts-copy" className="block text-sm text-ink-soft">
-            Start with a copy of another teamspace&rsquo;s skills
-          </label>
-          <select
-            id="ts-copy"
-            value={copyFrom}
-            onChange={(e) => setCopyFrom(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
-          >
-            <option value="">Don&rsquo;t copy — start empty</option>
-            {sources.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.skillCount}{" "}
-                {s.skillCount === 1 ? "skill" : "skills"})
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      <button
+        type="submit"
+        disabled={busy || !name.trim()}
+        className="mt-4 rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+      >
+        {busy ? "Creating…" : "Create teamspace"}
+      </button>
 
-      {error && <p className="text-sm text-ink">{error}</p>}
+      {error && <p className="mt-3 text-sm text-ink">{error}</p>}
     </form>
   );
 }

@@ -71,7 +71,7 @@ export default async function ConnectPage() {
             this is not a preference that can be changed later — it is chosen
             once and only re-chosen by connecting again. Saying so here is
             cheaper than the support question. */}
-        <p className="leading-relaxed text-ink-soft">
+        <p className="mt-3 leading-relaxed text-ink-soft">
           That choice is fixed for as long as the connection lasts. If you make
           a new teamspace later, connect the assistant again and pick the new
           one on the approval screen — an existing connection keeps writing to
@@ -93,13 +93,32 @@ export default async function ConnectPage() {
         />
       </section>
 
-      <p className="text-sm leading-relaxed text-ink-faint">
+      <p className="mb-3 text-sm leading-relaxed text-ink-faint">
         Once connected, ask your assistant to publish something, or to list your
-        team&rsquo;s skills.{" "}
-        <Link href="/dashboard" className="text-accent underline">
-          Your documents
-        </Link>
+        team&rsquo;s skills.
       </p>
+      {/* This was an underlined fragment trailing the sentence above, so it
+          read as part of the copy rather than as the way on from here. Same
+          bordered control as "Documents" on /t, so the two pages agree. */}
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3 py-2 text-sm font-medium text-accent transition-colors duration-150 hover:bg-accent hover:text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        Your documents
+        <svg
+          className="h-4 w-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M5 12h14" />
+          <path d="m13 5 7 7-7 7" />
+        </svg>
+      </Link>
     </div>
   );
 }

@@ -109,20 +109,29 @@ export async function listTeamspacesForUser(
   );
 }
 
-// Same list, plus how many people and skills are in each. Kept separate from
-// listTeamspacesForUser because the app layout calls that one on every render
-// and has no use for the counts — no reason to make the shell pay for them.
+// Same list, plus how many people, documents and skills are in each. Kept
+// separate from listTeamspacesForUser because the app layout calls that one on
+// every render and has no use for the counts — no reason to make the shell pay
+// for them.
 //
 // Counts skills specifically, not every artifact kind: this number is rendered
 // as "N skills" and also picks which teamspaces are offered as a copy source
 // when creating a new one — and that copy only carries skills across. Counting
 // specs and plans in it would offer a teamspace with nothing to copy.
+//
+// document_count counts every document in the teamspace, unpublished ones
+// included, so it agrees with the per-teamspace tab count on /dashboard — the
+// page this number sends you to. It deliberately differs from countDocuments()
+// in lib/billing/entitlements.ts, which excludes unpublished documents because
+// those do not spend the plan's cap; a "12 documents" here that disagreed with
+// the twelve rows you then see would be the worse of the two mismatches.
 export async function listTeamspacesWithCounts(
   userId: string,
 ): Promise<
   (TeamspaceRow & {
     role: TeamRole;
     member_count: number;
+    document_count: number;
     skill_count: number;
   })[]
 > {
@@ -130,12 +139,15 @@ export async function listTeamspacesWithCounts(
     TeamspaceRow & {
       role: TeamRole;
       member_count: number;
+      document_count: number;
       skill_count: number;
     }
   >(
     `SELECT t.*, m.role,
             (SELECT COUNT(*) FROM teamspace_members c WHERE c.teamspace_id = t.id)
               AS member_count,
+            (SELECT COUNT(*) FROM documents d WHERE d.teamspace_id = t.id)
+              AS document_count,
             (SELECT COUNT(*) FROM artifacts s
               WHERE s.teamspace_id = t.id AND s.kind = 'skill'
                 AND s.archived_at IS NULL)

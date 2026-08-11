@@ -130,9 +130,15 @@ export function SignInForm({
         <button type="submit" disabled={busy || !email} className={button}>
           {busy ? "Sending…" : "Continue with email"}
         </button>
+        {/* The one line every context shares: standalone /signin, where the
+            visitor may never have heard of us, and the block inside the publish
+            composer, where they are mid-draft. It therefore stays neutral about
+            why they are here, and says the thing that was missing — that the
+            code covers a brand-new address and a returning one alike. */}
         <p className="text-sm leading-relaxed text-ink-faint">
-          No password. We&rsquo;ll email you a code — and a link, if you&rsquo;d
-          rather sign in on another device.
+          No password, and no separate signup — we email you a code that works
+          whether or not you already have an account. The same email has a link,
+          if you&rsquo;d rather continue on another device.
         </p>
       </form>
     );
@@ -159,8 +165,11 @@ export function SignInForm({
         />
       </div>
       {error && <p className="text-sm text-ink">{error}</p>}
+      {/* "Continue", not "Sign in": for a first-time address this same button
+          creates the account, and nothing before it asked the user which of the
+          two they were doing. */}
       <button type="submit" disabled={busy || code.length < 6} className={button}>
-        {busy ? "Verifying…" : "Sign in"}
+        {busy ? "Verifying…" : "Continue"}
       </button>
       <button
         type="button"

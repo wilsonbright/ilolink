@@ -20,22 +20,36 @@ export default async function AppLayout({
 }) {
   const user = await currentUser();
 
+  // Design review, Aug 2026: the nav read as congested and its hover was a
+  // colour nudge you had to look for. Both come from the same fix — every item
+  // is now a pill, so the padding does the spacing and the hover fills that
+  // pill with accent-soft instead of shifting one text colour. The padding is
+  // always there, so nothing moves on hover. Shape and tint deliberately match
+  // the dashboard teamspace tabs (rounded-full, bg-accent-soft) rather than
+  // inventing a second style for the same "thing you can click".
+  const navItem =
+    "rounded-full px-2 py-1.5 text-sm transition-colors duration-150 sm:px-3 " +
+    "hover:bg-accent-soft hover:text-ink " +
+    "focus-visible:bg-accent-soft focus-visible:text-ink " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+  const navLink = `${navItem} text-ink-soft`;
+
   return (
     <div className="min-h-dvh bg-canvas">
       <header className="border-b border-hairline">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-4">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4">
           <Link
             href={user ? "/dashboard" : "/"}
-            className="text-sm font-medium tracking-wide text-accent transition-colors duration-150 hover:text-ink"
+            className="rounded-full text-sm font-medium tracking-wide text-accent transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-canvas"
           >
             ilolink
           </Link>
-          <nav className="flex items-center gap-4">
+          {/* Pills are wide enough that a phone-width nav can no longer fit on
+              one line, so it wraps within itself instead of overflowing the
+              viewport; the narrower px-2 below sm keeps that wrap rare. */}
+          <nav className="flex flex-wrap items-center justify-end gap-x-1 gap-y-1 sm:gap-x-2">
             {user && (
-              <Link
-                href="/t"
-                className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"
-              >
+              <Link href="/t" className={navLink}>
                 Teamspaces
               </Link>
             )}
@@ -47,21 +61,19 @@ export default async function AppLayout({
                 logging into the platform, it was difficult to find where to
                 initiate the connection". */}
             {user && (
-              <Link
-                href="/connect"
-                className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"
-              >
+              <Link href="/connect" className={navLink}>
                 Connect
               </Link>
             )}
-            <Link
-              href="/publish"
-              className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"
-            >
+            <Link href="/publish" className={navLink}>
               Publish
             </Link>
             {user ? (
-              <>
+              // Who you are and how to leave are not navigation, so they sit in
+              // their own group behind a hairline rather than reading as two
+              // more destinations. The rule only appears from sm up, where the
+              // email is also visible — below that it would divide nothing.
+              <span className="flex items-center gap-x-1 sm:ml-1 sm:gap-x-2 sm:border-l sm:border-hairline sm:pl-3">
                 <span
                   className="hidden text-sm text-ink-faint sm:inline"
                   title={user.email}
@@ -69,12 +81,9 @@ export default async function AppLayout({
                   {user.email}
                 </span>
                 <SignOutButton />
-              </>
+              </span>
             ) : (
-              <Link
-                href="/signin"
-                className="text-sm text-accent transition-colors duration-150 hover:text-ink"
-              >
+              <Link href="/signin" className={`${navItem} text-accent`}>
                 Sign in
               </Link>
             )}

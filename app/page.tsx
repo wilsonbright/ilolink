@@ -239,9 +239,12 @@ export default function Home() {
             </span>
             {/* Signed out this lands on sign-in and returns to /t; signed in
                 /signin redirects straight through. One href, both states — no
-                session lookup on a static page. */}
+                session lookup on a static page. `new=1` only changes the copy
+                on the far side: someone who clicks Get started has not created
+                anything yet, so "Sign in to ilolink" read as a step they had
+                somehow already missed. */}
             <Link
-              href="/signin?next=%2Ft"
+              href="/signin?next=%2Ft&new=1"
               className="inline-flex items-center rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-canvas transition-opacity duration-150 hover:opacity-90"
             >
               Get started
@@ -591,8 +594,11 @@ export default function Home() {
             Uploads are capped at 15 MB per document on every plan. Publishing
             needs an account; reading never does.
           </p>
+          {/* Same `new=1` as the header CTA — this is a first-visit entry point
+              too, and it should not promise "Start free" and then open a screen
+              headed "Sign in". */}
           <Link
-            href="/signin?next=%2Ft"
+            href="/signin?next=%2Ft&new=1"
             className="mt-6 inline-block rounded-lg bg-accent px-5 py-3 font-medium text-canvas transition-opacity duration-150 hover:opacity-90"
           >
             Start free
