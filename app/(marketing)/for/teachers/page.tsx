@@ -13,7 +13,7 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "ilolink for teachers — ilolink",
+  title: "ilolink for teachers — see how far the class read",
   description:
     "Share a handout, lesson, or reading as a link and see how far the class got — in aggregate, never per student. No student accounts, no cookies, no profiles.",
   alternates: { canonical: "/for/teachers" },

@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "What people share with ilolink — ilolink",
   description:
-    "Specs, PRDs, prototypes, client reports, data tables, one-pagers — what people publish with ilolink and the analytics question each one answers once you send the link.",
+    "Specs, PRDs, prototypes, client reports, one-pagers — what people publish with ilolink, and the analytics question each one answers once you send the link.",
   alternates: { canonical: "/guides/use-cases" },
 };
 

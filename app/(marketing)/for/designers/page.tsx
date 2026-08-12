@@ -13,7 +13,7 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "ilolink for designers — ilolink",
+  title: "ilolink for designers — comments on the exact spot",
   description:
     "Share a mockup or prototype as a link, collect anchored comments on the exact spot, and see where people looked with click and scroll heatmaps.",
   alternates: { canonical: "/for/designers" },

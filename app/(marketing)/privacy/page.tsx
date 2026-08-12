@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: "Privacy policy — ilolink",
   description:
-    "Readers are never tracked and never sign in. Analytics use a rotating visitor hash — no fingerprint, no personal profile. Publishers hold an account; we store an email address and nothing more.",
+    "Readers are never tracked and never sign in. Analytics use a rotating visitor hash — no fingerprint, no profile. Publishers give us an email and nothing more.",
   alternates: { canonical: "/privacy" },
 };
 

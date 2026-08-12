@@ -12,7 +12,7 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "ilolink for marketers — ilolink",
+  title: "ilolink for marketers — heatmaps on your campaign pages",
   description:
     "Publish a landing-page mockup or campaign page as a link and see where attention went — click and scroll heatmaps, cookieless, no account to read.",
   alternates: { canonical: "/for/marketers" },

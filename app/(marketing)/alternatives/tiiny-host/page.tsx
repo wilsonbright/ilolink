@@ -16,7 +16,7 @@ import {
 export const metadata: Metadata = {
   title: "tiiny.host alternative with analytics — ilolink",
   description:
-    "Like drag-and-drop HTML hosting but want to see how many people opened the page and how far they read? ilolink is a drop-in with cookieless aggregate analytics, heatmaps, and feedback.",
+    "Want drag-and-drop HTML hosting that also shows how many opened the page and how far they read? ilolink adds cookieless analytics, heatmaps and feedback.",
   alternates: { canonical: "/alternatives/tiiny-host" },
 };
 

@@ -15,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "Share Bolt.new output as a page — ilolink",
   description:
-    "Export your Bolt.new build as one self-contained static HTML file, publish it at ilolink.com/<slug>, and see how it was read. Interactive JS renders frozen to static.",
+    "Export your Bolt.new build as one self-contained HTML file, publish it at ilolink.com/<slug>, and see how it was read. Interactive JS renders frozen to static.",
   alternates: { canonical: "/guides/share-bolt-output" },
 };
 

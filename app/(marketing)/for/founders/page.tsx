@@ -13,7 +13,7 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "ilolink for founders — ilolink",
+  title: "ilolink for founders — see who opened the investor update",
   description:
     "Share investor updates, pitches, and memos as a clean link, then see whether they were opened and how far they were read. Cookieless, no per-person identity.",
   alternates: { canonical: "/for/founders" },

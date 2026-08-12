@@ -15,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "Free HTML hosting: what free actually costs — ilolink",
   description:
-    "Free HTML hosting often means expiring links, small size caps, or watermarks. ilolink publishes HTML free for one person — no forced expiry, analytics included, 15 MB per doc.",
+    "Free HTML hosting often means expiring links, size caps or watermarks. ilolink is free for one person — no forced expiry, analytics included, 15 MB per doc.",
   alternates: { canonical: "/guides/free-html-hosting" },
 };
 

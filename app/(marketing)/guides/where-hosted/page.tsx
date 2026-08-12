@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "Where your shared docs live — ilolink",
   description:
-    "Your published pages are served from Cloudflare's global edge over HTTPS, isolated on view.ilolink.com under a strict CSP. Measurement is cookieless — no fingerprint, no profile.",
+    "Published pages are served from Cloudflare's edge over HTTPS, isolated on view.ilolink.com under a strict CSP. Measurement is cookieless — no fingerprint.",
   alternates: { canonical: "/guides/where-hosted" },
 };
 

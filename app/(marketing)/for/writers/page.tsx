@@ -12,7 +12,7 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "ilolink for writers — ilolink",
+  title: "ilolink for writers — see how far readers got",
   description:
     "Share a draft, essay, or newsletter as a clean link, see how far readers got with scroll depth and time on page, and collect reactions and comments in place.",
   alternates: { canonical: "/for/writers" },

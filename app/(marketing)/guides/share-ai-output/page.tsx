@@ -15,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "Share anything an AI made, as a real link — ilolink",
   description:
-    "Take ChatGPT, Claude, or Gemini output — HTML, Markdown, an image, a file — publish it as a normal web page, and see how it was read: views, scroll funnel, heatmaps.",
+    "Take ChatGPT, Claude or Gemini output — HTML, Markdown, an image, a file — publish it as a normal web page and see how it was read: views, scroll, heatmaps.",
   alternates: { canonical: "/guides/share-ai-output" },
 };
 

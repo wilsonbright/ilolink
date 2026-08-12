@@ -12,7 +12,7 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "What ilolink does — ilolink",
+  title: "What ilolink does: hosting, analytics, heatmaps — ilolink",
   description:
     "A scannable tour: publish anything an AI made as a link, then see how it was read — cookieless analytics, heatmaps, reactions, and anchored comments.",
   alternates: { canonical: "/guides/capabilities" },

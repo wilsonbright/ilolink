@@ -12,7 +12,7 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "ilolink for sales teams — ilolink",
+  title: "ilolink for sales teams — time follow-ups by real engagement",
   description:
     "Send a proposal or one-pager as a clean link, then time your follow-up by how it was read — opened, scroll depth, time on page. Cookieless and aggregate.",
   alternates: { canonical: "/for/sales" },

@@ -13,9 +13,9 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "ilolink for product managers — ilolink",
+  title: "ilolink for product managers — see if your PRD was read",
   description:
-    "Share a PRD, spec, or update as a clean link, then see if stakeholders read it: scroll depth, time on page, and where they clicked. No cookies, no reader accounts.",
+    "Share a PRD, spec or update as a clean link, then see if stakeholders read it: scroll depth, time on page, where they clicked. No cookies, no reader accounts.",
   alternates: { canonical: "/for/product-managers" },
 };
 

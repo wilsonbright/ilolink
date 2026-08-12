@@ -19,7 +19,12 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SITE_METADATA } from "@/lib/seo/metadata";
-import { ALL_PAGES, SITE_URL, SITE_NAME } from "@/lib/seo/site";
+import {
+  ALL_PAGES,
+  SITE_URL,
+  SITE_NAME,
+  SITE_DESCRIPTION,
+} from "@/lib/seo/site";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
@@ -120,6 +125,31 @@ describe("per-page canonicals", () => {
     // The home page lives outside the (marketing) group and outside ALL_PAGES,
     // which is exactly how it went 57-for-58 on canonicals.
     expect(read("app/page.tsx")).toContain('alternates: { canonical: "/" }');
+  });
+
+  it("keeps every plain-string meta description inside the SERP limit", () => {
+    // 15 of the 58 ran past 160 characters and had their tails truncated by
+    // Google — the home page at 262 lost its entire registry clause, the half a
+    // reader cannot infer from the title.
+    //
+    // LIMITATION, stated rather than hidden: this only sees descriptions
+    // written as a plain double-quoted literal. A template literal (/pricing
+    // interpolates the plan prices) is skipped, because its rendered length
+    // depends on values this test cannot evaluate without importing the page.
+    // Those are checked against the served HTML instead.
+    const long: string[] = [];
+    for (const p of ALL_PAGES) {
+      if (!existsSync(root + pageFile(p.path))) continue;
+      const m = read(pageFile(p.path)).match(/description:\s*\n?\s*"((?:[^"\\]|\\.)*)"/);
+      if (m && m[1].length > 160) long.push(`${p.path} (${m[1].length})`);
+    }
+    expect(long).toEqual([]);
+  });
+
+  it("keeps the site-wide default description inside the same limit", () => {
+    // It is the home page's description AND the og:description fallback for any
+    // page declaring none, so it is the single most-rendered string on the site.
+    expect(SITE_DESCRIPTION.length).toBeLessThanOrEqual(160);
   });
 
   it("keeps the canonical off the root layout, which app routes inherit", () => {

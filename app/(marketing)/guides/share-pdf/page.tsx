@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "How to share a PDF as a link — ilolink",
   description:
-    "Upload a PDF (up to 15 MB) to ilolink and get a link that opens it in the browser's PDF viewer at ilolink.com/<slug>. See that it was opened — views, not page depth.",
+    "Upload a PDF (up to 15 MB) and get a link that opens in the browser's PDF viewer at ilolink.com/<slug>. See that it was opened — views, not page depth.",
   alternates: { canonical: "/guides/share-pdf" },
 };
 

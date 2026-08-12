@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "Delete or replace a published doc — ilolink help",
   description:
-    "ilolink docs are immutable. To change the content, publish a new doc and share the new link. To take one down, delete it from your dashboard on any device you sign in on.",
+    "ilolink docs are immutable. To change the content, publish a new doc and share the new link. To take one down, delete it from your dashboard.",
   alternates: { canonical: "/help/delete-or-replace" },
 };
 

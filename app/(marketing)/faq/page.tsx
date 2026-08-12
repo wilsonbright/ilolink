@@ -17,7 +17,12 @@ import {
 
 export const metadata: Metadata = {
   title: "ilolink FAQ — accounts, privacy, formats & limits",
-  description: `Straight answers: readers never need an account, publishing is free for one person, teams are a one-time ${TEAM_PRICE_SHORT}, no cookies, publish Markdown/HTML/images/files up to 15 MB, and links don't expire unless you set them to.`,
+  // The price is deliberately not interpolated here: TEAM_PRICE_SHORT renders
+  // as "$9 for 5 people or $19 for 10", which pushed this description to 242
+  // characters and cost the whole tail to SERP truncation. The page body still
+  // carries the exact figures.
+  description:
+    "Straight answers: readers never need an account, publishing is free for one person, teams pay once, no cookies, 15 MB files, and links that don't expire.",
   alternates: { canonical: "/faq" },
 };
 

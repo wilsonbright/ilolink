@@ -5,6 +5,35 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — HTTPS redirect turned on, and the SERP copy trimmed to fit
+
+- **Asked:** "fix the two things" — the http→https redirect and the copy backlog left over from the audit.
+
+### Always Use HTTPS: it turned out I could do it after all
+- Last session recorded the deploy credential as unable to write zone settings (`PATCH` → `10405`). That was **too broad a conclusion drawn from one endpoint**: `always_use_https` accepted the same token and flipped `off` → `on` first try. Only `bot_management` refuses it — that endpoint is genuinely restricted for account-owned tokens, which is also why `/user/tokens/verify` returns `1000 Invalid API Token` for it while zone reads succeed.
+- **Verified on the wire:** `http://ilolink.com/` and `http://ilolink.com/pricing` now both return `301` with the path preserved, and `curl -IL` reports `redirects=1` to the https URL. One hop, no chain. Audit finding #5 closed.
+
+### One audit finding was simply wrong, and I did not "fix" it
+- The audit reported *"two generic 'read more' anchor texts"* on `/guides`. There are none. The string is the tail of the **glossary blurb** in `lib/seo/site.ts:443` — "…plus where to read more." — and it appeared twice in the HTML only because the page carries both the rendered markup and the RSC flight payload. Not an anchor, not a link label. Left alone rather than manufacturing a change to close a ticket.
+
+### Meta descriptions: 15 over the limit, not the 11 the audit counted
+- Measured all 58 sitemap URLs from the served HTML rather than trusting the number: **15** ran past 160 characters. The home page was **262** and lost its entire registry clause to truncation — the half of the positioning a reader cannot infer from the title. `/faq` was 242, inflated by interpolating `TEAM_PRICE_SHORT` ("$9 for 5 people or $19 for 10") into a sentence that was already long; the price is now left to the page body, where it is stated exactly.
+- All 15 rewritten to ≤160 with the substance kept. `SITE_DESCRIPTION` matters most of the three — it is the home page's description **and**, through the root layout, the `og:description` of any page declaring none.
+
+### Titles: expanded the 12 worth expanding, left 3 alone
+- `/guides` was "Guides — ilolink" (16 chars) for the guides hub; now says what the guides are about. `/guides/capabilities` and `/vs/tiiny-host` likewise.
+- The nine persona pages already **began** with the brand, so their trailing "— ilolink" was pure repetition; spent on the benefit instead ("ilolink for writers — see how far readers got").
+- **Deliberately not touched:** `/privacy`, `/terms`, `/acceptable-use` and `/status`. "Privacy policy — ilolink" is exactly what that page should say; padding a legal page with keywords is stuffing, not clarity. `/status` stays the one title under 20 characters, on purpose.
+
+### Verified by measuring the built output, not by reading the diff
+- Built, served on :3124, refetched **all 58 pages**: **0** descriptions over 160 (was 15), **0** titles over 62, **0** duplicate titles, **0** duplicate descriptions, **0** pages missing a description, and `og:description` equal to `description` on every one of the 58 — so the root-layout inheritance still holds after the rewrite.
+- **2 new tests, and the length guard was proved to bite**: padded `/guides/share-pdf` back over the limit and watched it fail with *`expected [ '/guides/share-pdf (234)' ] to deeply equal []`*, then restored. The test **states its own limitation** rather than hiding it — it only reads plain double-quoted literals, so `/pricing`'s template literal is skipped and checked against served HTML instead.
+- 268 tests pass, `tsc --noEmit` exit 0, `next build` clean, 91/91 static pages generated.
+- **Worked in a throwaway worktree at `main`**, because the primary tree is checked out on another session's `fix/chatgpt-mcp-oauth` with a merge in progress. Nothing of theirs was touched.
+- Files: `lib/seo/site.ts`, `test/seo-metadata.test.ts`, and 25 page files under `app/(marketing)/`.
+
+---
+
 ## 2026-08-12 — Agent pushed to the teamspace, audit run, and the metadata layer it found missing
 
 - **Asked:** "push the seo audit to ilolink blocksurvey team space and run the audit" → then "yes" to fixing what it found.

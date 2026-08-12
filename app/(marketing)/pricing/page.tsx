@@ -32,9 +32,9 @@ const T10 = formatPrice(PLANS.team10.priceCents);
 export const metadata: Metadata = {
   title: `ilolink pricing — free for one person, ${T5} once for a team of ${PLANS.team5.seats}`,
   description:
-    `Publishing is free for one person, up to ${PLANS.free.docs} documents. Teams are a ` +
-    `one-time payment, not a subscription: ${T5} once for ${PLANS.team5.seats} people, ` +
-    `${T10} once for ${PLANS.team10.seats}. Readers never need an account.`,
+    `Free for one person, up to ${PLANS.free.docs} documents. Teams pay once, not ` +
+    `monthly: ${T5} for ${PLANS.team5.seats} people, ${T10} for ${PLANS.team10.seats}. ` +
+    `Readers never need an account.`,
   alternates: { canonical: "/pricing" },
 };
 

@@ -13,7 +13,7 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "ilolink for developers — ilolink",
+  title: "ilolink for developers — share a README, skip the repo",
   description:
     "Share a README, API doc, changelog, or spec as a clean page — no repo, no build, no account to read — then see whether teammates actually read it.",
   alternates: { canonical: "/for/developers" },

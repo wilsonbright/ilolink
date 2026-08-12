@@ -20,8 +20,13 @@ export const SITE_NAME = "ilolink";
 // Both halves are named, in the order people arrive.
 export const SITE_TITLE =
   "ilolink — publish a document, see how it was read";
+// 160 characters is the working ceiling: this is the site-wide default, so it
+// is both the home page's meta description and — via the root layout — the
+// og:description of any page that declares none. The previous version ran to
+// 262 and lost its entire registry clause to SERP truncation, which is the one
+// half a reader could not guess from the title.
 export const SITE_DESCRIPTION =
-  "Share Markdown, HTML, a PDF or a .docx as a link anyone can open without signing in. See views, read-through, heatmaps and comments — no cookies. Plus a shared registry that keeps your team's skills, specs and plans where every teammate's AI agent can read them.";
+  "Share Markdown, HTML, a PDF or a .docx as a link anyone can open — no sign-in to read. See views, read-through and heatmaps, plus a registry your agents read.";
 
 // The live conversion surface: the composer doubles as the signup, so most
 // marketing CTAs point here. As of 2026-08-09 there IS a /pricing page (see

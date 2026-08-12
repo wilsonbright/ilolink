@@ -14,7 +14,7 @@ import {
 } from "../../_components/content";
 
 export const metadata: Metadata = {
-  title: "ilolink vs tiiny.host — ilolink",
+  title: "ilolink vs tiiny.host — hosting with read analytics",
   description:
     "Both turn an HTML file into a link. tiiny.host is a pure static host; ilolink adds cookieless view analytics, heatmaps, and reader feedback.",
   alternates: { canonical: "/vs/tiiny-host" },

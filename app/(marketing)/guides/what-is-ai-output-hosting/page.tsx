@@ -15,7 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "What is AI output hosting? — ilolink",
   description:
-    "AI output hosting is publishing what a chatbot produced — HTML, Markdown, a file, an image — as a standalone web page anyone can open, and measuring how it's read.",
+    "AI output hosting is publishing what a chatbot produced — HTML, Markdown, a file, an image — as a web page anyone can open, and measuring how it's read.",
   alternates: { canonical: "/guides/what-is-ai-output-hosting" },
 };
 

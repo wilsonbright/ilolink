@@ -16,7 +16,7 @@ import {
 import { Article, Breadcrumbs, PageHeader } from "../_components/content";
 
 export const metadata: Metadata = {
-  title: "Guides — ilolink",
+  title: "Guides: share AI output as a link — ilolink",
   description:
     "How to share anything an AI made as a real link, how the hosting options compare, and what you learn after you share.",
   alternates: { canonical: "/guides" },

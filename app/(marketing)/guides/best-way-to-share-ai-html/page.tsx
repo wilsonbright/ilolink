@@ -21,7 +21,7 @@ import {
 export const metadata: Metadata = {
   title: "The best way to share AI-generated HTML — ilolink",
   description:
-    "Compare static hosts, quick-drop hosts, and ilolink for sharing AI HTML. Every option gets you a link; ilolink also shows views, scroll depth, heatmaps, and feedback.",
+    "Compare static hosts, quick-drop hosts and ilolink for sharing AI HTML. Every option gets you a link; ilolink also shows views, scroll depth and heatmaps.",
   alternates: { canonical: "/guides/best-way-to-share-ai-html" },
 };
 
