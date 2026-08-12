@@ -1,7 +1,12 @@
 // Sitemap for the marketing surface. Derived from the page registry so it can
-// never fall out of sync with what actually exists. Published-doc pages
-// (view.ilolink.com/*) are deliberately excluded — user content is noindex and
-// must not dilute the marketing domain.
+// never fall out of sync with what actually exists.
+//
+// Published documents are deliberately excluded because they are user content,
+// not marketing pages — not because they are hidden. Only `unlisted` documents
+// carry noindex (content-worker/src/index.ts); a `public` one is labelled "may
+// be listed" at publish time and stays indexable, reached at ilolink.com/<slug>,
+// which is also the canonical every document names. An earlier version of this
+// comment claimed all user content was noindex, which was never true.
 import type { MetadataRoute } from "next";
 import { ALL_PAGES, CORPUS_UPDATED, absolute } from "@/lib/seo/site";
 

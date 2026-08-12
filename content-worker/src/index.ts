@@ -24,6 +24,13 @@ import {
   deviceClass,
   refHost,
 } from "../../lib/analytics/collect";
+import { renderDocOriginRobotsTxt } from "../../lib/seo/robots";
+import {
+  GENERIC_PREVIEW_DESCRIPTION,
+  GENERIC_PREVIEW_TITLE,
+  mayQuoteBody,
+  mayShowTitle,
+} from "../../lib/seo/doc-preview";
 import { TRACKER_JS } from "./tracker-script";
 import { WIDGET_JS } from "./widget-script";
 import { ViewCounter } from "./view-counter";
@@ -308,6 +315,11 @@ function readerShell(opts: {
   slug: string;
   format?: string; // source_type, drives the OG-card badge
   description?: string;
+  // Title for the og:/twitter: card and the OG image ONLY, when the document's
+  // real title must not travel to an unfurler (lib/seo/doc-preview.ts). The
+  // <title> element keeps the real one either way — that is for the person who
+  // opened the document, who is holding the link already.
+  previewTitle?: string;
   html?: boolean; // true => full-bleed (author controls styling)
   // 'off' | 'anon' | 'signed'. Read by the widget to decide which composer (if
   // any) to mount. Forced to 'off' on trusted docs.
@@ -324,7 +336,9 @@ function readerShell(opts: {
 
   // Open Graph / Twitter cards so shared links preview everywhere. The image is
   // a branded per-doc card rendered by the app at /api/og.
-  const ogTitle = opts.title.replace(/\s+—\s+ilolink$/, "").slice(0, 140) || "ilolink";
+  const ogTitle =
+    opts.previewTitle ??
+    (opts.title.replace(/\s+—\s+ilolink$/, "").slice(0, 140) || "ilolink");
   const shareUrl = `https://ilolink.com/${opts.slug}`;
   const ogDesc =
     (opts.description && opts.description.trim()) ||
@@ -865,6 +879,21 @@ export default {
     if (pathname === "/tracker.js") return scriptResponse(TRACKER_JS);
     if (pathname === "/widget.js") return scriptResponse(WIDGET_JS);
 
+    // robots.txt for this origin. Must be matched here, before slug lookup: this
+    // is a bare fetch handler, so without this case the path fell through to a
+    // KV slug read and answered the 404 document page. (It could never actually
+    // BE a document — a slug is [a-z0-9-] only, so no slug contains a dot.)
+    if (pathname === "/robots.txt") {
+      return new Response(renderDocOriginRobotsTxt(), {
+        headers: {
+          "content-type": "text/plain; charset=utf-8",
+          // Same day-long cache as the apex file: long enough to spare the
+          // origin, short enough that a policy change lands the same day.
+          "cache-control": "public, max-age=86400",
+        },
+      });
+    }
+
     // ─── analytics beacon ────────────────────────────────────────────────
     // POST /_collect — one Analytics Engine data point per event. Drops on DNT,
     // rate-limited per IP. Always 202 (fire-and-forget; never leak state).
@@ -1107,6 +1136,11 @@ export default {
       trusted,
       commentEmbed,
     });
+    // What the link preview may reveal is a separate question from what search
+    // engines may index (`noindex` below), because unfurlers read og:/twitter:
+    // and ignore robots directives entirely — so an unlisted document used to be
+    // hidden from Google and quoted in full by every chat app it was pasted into.
+    // The policy, per tier, is in lib/seo/doc-preview.ts.
     const html = readerShell({
       title: isPdf ? "PDF document — ilolink" : titleFromBody(textForMeta),
       body,
@@ -1115,9 +1149,14 @@ export default {
       docId: rec.doc_id,
       slug,
       format: rec.source_type,
-      description: isPdf
-        ? "A PDF shared on ilolink."
-        : descriptionFromBody(textForMeta),
+      previewTitle: mayShowTitle(rec.visibility)
+        ? undefined
+        : GENERIC_PREVIEW_TITLE,
+      description: mayQuoteBody(rec.visibility)
+        ? isPdf
+          ? "A PDF shared on ilolink."
+          : descriptionFromBody(textForMeta)
+        : GENERIC_PREVIEW_DESCRIPTION,
       html: rec.source_type === "html" || isPdf, // full-bleed
       commentsMode: trusted ? "off" : commentsMode,
     });

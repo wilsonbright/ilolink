@@ -5,6 +5,44 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — The document origin gets its own robots.txt, and stops quoting private documents to unfurlers
+
+- **Asked:** "go with 2, 3, 4" from the pending-SEO list — the missing robots.txt on the content origin, two comments that were provably false, and the unlisted-document OG excerpt — "work on a separate branch and then merge to main".
+- Worked in a **project-local git worktree** (`.worktrees/content-origin-robots`, branch `fix/content-origin-robots`) because the primary tree is shared with other live sessions. A native `EnterWorktree` exists but places worktrees outside the project folder, which this project's rules forbid, so `.worktrees/` + `.deploy-tmp/` were added to `.gitignore` first (`96012df`) — a worktree is a full checkout and unignored would commit the tree into itself. `.gitignore`'s `node_modules/` has a trailing slash, so the symlinked `node_modules` in a worktree is **not** ignored; staged explicit paths rather than `-A`.
+
+### 2. Turning off Cloudflare's managed robots.txt had a side effect nobody asked for
+- The managed file was injected on **every hostname in the zone**. Removing it (correct — it paired the content signals with `Disallow: /` for ClaudeBot, GPTBot, Google-Extended and six more) left `view.ilolink.com/robots.txt` answering **404**, because the content worker is a bare `fetch` handler and the path fell through to a KV slug lookup. So the origin that serves **every published document** had no robots.txt and, more to the point, **no `ai-train=no` reservation** — the Article 4 reservation covered the ~58 marketing pages and none of the content.
+- New `renderDocOriginRobotsTxt()` beside the apex renderer in `lib/seo/robots.ts`, so one `CONTENT_SIGNAL` constant feeds both files and they cannot drift into meaning different things per hostname. Served from the worker's exact-path dispatch next to `/tracker.js`.
+- **The two rule sets are deliberately NOT one list.** The doc origin disallows `/_` — one prefix covering `/_collect`, `/_feedback`, `/_comments`, `/_report`, `/_unlock`, safe because a slug is `^[a-z0-9-]+$` (`lib/slug.ts`) so no document can start with `_`. That identical rule on the apex would block **`/_next/`** and stop Google fetching the CSS and JS it needs to render every page. Same string, opposite verdict, decided by what else lives on the hostname. There is now a test asserting the apex list never contains `/_`.
+- **`/raw/` left crawlable on purpose.** A PDF document's page is an iframe around `/raw/<slug>`, so the words exist only in the PDF; disallowing it would make every public PDF unindexable while *looking* like a privacy measure. It is not one — `/raw/` enforces the same access gate as the page.
+- No `Sitemap:` line: documents are user content and `app/sitemap.ts` excludes them by design; pointing at the apex sitemap from here would advertise URLs that live on another host.
+
+### 4. An unlisted document was hidden from Google and quoted in full by every chat app
+- `noindex` flipped on `visibility === "unlisted"`; `og:description` did not. Unfurlers read og/twitter and **ignore robots directives entirely**, so ~180 characters of body went into Slack/iMessage/X caches that outlive an unpublish or an expiry. Worse than the audit recorded: `og:title` is also content-derived (`titleFromBody`) **and is interpolated into the `og:image` URL** (`/api/og?t=…`), so the title travelled twice.
+- New `lib/seo/doc-preview.ts` holds the policy as two named predicates, pure and testable without a worker: `mayQuoteBody` (public only) and `mayShowTitle` (public + unlisted).
+- **The judgment call, stated rather than buried:** unlisted keeps its *title* because the link is the audience and pasting it into a channel for a titled card is the ordinary flow — a card reading "A document shared on ilolink" would read as broken. It loses the body excerpt, which is the part that quotes content nobody chose to quote. `password` and `expiring` lose both: the unfurler never had the password, and an unfurl cache does not expire when the document does. Tightening unlisted is a one-line move between the two groups, and a test pins the current answer per tier so the flip has to be deliberate.
+- `readerShell` gained `previewTitle`, which overrides the og/twitter title **and the OG image** but never the `<title>` element — that one belongs to the person who opened the document, who is holding the link already.
+
+### 3. Two comments that were false
+- `lib/seo/robots.ts` and `app/sitemap.ts` both claimed the content origin "sets its own noindex" / that user content is noindex. Only `unlisted` is; a `public` document is labelled "Anyone with the link. May be listed." at publish time and stays indexable at `ilolink.com/<slug>`, which is also the canonical every document names. Both rewritten to say what is true and why documents are excluded from the sitemap (they are user content, not that they are hidden).
+
+### Verified by observation, not by test alone
+- **Ran the real content worker** (`wrangler dev`, port 8799) and fetched `/robots.txt`: **200 `text/plain; charset=utf-8`**, `Cache-Control: public, max-age=86400`, the Content-Signal line, `Disallow: /_`, no `Sitemap:`.
+- **Seeded a real document in local KV + R2 and served it under four visibility tiers with identical bodies**, then read the served HTML:
+  - `public` — og:title `Q3 acquisition target shortlist`, og:description the real excerpt (*"Northwind at 4.2x revenue…"*). Unchanged.
+  - `unlisted` — real og:title kept, **excerpt replaced** by the generic sentence, `noindex` present.
+  - `expiring` — **generic og:title AND description**, and `og:image` now `?t=A%20document%20shared%20on%20ilolink` rather than the real title.
+  - `password` — **401 gate**, zero occurrences of the title or body, `noindex`, and no og tags at all. The audit's claim that password never reaches `readerShell` is confirmed by observation rather than inherited.
+  - `<title>` kept the real document title in every case, as intended.
+- **Both new guards proved to bite**, by reintroducing the bug and watching the right test fail: copying `/_` onto the apex list → *"expected '/_' not to be '/_'"*; letting `expiring` show its title → *"expected [ 'public', 'unlisted', 'expiring' ] to deeply equal [ 'public', 'unlisted' ]"*. Restored, both green.
+- **299 tests pass** (was 287; +12), `tsc --noEmit` exit 0 on **all three** projects (the app, `content-worker`, `mcp-worker` — the worker tsconfig has no `@/` alias, so `doc-preview.ts` imports `../types` relatively or the worker typecheck fails), `next build` clean, 91/91 static, `○ /robots.txt` and `○ /sitemap.xml` still prerendered.
+- **All local seed data deleted** — four KV keys and the R2 object; re-read afterwards and each returns "Value not found". Nothing touched production.
+- Files: `lib/seo/doc-preview.ts` (new), `test/doc-preview.test.ts` (new), `lib/seo/robots.ts`, `content-worker/src/index.ts`, `app/sitemap.ts`, `test/seo-sitemap-robots.test.ts`, `.gitignore`.
+- **NOT DEPLOYED.** Both changes are inert until the workers ship, and `DEPLOY.md` puts `content-worker` first. Nothing here is live yet.
+- **Noticed while verifying, not fixed:** an `expiring` document carries **no `noindex`** — only `unlisted` does — so it is indexable for its whole life and a search engine may hold a cached copy after it expires. That is pre-existing behaviour and a policy decision, not a bug to fix quietly.
+
+---
+
 ## 2026-08-12 — Deployed the ChatGPT/OAuth work, and two deploys rolled each other back
 
 - **Asked:** "deploy" → "merge and deploy" → "check now".

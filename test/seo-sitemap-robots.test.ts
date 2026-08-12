@@ -8,7 +8,13 @@
 // app had at launch. Neither failure could break a build or a page, which is
 // exactly why they need tests rather than care.
 import { describe, expect, it } from "vitest";
-import { DISALLOW, CONTENT_SIGNAL, renderRobotsTxt } from "@/lib/seo/robots";
+import {
+  DISALLOW,
+  DOC_ORIGIN_DISALLOW,
+  CONTENT_SIGNAL,
+  renderDocOriginRobotsTxt,
+  renderRobotsTxt,
+} from "@/lib/seo/robots";
 import sitemap from "@/app/sitemap";
 import { ALL_PAGES, CORPUS_UPDATED, SITE_URL } from "@/lib/seo/site";
 
@@ -128,6 +134,70 @@ describe("rendered robots.txt", () => {
     const txt = renderRobotsTxt();
     expect(txt).not.toMatch(/User-agent:\s*(GPTBot|ClaudeBot|Google-Extended)/i);
     expect(txt).not.toMatch(/^Disallow:\s*\/$/m);
+  });
+
+  it("does not disallow /_ on the apex, which would block /_next", () => {
+    // The document origin DOES disallow /_ (its beacons all start with it and no
+    // slug may contain `_`). Copying that rule here would block /_next/ and stop
+    // Google fetching the CSS and JS it needs to render every page — the same
+    // string, opposite verdict, which is why the two lists are separate.
+    for (const rule of DISALLOW) expect(rule).not.toBe("/_");
+    expect(renderRobotsTxt()).not.toMatch(/^Disallow:\s*\/_\s*$/m);
+  });
+});
+
+describe("document-origin robots.txt (view.ilolink.com)", () => {
+  // Until this existed the content worker answered 404 here, so after
+  // Cloudflare's managed file was turned off the origin serving every published
+  // document had no robots.txt and no ai-train reservation at all.
+  const txt = () => renderDocOriginRobotsTxt();
+
+  it("carries the same content signal as the apex", () => {
+    // One policy, two files. If these drift, the reservation means different
+    // things depending on which hostname a crawler asked.
+    expect(txt()).toContain(`Content-Signal: ${CONTENT_SIGNAL}`);
+  });
+
+  it("declares exactly one wildcard group and allows crawling", () => {
+    expect(txt().match(/^User-agent:/gm)).toHaveLength(1);
+    expect(txt()).toContain("Allow: /");
+    expect(txt()).not.toMatch(/^Disallow:\s*\/$/m);
+    expect(txt()).not.toMatch(/User-agent:\s*(GPTBot|ClaudeBot|Google-Extended)/i);
+  });
+
+  it("blocks the beacon and fragment endpoints", () => {
+    const rules = [...DOC_ORIGIN_DISALLOW];
+    for (const path of [
+      "/_collect",
+      "/_feedback",
+      "/_comments",
+      "/_report",
+      "/_unlock/abc123",
+    ]) {
+      expect(
+        rules.some((rule) => blocks(rule, path)),
+        `${path} is crawlable`,
+      ).toBe(true);
+    }
+  });
+
+  it("leaves documents and PDF bytes crawlable", () => {
+    // A pdf document's page is an iframe around /raw/<slug>, so the words live
+    // only in the PDF. Disallowing /raw/ would make every public PDF
+    // unindexable while looking like a privacy measure — it is not one, since
+    // /raw/ enforces the same access gate as the page.
+    const rules = [...DOC_ORIGIN_DISALLOW];
+    for (const path of ["/gnt3pg", "/my-custom-slug", "/raw/gnt3pg"]) {
+      const hit = rules.find((rule) => blocks(rule, path));
+      expect(hit, `rule "${hit}" blocks document path ${path}`).toBe(undefined);
+    }
+  });
+
+  it("advertises no sitemap, because documents are not in one", () => {
+    // Published documents are user content and app/sitemap.ts excludes them on
+    // purpose; pointing at the apex sitemap from here would advertise URLs that
+    // live on another host.
+    expect(txt()).not.toMatch(/^Sitemap:/m);
   });
 });
 
