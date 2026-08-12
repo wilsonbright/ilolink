@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { NAV_LINK } from "@/lib/ui/nav";
 
 export function NavAuth() {
   const [state, setState] = useState<"unknown" | "out" | "in">("unknown");
@@ -30,22 +31,19 @@ export function NavAuth() {
     };
   }, []);
 
+  // Same pill as every other header destination (lib/ui/nav.ts) — this renders
+  // into the landing nav, so styling it any other way would leave one item in
+  // that row hovering differently from its neighbours.
   if (state === "in") {
     return (
-      <Link
-        href="/dashboard"
-        className="transition-colors duration-150 hover:text-ink"
-      >
+      <Link href="/dashboard" className={NAV_LINK}>
         Your documents
       </Link>
     );
   }
 
   return (
-    <Link
-      href="/signin"
-      className="transition-colors duration-150 hover:text-ink"
-    >
+    <Link href="/signin" className={NAV_LINK}>
       Sign in
     </Link>
   );

@@ -4,6 +4,7 @@
 // shell; the point is that a guide feels like the product, not an ad for it.
 import Link from "next/link";
 import { PILLARS, LEGAL } from "@/lib/seo/site";
+import { NAV_LINK, NAV_ROW, NAV_WORDMARK } from "@/lib/ui/nav";
 
 export default function MarketingLayout({
   children,
@@ -13,24 +14,18 @@ export default function MarketingLayout({
   return (
     <div className="flex min-h-dvh flex-col bg-canvas">
       <header className="border-b border-hairline">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
-          <Link
-            href="/"
-            className="text-sm font-medium tracking-wide text-accent transition-colors duration-150 hover:text-ink"
-          >
+        {/* Same pill nav as the app shell (lib/ui/nav.ts). This header was left
+            behind by the first pass at the Aug 2026 design review, so a guide
+            page hovered differently from the product it is a guide for. */}
+        <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4">
+          <Link href="/" className={NAV_WORDMARK}>
             ilolink
           </Link>
-          <nav className="flex items-center gap-5 text-sm text-ink-soft">
-            <Link
-              href="/guides"
-              className="transition-colors duration-150 hover:text-ink"
-            >
+          <nav className={NAV_ROW}>
+            <Link href="/guides" className={NAV_LINK}>
               Guides
             </Link>
-            <Link
-              href="/"
-              className="transition-colors duration-150 hover:text-ink"
-            >
+            <Link href="/" className={NAV_LINK}>
               Publish
             </Link>
           </nav>

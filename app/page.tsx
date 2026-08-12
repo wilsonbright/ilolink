@@ -25,6 +25,7 @@
 import Link from "next/link";
 import { PublishForm } from "@/app/(app)/publish/publish-form";
 import { PILLARS, LEGAL } from "@/lib/seo/site";
+import { NAV_LINK } from "@/lib/ui/nav";
 import { NavAuth } from "@/app/nav-auth";
 import { ARTIFACT_KINDS, KINDS } from "@/lib/artifacts/kinds";
 import { PLANS, formatPrice } from "@/lib/billing/plans";
@@ -209,29 +210,24 @@ export default function Home() {
       <header className="sticky top-0 z-20 border-b border-hairline bg-canvas/85 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
           <p className="text-sm font-medium tracking-wide text-accent">ilolink</p>
-          <nav className="flex items-center gap-4 text-sm text-ink-soft sm:gap-5">
-            <Link
-              href="#registry"
-              className="hidden transition-colors duration-150 hover:text-ink sm:inline"
-            >
+          {/* Same pill nav as the app shell and the marketing chrome
+              (lib/ui/nav.ts) — this header was left behind by the first pass at
+              the Aug 2026 review. Only the DESTINATIONS are pills: the two
+              buttons after them are calls to action with their own weight, and
+              giving them the nav hover as well would flatten that distinction.
+              The gap is wider than NAV_ROW's for the same reason — the pills
+              space themselves, but the CTAs still need air. */}
+          <nav className="flex flex-wrap items-center justify-end gap-x-2 gap-y-2 text-sm text-ink-soft sm:gap-x-3">
+            <Link href="#registry" className={`hidden sm:inline ${NAV_LINK}`}>
               For teams
             </Link>
-            <Link
-              href="#pricing"
-              className="transition-colors duration-150 hover:text-ink"
-            >
+            <Link href="#pricing" className={NAV_LINK}>
               Pricing
             </Link>
-            <Link
-              href="/connect"
-              className="transition-colors duration-150 hover:text-ink"
-            >
+            <Link href="/connect" className={NAV_LINK}>
               Connect
             </Link>
-            <Link
-              href="/guides"
-              className="hidden transition-colors duration-150 hover:text-ink sm:inline"
-            >
+            <Link href="/guides" className={`hidden sm:inline ${NAV_LINK}`}>
               Guides
             </Link>
             <span className="hidden sm:inline">
