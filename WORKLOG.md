@@ -5,6 +5,20 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-13 — Modernist redesign across the whole product (branch `redesign/modernist`, not yet deployed)
+
+- **Asked:** "ultracode redesign the entire app with this new design" + a Claude Design handoff zip (Landing + Connect prototypes, "Modernist" DS: Archivo, one red #ec3013 on #f3f2f2, zero radius, 2px rules, flush-left). Second zip checked — byte-identical to the first.
+- **Keystone first, inline:** `app/globals.css` retheme (token NAMES kept — canvas/surface/ink/hairline/accent — so the token-disciplined codebase restyled itself; new `divider`, `accent-strong`, pinned `poster` pair; ALL Tailwind radius steps zeroed, which retunes every `rounded-*` class without touching JSX), Archivo via next/font in `app/layout.tsx`, flat nav in `lib/ui/nav.ts`. Dark mode KEPT (handoff is light-only; dropping shipped dark would be a regression) — derived per the DS's own dark-ground guidance.
+- **Then a 9-agent workflow:** six implement agents on disjoint file sets (landing rebuild; marketing chrome/components; app shell + dashboard; publish-form + auth; teamspaces + connect per the Connect prototype; admin/embed/icon + stray sweep), then three adversarial reviewers (DS adherence, functional regressions, dark-mode contrast with computed WCAG ratios).
+- **Landing rebuilt to the prototype** with reality overriding mock copy: kinds grid generated from `lib/artifacts/kinds`, plan cards from `lib/billing/plans`, hero price line derives via `formatPrice(PLANS.team5.priceCents)` (the prototype's retyped "$9" broke the file's own no-drift rule), fake `/d/` URL shape fixed, prototype's "handoff/" kind corrected to the real `session` slug. Live `<PublishForm discoverTeamspaces />` kept inside the prototype's bordered panel — the composer is the signup. `#compose`/`#registry`/`#publish`/`#pricing`/`#connect` anchors kept; `#formats`/`#access`/`#review`/`#kinds`/`#teamspaces` dropped after repo-wide grep found zero references.
+- **Review findings fixed:** OG card (`app/api/og/route.tsx`) still carried the old blue + pill + rounded mark → full Modernist restatement incl. Archivo 800 from fontsource (URLs verified 200); `guides/page.tsx` had missed the sweep; `text-canvas/80` on the accent tab failed even the 3:1 graphics floor; `.prose a:hover` moved to ink (raw accent is 3.76:1 — chrome, not copy); `ink-faint` raised 60%→65% to clear AA; poster banner got the pinned `bg-poster` pair so dark mode doesn't invert the one red statement into pastel salmon; landing footer "Publish a document" restored to `/publish`.
+- **Recorded as sanctioned chrome, not fixed:** `bg-accent text-canvas` primary buttons are 3.76:1 in light — the DS itself tunes accent-to-ground to "at least 3:1 … interface chrome"; heatmap canvas rgba literals are data-viz, not theme.
+- **Verified, not assumed:** tsc clean, 306/306 vitest, `npm run build` with **`○ /` still static**, and light+dark screenshots of `/`, `/mcp`, `/pricing`, `/guides`, `/publish`, `/t/<id>`, dashboard — poster stays red in dark, square accent tabs, table idioms, bordered panels all render as designed.
+- **Not done:** content-worker reading pages (view.ilolink.com) keep their own deliberately neutral document styling — restyling the reader surface is a separate decision; `lib/email/templates.ts` still carries the old blue (emails are fixed-light; rebrand them when touched next); `opengraph-image.png` (the static site-wide card) not regenerated — the dynamic `/api/og` card is rebranded.
+- **Branch `redesign/modernist`, commit `9b2a090`. Not merged, not deployed** — full visual change; the user should eyeball it first.
+
+---
+
 ## 2026-08-12 — Teamspace publishing from the landing page, invite copy-links, and a public /mcp page
 
 - **Asked:** three changes — (1) allow publishing to a teamspace from the landing page, personal defaulting to public and a teamspace to private; (2) a copy-link for member invites, plus a note to check spam; (3) communicate Claude/ChatGPT connection on a `/mcp` page and the landing page, listing the tools for marketing.
