@@ -21,7 +21,19 @@ import {
   resolveActiveTab,
   SHARED_TAB_ID,
 } from "@/lib/teamspace/dashboard-tabs";
+import { buildMoveTargets } from "@/lib/teamspace/move-targets";
+import type { TeamRole } from "@/lib/teamspace/permissions";
 import { ClaimBanner } from "./claim-banner";
+import { DocumentRowActions } from "./document-row-actions";
+
+// What buildMoveTargets needs from a teamspace row — listTeamspacesForUser
+// returns a superset.
+type MoveCandidate = {
+  id: string;
+  name: string;
+  is_personal: number;
+  role: TeamRole;
+};
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -138,7 +150,7 @@ export default async function DashboardPage({
         </div>
       ) : (
         <>
-          {rootGroup && <DocList docs={rootGroup.docs} showTeamspace={showTeamspace} />}
+          {rootGroup && <DocList docs={rootGroup.docs} showTeamspace={showTeamspace} teamspaces={teamspaces} />}
           {folderGroups.map(([id, g]) => (
             <section key={id} className="mt-8">
               <h2 className="mb-1 text-sm font-medium text-ink-soft">
@@ -147,7 +159,7 @@ export default async function DashboardPage({
                   {g.docs.length}
                 </span>
               </h2>
-              <DocList docs={g.docs} showTeamspace={showTeamspace} />
+              <DocList docs={g.docs} showTeamspace={showTeamspace} teamspaces={teamspaces} />
             </section>
           ))}
         </>
@@ -180,9 +192,11 @@ export default async function DashboardPage({
 function DocList({
   docs,
   showTeamspace,
+  teamspaces,
 }: {
   docs: DashboardDoc[];
   showTeamspace: boolean;
+  teamspaces: MoveCandidate[];
 }) {
   return (
     <ul>
@@ -202,19 +216,27 @@ function DocList({
                   {when(d.published_at)}
                 </span>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-ink-faint">
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-faint">
                 <span>{d.visibility}</span>
                 <span>{d.source_type}</span>
                 {showTeamspace && d.teamspace_name && (
                   <span>{d.teamspace_name}</span>
                 )}
                 {d.via === "shared" && <span>shared with you</span>}
-                <a
-                  href={`/${d.slug}`}
-                  className="text-accent transition-colors duration-150 hover:text-ink"
-                >
-                  open
-                </a>
+                {/* The bare "open" text link became the first of four controls.
+                    A document shared with you is not yours to relocate, so it
+                    is offered no destinations — the server refuses that move
+                    independently, this just declines to suggest it. */}
+                <DocumentRowActions
+                  docId={d.id}
+                  slug={d.slug}
+                  title={d.title || d.slug}
+                  moveTargets={
+                    d.via === "shared"
+                      ? []
+                      : buildMoveTargets(teamspaces, d.teamspace_id)
+                  }
+                />
               </div>
         </li>
       ))}

@@ -5,6 +5,22 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — Dashboard row actions: copy URL, preview, move, inline views
+
+- **Asked:** "give an option to copy URL, quick way to preview and option to move from personal to teamspace, show basic view stats inline."
+- Brainstormed to a spec first (`docs/superpowers/specs/2026-08-12-dashboard-row-actions-design.md`, commit `ff28d72`), approved before any code. Row treatment chosen: all four controls always visible rather than hover-revealed or behind a `···` — touch devices have no hover, and a menu costs two clicks for what should cost one.
+- **Move is the repair for `02eb986`.** Ten documents were sitting in Personal that were never meant to be, and nothing could move them.
+- **The spec was wrong about one thing and implementation caught it.** It said gate move on `resolveDocAccess`. But an *editor share* yields `canEdit: true` with **no membership** (`permissions.ts:110-118`), so that gate would let someone a document was merely shared with move it into their own teamspace — theft, not editing. Gated on `getMembership` + `canPublishInto` on **both** sides instead. The claim route already guards the same shape of attack ("anyone holding an old token could yank a document out of a teamspace", `app/api/claim/route.ts:78-84`).
+- **The billing bypass, closed deliberately.** `/api/publish` refuses once a teamspace hits its plan's document cap; move calls the same `checkDocumentAllowance`. Without it, move would be a way to load unlimited documents into a free teamspace from a button. Verified by capping a local teamspace at `free`/3 docs, filling it, and confirming the move is refused with the identical `documentLimitMessage` — and that the document did not move.
+- **`folder_id` is nulled in the same statement.** `folders.teamspace_id` is `NOT NULL`, so a moved document that kept its folder would point at a folder in the teamspace it just left. Verified: put a document in a folder, moved it, read `folder_id = null` back.
+- **The slug never changes** — move is an ownership change, not a re-publish, so shared URLs keep working. The move menu says so where the decision is made ("Move to — the link stays the same").
+- Preview is a sandboxed iframe reusing `heatmap-view.tsx`'s posture exactly: `sandbox="allow-same-origin"` with **no** `allow-scripts`. The content worker serves arbitrary author JavaScript for `trusted=1` documents by design; this overlay renders inside the authenticated origin, so scripts must never be enabled here.
+- Views come from `/api/counts`, fetched client-side after paint. Counts live in a Durable Object keyed per document, so there is no batched query — N documents cost N round trips whatever we do, and doing them from the client after paint keeps the server-rendered list instant.
+- **Verified by observation:** all six guards exercised over HTTP (401 no session, 400 missing fields, 403 non-member target, 403 unknown document, 400 same teamspace, 403 at cap). Round-tripped a document Personal → BlockSurvey → Personal through the UI and watched the tab counts re-derive (`Personal 0 / BlockSurvey 4` → `Personal 1 / BlockSurvey 3`). Clipboard read back as the correct absolute URL. Preview: `aria-modal`, labelled, focus inside on open, Esc closes, focus returns to the triggering button, body scroll restored. Dark mode correct; no overflow at 375px. 219 tests (was 212), `tsc` clean, `next build` clean.
+- Files: `lib/teamspace/move-targets.ts` (new), `test/move-targets.test.ts` (new, 7 tests), `app/api/documents/move/route.ts` (new), `app/(app)/dashboard/document-row-actions.tsx` (new), `app/(app)/dashboard/preview-overlay.tsx` (new), `app/(app)/dashboard/page.tsx`.
+
+---
+
 ## 2026-08-12 — Pushed and deployed to production
 
 - **Asked:** "get it live and push."
