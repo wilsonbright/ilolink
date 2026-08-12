@@ -120,11 +120,13 @@ export async function listTeamspacesForUser(
 // specs and plans in it would offer a teamspace with nothing to copy.
 //
 // document_count counts every document in the teamspace, unpublished ones
-// included, so it agrees with the per-teamspace tab count on /dashboard — the
-// page this number sends you to. It deliberately differs from countDocuments()
-// in lib/billing/entitlements.ts, which excludes unpublished documents because
-// those do not spend the plan's cap; a "12 documents" here that disagreed with
-// the twelve rows you then see would be the worse of the two mismatches.
+// included, so it agrees with the DOCUMENTS tab on /dashboard. It used to say
+// it agreed with the per-teamspace tab count; that stopped being true when the
+// dashboard gained the kind axis and its teamspace tabs began counting
+// documents + artifacts together. It still deliberately differs from
+// countDocuments() in lib/billing/entitlements.ts, which excludes unpublished
+// documents because those do not spend the plan's cap; a "12 documents" here
+// that disagreed with the twelve rows you then see would be the worse mismatch.
 export async function listTeamspacesWithCounts(
   userId: string,
 ): Promise<
@@ -251,6 +253,43 @@ export async function listDashboardDocs(
      ORDER BY published_at DESC`,
     userId,
     userId,
+    userId,
+  );
+}
+
+// How many artifacts of each kind sit in each teamspace the user belongs to.
+//
+// One grouped query for the whole grid, not one per kind and not one per
+// teamspace: /dashboard renders eleven axis values across every teamspace tab,
+// and ten COUNT(*)s per teamspace would be an absurd way to draw a row of
+// numbers. At most teamspaces × 10 rows come back, which is single digits in
+// practice.
+//
+// Lives here rather than in lib/artifacts/store-core.ts because that module is
+// binding-parameterised so mcp-worker can import it, and mcp-worker has no
+// user-scoped cross-teamspace read. This file already queries `artifacts` for
+// skill_count above.
+//
+// archived_at IS NULL matches listArtifacts, so a count can never disagree with
+// the list it labels. It deliberately does NOT skip artifacts whose only
+// version is a proposal (current_version_id IS NULL) — those DO render, as an
+// unlinked "awaiting review" row, and a count that omitted them would make a
+// visible row uncountable.
+//
+// Membership is enforced in the JOIN, so there is no teamspace id a caller
+// could pass to read someone else's counts.
+export async function listDashboardArtifactCounts(
+  userId: string,
+): Promise<{ teamspace_id: string; kind: string; n: number }[]> {
+  return queryAll<{ teamspace_id: string; kind: string; n: number }>(
+    `SELECT a.teamspace_id, a.kind, COUNT(*) AS n
+       FROM artifacts a
+       JOIN teamspace_members m ON m.teamspace_id = a.teamspace_id
+                               AND m.user_id = ?
+       JOIN teamspaces t        ON t.id = a.teamspace_id
+                               AND t.status = 'active'
+      WHERE a.archived_at IS NULL
+      GROUP BY a.teamspace_id, a.kind`,
     userId,
   );
 }

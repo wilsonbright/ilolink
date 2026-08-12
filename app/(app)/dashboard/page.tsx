@@ -12,9 +12,21 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/current-user";
 import {
   listDashboardDocs,
+  listDashboardArtifactCounts,
   listTeamspacesForUser,
   type DashboardDoc,
 } from "@/lib/teamspace/store";
+import {
+  DOCUMENTS_KIND,
+  buildKindTabs,
+  dashboardHref,
+  indexArtifactCounts,
+  resolveActiveKind,
+} from "@/lib/teamspace/dashboard-kinds";
+import { listArtifacts } from "@/lib/artifacts/store-core";
+import { queryAll } from "@/lib/db/client";
+import { env } from "@/lib/cf";
+import { ArtifactList, type ArtifactListItem } from "./artifact-list";
 import {
   buildDashboardTabs,
   groupDocsByTab,
@@ -39,7 +51,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Your documents — ilolink",
+  title: "Your library — ilolink",
   robots: { index: false, follow: false },
 };
 
@@ -55,15 +67,16 @@ function when(ts: number | null): string {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ts?: string }>;
+  searchParams: Promise<{ ts?: string; kind?: string }>;
 }) {
   const user = await currentUser();
   if (!user) redirect("/signin?next=%2Fdashboard");
 
-  const { ts } = await searchParams;
-  const [docs, teamspaces] = await Promise.all([
+  const { ts, kind } = await searchParams;
+  const [docs, teamspaces, artifactCountRows] = await Promise.all([
     listDashboardDocs(user.id),
     listTeamspacesForUser(user.id),
+    listDashboardArtifactCounts(user.id),
   ]);
 
   const docsByTab = groupDocsByTab(docs);
@@ -71,6 +84,62 @@ export default async function DashboardPage({
   const activeTab = resolveActiveTab(ts, tabs);
   const activeDocs = docsByTab.get(activeTab) ?? [];
   const activeLabel = tabs.find((t) => t.id === activeTab)?.label ?? "";
+
+  // The kind axis. The shared tab is documents-only by construction — artifacts
+  // have no per-item sharing — so it is not offered a kind there.
+  const countsByTeamspace = indexArtifactCounts(artifactCountRows);
+  const allowArtifacts = activeTab !== SHARED_TAB_ID;
+  const activeKind = resolveActiveKind(kind, allowArtifacts);
+  const kindTabs = buildKindTabs(
+    activeDocs.length,
+    countsByTeamspace.get(activeTab),
+  );
+
+  // Only fetch rows for the kind actually being looked at. The registry fetches
+  // every kind at once because it renders them all; this page shows one, and
+  // copying that would be paying for ten lists to draw one.
+  //
+  // SECURITY: the only teamspace id that reaches this query is resolveActiveTab's
+  // return value, which is constrained to ids from listTeamspacesForUser (a
+  // membership join). A raw ?ts= never gets here.
+  const ARTIFACT_PAGE = 200;
+  let artifacts: ArtifactListItem[] = [];
+  let artifactsTruncated = false;
+  if (activeKind !== DOCUMENTS_KIND) {
+    const e = env() as unknown as { DB: D1Database; DOCS: R2Bucket };
+    const listed = await listArtifacts(e, activeTab, {
+      kind: activeKind,
+      limit: ARTIFACT_PAGE,
+    });
+    artifactsTruncated = listed.length >= ARTIFACT_PAGE;
+    // Author emails in one batched read, keyed on the published version — the
+    // same shape the registry uses, so neither page needs a MAX() subquery.
+    const versionIds = listed
+      .map((a) => a.current_version_id)
+      .filter((v): v is string => !!v);
+    const authors = new Map<string, string>();
+    if (versionIds.length > 0) {
+      const rows = await queryAll<{ id: string; email: string }>(
+        `SELECT v.id, u.email
+           FROM artifact_versions v
+           JOIN users u ON u.id = v.created_by
+          WHERE v.id IN (${versionIds.map(() => "?").join(",")})`,
+        ...versionIds,
+      );
+      for (const r of rows) authors.set(r.id, r.email);
+    }
+    artifacts = listed.map((a) => ({
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      version: a.version,
+      updated_at: a.updated_at,
+      source_path: a.source_path,
+      authorEmail: a.current_version_id
+        ? (authors.get(a.current_version_id) ?? null)
+        : null,
+    }));
+  }
 
   const live = activeDocs.filter((d) => !d.unpublished_at);
   // Group by folder, root first. Folders exist per teamspace, so two teamspaces
@@ -100,24 +169,41 @@ export default async function DashboardPage({
 
   return (
     <div>
-      <div className="mb-8 flex items-baseline justify-between">
-        <h1 className="text-2xl font-medium text-ink">Your documents</h1>
-        <Link
-          href={publishHref}
-          className="text-sm text-accent transition-colors duration-150 hover:text-ink"
-        >
-          Publish new
-        </Link>
+      <div className="mb-8 flex items-baseline justify-between gap-4">
+        {/* Was "Your documents". The page now holds ten artifact kinds as well,
+            so naming one axis value as if it were the whole page was wrong. The
+            URL is unchanged, so nothing anyone has bookmarked moves. */}
+        <h1 className="text-2xl font-medium text-ink">Your library</h1>
+        {/* On an artifact kind "Publish new" would open a DOCUMENT composer,
+            which is not what the person is looking at. Send them where that
+            kind is actually created instead. */}
+        {activeKind === DOCUMENTS_KIND ? (
+          <Link
+            href={publishHref}
+            className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
+          >
+            Publish new
+          </Link>
+        ) : (
+          <Link
+            href={`/t/${activeTab}/registry?kind=${activeKind}`}
+            className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
+          >
+            Open in registry
+          </Link>
+        )}
       </div>
 
       <ClaimBanner knownSlugs={docs.map((d) => d.slug)} />
 
       {tabs.length > 1 && (
-        <div className="mb-8 flex flex-wrap gap-2 border-b border-hairline pb-3">
+        <div className="mb-4 flex flex-wrap gap-2 border-b border-hairline pb-3">
           {tabs.map((tab) => (
             <Link
               key={tab.id}
-              href={tab.id === tabs[0].id ? "/dashboard" : `/dashboard?ts=${tab.id}`}
+              // Kind is sticky across the teamspace axis: switching teamspace
+              // while looking at Agents keeps you on Agents.
+              href={dashboardHref(tab.id, activeKind, tabs[0]?.id)}
               className={
                 "rounded-full px-3 py-1 text-sm transition-colors duration-150 " +
                 (tab.id === activeTab
@@ -127,12 +213,64 @@ export default async function DashboardPage({
             >
               {tab.label}
               <span className="ml-1.5 tabular-nums text-ink-faint">
-                {tab.count}
+                {tab.count + sumKindCounts(countsByTeamspace.get(tab.id))}
               </span>
             </Link>
           ))}
         </div>
       )}
+
+      {/* The kind axis. Rendered even for a solo user with one teamspace — the
+          teamspace bar hides itself in that case, but hiding this too would
+          mean nobody with a single teamspace ever discovers that skills and
+          agents live here, which is the entire point of the page.
+
+          Quieter than the teamspace pills on purpose: two rows of identical
+          weight read as one confusing row. This is the registry's treatment. */}
+      {allowArtifacts && (
+        <div className="mb-8">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-hairline pb-3 text-sm">
+            {kindTabs.map((k) => (
+              <Link
+                key={k.id}
+                href={dashboardHref(activeTab, k.id, tabs[0]?.id)}
+                className={
+                  "transition-colors duration-150 " +
+                  (k.id === activeKind
+                    ? "font-medium text-ink"
+                    : "text-ink-faint hover:text-ink")
+                }
+              >
+                {k.label}
+                <span className="ml-1 tabular-nums text-ink-faint">
+                  {k.count}
+                </span>
+              </Link>
+            ))}
+          </div>
+          {/* Ten zeros on a fresh account reads as a broken page rather than a
+              capable one. Say where these come from. */}
+          {kindTabs.every((k) => k.id === DOCUMENTS_KIND || k.count === 0) && (
+            <p className="mt-3 text-sm leading-relaxed text-ink-faint">
+              Skills, agents, specs and plans arrive when a connected assistant
+              pushes them.{" "}
+              <Link href="/connect" className="text-accent underline">
+                Connect an assistant
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
+
+      {activeKind !== DOCUMENTS_KIND ? (
+        <ArtifactList
+          teamspaceId={activeTab}
+          kind={activeKind}
+          items={artifacts}
+          truncatedAt={artifactsTruncated ? ARTIFACT_PAGE : undefined}
+        />
+      ) : (
+        <>
 
       {live.length === 0 && unpublished.length === 0 ? (
         <div className="rounded-lg border border-hairline bg-surface px-5 py-8">
@@ -185,8 +323,20 @@ export default async function DashboardPage({
           </ul>
         </section>
       )}
+        </>
+      )}
     </div>
   );
+}
+
+// A teamspace tab counts everything the teamspace holds, so its number is the
+// sum of its kind numbers. A tab reading "Personal 3" that opens onto twelve
+// skills would be worse than no number at all.
+function sumKindCounts(counts: Map<string, number> | undefined): number {
+  if (!counts) return 0;
+  let total = 0;
+  for (const n of counts.values()) total += n;
+  return total;
 }
 
 function DocList({

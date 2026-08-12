@@ -10,7 +10,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/current-user";
-import { listTeamspacesWithCounts } from "@/lib/teamspace/store";
+import {
+  listTeamspacesWithCounts,
+  listDashboardArtifactCounts,
+} from "@/lib/teamspace/store";
+import { indexArtifactCounts } from "@/lib/teamspace/dashboard-kinds";
+import { ARTIFACT_KINDS, KINDS, type ArtifactKind } from "@/lib/artifacts/kinds";
+
+// The populated kinds for one teamspace, in the canonical ARTIFACT_KINDS order
+// so the card and the dashboard axis never disagree about sequence.
+function artifactKindsFor(
+  counts: Map<ArtifactKind, number> | undefined,
+): { kind: ArtifactKind; n: number }[] {
+  if (!counts) return [];
+  return ARTIFACT_KINDS.map((kind) => ({ kind, n: counts.get(kind) ?? 0 })).filter(
+    (x) => x.n > 0,
+  );
+}
 import { CreateTeamspace } from "./create-teamspace";
 
 export const runtime = "nodejs";
@@ -116,7 +132,11 @@ export default async function TeamspacesPage() {
   const user = await currentUser();
   if (!user) redirect("/signin?next=%2Ft");
 
-  const teamspaces = await listTeamspacesWithCounts(user.id);
+  const [teamspaces, artifactCountRows] = await Promise.all([
+    listTeamspacesWithCounts(user.id),
+    listDashboardArtifactCounts(user.id),
+  ]);
+  const countsByTeamspace = indexArtifactCounts(artifactCountRows);
   const shared = teamspaces.filter((t) => !t.is_personal);
 
   return (
@@ -202,12 +222,21 @@ export default async function TeamspacesPage() {
                       {t.document_count}{" "}
                       {t.document_count === 1 ? "document" : "documents"}
                     </span>
-                    {t.skill_count > 0 && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <IconSkill className="h-3.5 w-3.5" />
-                        {t.skill_count}{" "}
-                        {t.skill_count === 1 ? "skill" : "skills"}
-                      </span>
+                    {/* Every populated kind, not just skills. This card used to
+                        say "13 skills" for a teamspace holding 13 skills AND 3
+                        agents, which read as wrong the moment /dashboard began
+                        showing the agents. Kinds at zero stay hidden — ten of
+                        them would bury the two that matter. */}
+                    {artifactKindsFor(countsByTeamspace.get(t.id)).map(
+                      ({ kind, n }) => (
+                        <span
+                          key={kind}
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          <IconSkill className="h-3.5 w-3.5" />
+                          {n} {n === 1 ? KINDS[kind].label.toLowerCase() : KINDS[kind].plural.toLowerCase()}
+                        </span>
+                      ),
                     )}
                   </div>
                 </div>
