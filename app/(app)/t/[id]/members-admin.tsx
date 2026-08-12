@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import type { TeamRole } from "@/lib/teamspace/permissions";
+import { CopyField } from "@/app/(app)/connect/copy-field";
 
 export interface MemberView {
   user_id: string;
@@ -34,6 +35,13 @@ export function MembersAdmin({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [invited, setInvited] = useState<{ email: string; role: TeamRole }[]>([]);
+  // The accept link for the invitation just sent, so it can be handed over by
+  // hand when the email does not arrive. Only ever the most recent one — an
+  // older link is superseded the moment the same address is invited again
+  // (createInvite revokes outstanding invites for that address).
+  const [lastLink, setLastLink] = useState<{ email: string; link: string } | null>(
+    null,
+  );
   const [rows, setRows] = useState<MemberView[]>(members);
   const [pending, setPending] = useState(pendingInvites);
   // Which member row is mid-request, so its select can be disabled without
@@ -45,13 +53,20 @@ export function MembersAdmin({
     setBusy(true);
     setError(null);
     setMessage(null);
+    // Clear first: a link left over from the previous invite would sit under a
+    // fresh error and read as if it belonged to this one.
+    setLastLink(null);
     try {
       const res = await fetch(`/api/teamspaces/${teamspaceId}/invite`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, role: inviteRole }),
       });
-      const data = (await res.json()) as { error?: string; alreadyMember?: boolean };
+      const data = (await res.json()) as {
+        error?: string;
+        alreadyMember?: boolean;
+        link?: string;
+      };
       if (!res.ok) {
         setError(data.error ?? "Could not send the invitation.");
         return;
@@ -63,6 +78,7 @@ export function MembersAdmin({
       );
       if (!data.alreadyMember) {
         setInvited((p) => [...p, { email, role: inviteRole }]);
+        if (data.link) setLastLink({ email, link: data.link });
       }
       setEmail("");
     } catch {
@@ -265,11 +281,37 @@ export function MembersAdmin({
             and manage folders. Owners can additionally change roles and rename
             the teamspace.
           </p>
+          {/* Said before the invite is sent, not only after: someone who has
+              already watched one invitation vanish needs to know the fallback
+              exists while they are deciding whether to bother. */}
+          <p className="text-sm text-ink-faint">
+            Invitation email can land in spam or promotions — tell them to look
+            there if it isn&rsquo;t in the inbox. You can also copy the link and
+            send it yourself; it works exactly the same way.
+          </p>
         </form>
       )}
 
       {message && <p className="mt-3 text-sm text-ink-soft">{message}</p>}
       {error && <p className="mt-3 text-sm text-ink">{error}</p>}
+
+      {/* The link is the authority — anyone holding it can join at the invited
+          role — so it is shown to the person who just minted it and nobody
+          else. See lib/teamspace/invites.ts: forwarding an invitation is the
+          expected case, not a hole. */}
+      {lastLink && (
+        <div className="mt-4 rounded-lg border border-hairline bg-surface p-4">
+          <p className="mb-2 text-sm text-ink">
+            Invitation link for{" "}
+            <span className="font-medium">{lastLink.email}</span>
+          </p>
+          <CopyField value={lastLink.link} label="the invitation link" />
+          <p className="mt-2 text-sm text-ink-faint">
+            Send it over chat if the email doesn&rsquo;t arrive. It expires in
+            14 days, and inviting the same address again replaces it.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

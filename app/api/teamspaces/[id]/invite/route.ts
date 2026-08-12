@@ -158,5 +158,19 @@ export async function POST(
     );
   }
 
-  return NextResponse.json({ ok: true, expiresInDays: INVITE_TTL_DAYS });
+  // The link goes back to the inviter as well as to the mailbox. Invitation
+  // mail lands in spam often enough that email-only delivery loses invites
+  // outright, and the token was never email-bound anyway: lib/teamspace/invites.ts
+  // states that holding the link IS the authority and that forwarding is
+  // expected behaviour, not a hole. The caller has already proven they are an
+  // admin or owner of this teamspace, and they are the person who just created
+  // this token.
+  //
+  // Note this is returned only on the success path — a send failure still 502s
+  // above rather than handing back a link, so a broken mailer stays visible
+  // instead of quietly looking like a working one.
+  return NextResponse.json(
+    { ok: true, link, expiresInDays: INVITE_TTL_DAYS },
+    { headers: { "cache-control": "no-store" } },
+  );
 }

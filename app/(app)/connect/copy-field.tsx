@@ -47,6 +47,12 @@ export function CopyField({ value, label }: { value: string; label: string }) {
       >
         {copied ? "Copied" : "Copy"}
       </button>
+      {/* The button's label changing from "Copy" to "Copied" is a silent event
+          for a screen reader, so announce it. sr-only is absolutely positioned,
+          which takes it out of the flex row entirely. */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {copied ? `Copied ${label} to clipboard` : ""}
+      </p>
     </div>
   );
 }
