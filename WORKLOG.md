@@ -5,6 +5,31 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — SEO audit agent authored; teamspace push blocked on dead MCP connection
+
+- **Asked:** "create a agent for SEO audit … store this for reuse. and push to BlockSurvey teamspace using the mcp of ilolink."
+- Wrote `.claude/agents/seo-audit.md` — first file in `.claude/agents/`, so this repo now has a local agent directory. Claude Code agent format: YAML frontmatter (`name`, `description`, `tools`, `model`) + markdown body; `description` written as *when to invoke* because that is what the dispatcher matches on.
+- Agent is read-only by construction (`Read, Grep, Glob, Bash, WebFetch, WebSearch, TodoWrite`) and carries this repo's verify-don't-guess rule as its core constraint: every finding must cite a literal artifact (HTTP status, served HTML line, measured LCP), and anything it could not fetch is reported `NOT VERIFIED` rather than guessed. Explicitly forbids scoring out of 100.
+- Checks cover indexability first (noindex / robots.txt / canonical / sitemap / redirect chains), then rendering (raw HTML vs rendered DOM), on-page, structured data + OG, Core Web Vitals, content. Severity is graded by traffic impact, not effort.
+- **Push to the BlockSurvey teamspace did not happen.** Both `whoami` and `artifacts_list` returned `This connection is no longer valid. Reconnect ilolink from your assistant's connector settings.` — so the teamspace identity was never confirmed and nothing was written. Pending: reconnect, `whoami` to confirm it is bound to BlockSurvey (a connection is bound to one teamspace for life), then `artifacts_put` with `kind: "agent"`, `name: "seo-audit"`, `source_path: ".claude/agents/seo-audit.md"`. If the user is a member and the teamspace reviews member writes, it lands as a proposal, not live.
+- Files: `.claude/agents/seo-audit.md` (new), `WORKLOG.md`.
+
+---
+
+## 2026-08-12 — Let AI assistants cite ilolink, without granting training
+
+- **Asked:** "enable AI to crawl", after I flagged that live `robots.txt` carried a Cloudflare-managed block disallowing ClaudeBot, GPTBot, Google-Extended, CCBot, Bytespider, Amazonbot, Applebot-Extended and meta-externalagent outright.
+- **Asked before changing it**, because "enable AI to crawl" spans two separable things and one of them is a rights decision that cannot be undone: being *cited* is distribution; being *trained on* is a one-way transfer. Chosen position: `search=yes, ai-input=yes, ai-train=no`.
+- **Found the source:** zone `bot_management` on `6d337cc8707cda30ba6473e5b9086546` — `is_robots_txt_managed: true`, `cf_robots_variant: "off"`, with enforcement (`ai_bots_protection`) already at `only_on_ad_pages`, so the block was almost entirely a *declaration* rather than active blocking.
+- **Could not change it.** The `.cf.env` credential reads zone settings (`GET` → 200) but is refused on write (`PATCH` → 10405 "Method not allowed for this authentication scheme"). It is deploy-scoped: it ships Workers, it does not edit zone bot settings. Said so rather than reporting the task done.
+- **The docs settled the design:** Cloudflare "will not serve an `ai-input` signal for managed robots.txt customers", so the chosen combination is *impossible* while that feature is on — and it pairs its signals with a blanket per-agent `Disallow: /`, which is what blocks the citing. Turning it off is therefore required, and doing so also removes Cloudflare's Content-Signal line, so the reservation had to move into the repo or cease to exist.
+- **`app/robots.ts` → `app/robots.txt/route.ts`.** Next's typed metadata route can only express user-agent/allow/disallow/sitemap — there is no way to emit `Content-Signal`. Rules and signal now live as plain data in `lib/seo/robots.ts`, which also keeps them assertable without rendering.
+- Touched a parallel session's test (`test/seo-sitemap-robots.test.ts`) as little as possible: every assertion is theirs and unchanged; only the helper that unpicked the old typed shape moved to reading the data. Added three: the rendered file has exactly one wildcard group carrying the signal and every rule; the signal permits search and citation while refusing training; and no per-agent block or bare `Disallow: /` has reappeared.
+- **Verified:** rendered the file and re-ran the sitemap cross-check — 58 URLs, none matched by any rule, `/terms` present and unblocked. 251 tests, `tsc` clean, build clean. Commit `67f4df4`, deployed `e8f5816b`.
+- **NOT DONE, and the goal is not reached without it:** `ilolink.com/robots.txt` still serves Cloudflare's managed block *above* ours, so AI crawlers remain disallowed. The workers.dev origin already serves the new file correctly. Someone with dashboard access must turn off **Security → Settings → filter "Bot traffic" → "Set your preference to block training in robots.txt"** (API equivalent: `PATCH /zones/<id>/bot_management {"is_robots_txt_managed": false}` with a token holding Zone → Bot Management → Edit).
+
+---
+
 ## 2026-08-12 — /dashboard becomes "Your library": artifacts beside documents
 
 - **Asked:** "create a new design to add agents, skills, other ai artifacts categories inside personal and teamspace. by this all things are seen in one place." Planned first (spec approved before any code).
