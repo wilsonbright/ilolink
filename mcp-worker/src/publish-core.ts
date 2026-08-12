@@ -200,6 +200,14 @@ export async function publishForWorkspace(
     throw new PublishError("Provide `content` (text) or `file_base64` (a file).");
   }
 
+  // Unconditionally unlisted, and deliberately NOT the web route's rule
+  // (personal → public, shared teamspace → unlisted; see defaultVisibilityFor).
+  // Three reasons this stays as it is: the server instructions in agent.ts state
+  // "Default visibility is unlisted" as a contract agents are already written
+  // against; agent-generated content is the last thing that should default to
+  // the open web; and an MCP connection is bound to one teamspace for its whole
+  // life, so the user never sees the choice being made. Matching the web here
+  // would silently start publishing existing agent workflows publicly.
   const visibility: Visibility = isVisibility(input.visibility)
     ? input.visibility
     : "unlisted"; // spec default

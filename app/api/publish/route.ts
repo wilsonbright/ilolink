@@ -21,6 +21,7 @@ import { newManageToken, hashToken } from "@/lib/manage-token";
 import { currentUser } from "@/lib/auth/current-user";
 import { ensurePersonalTeamspace, getMembership } from "@/lib/teamspace/store";
 import { canPublishInto } from "@/lib/teamspace/permissions";
+import { defaultVisibilityFor } from "@/lib/teamspace/publish-target";
 import { queryFirst } from "@/lib/db/client";
 import { env } from "@/lib/cf";
 import { siteOrigin } from "@/lib/auth/config";
@@ -59,7 +60,10 @@ interface PublishInput {
   // Set when the content is a binary upload (data URL); the server re-derives it
   // from the content and handles it outside the text render path.
   upload?: "pdf" | "docx";
-  visibility: Visibility;
+  // Optional, and undefined means "the caller said nothing". The default is NOT
+  // applied here because it depends on which teamspace the document lands in,
+  // which readInput cannot know — see POST.
+  visibility?: Visibility;
   password?: string;
   expiresAt?: number;
   customSlug?: string;
@@ -158,7 +162,9 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
         return bad("Unsupported file type — upload .md, .html, .pdf, or .docx.");
       }
     }
-    visibilityRaw = asString(form.get("visibility")) ?? "public";
+    // asString already yields undefined for an absent or empty field, which is
+    // exactly the "caller said nothing" signal POST defaults from.
+    visibilityRaw = asString(form.get("visibility"));
     password = asString(form.get("password"));
     expiresAtRaw = asString(form.get("expiresAt"));
     customSlug = asString(form.get("customSlug"));
@@ -183,7 +189,10 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     }
     content = b.content;
     sourceTypeRaw = b.sourceType;
-    visibilityRaw = b.visibility ?? "public";
+    // The coalesce is load-bearing: an explicit `"visibility": null` must read
+    // as "said nothing" and take the default, not fall through to isVisibility
+    // and 400 on a request shape that has always published fine.
+    visibilityRaw = b.visibility ?? undefined;
     password = typeof b.password === "string" ? b.password : undefined;
     expiresAtRaw = b.expiresAt;
     customSlug = typeof b.customSlug === "string" ? b.customSlug : undefined;
@@ -216,7 +225,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     }
   }
 
-  if (!isVisibility(visibilityRaw)) {
+  if (visibilityRaw !== undefined && !isVisibility(visibilityRaw)) {
     return bad("Field 'visibility' must be public, unlisted, password, or expiring.");
   }
 
@@ -229,7 +238,7 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
     content,
     sourceType: (upload === "pdf" ? "pdf" : upload === "docx" ? "html" : sourceTypeRaw) as SourceType,
     upload: upload ?? undefined,
-    visibility: visibilityRaw,
+    visibility: visibilityRaw as Visibility | undefined,
     password,
     expiresAt: expiresAt ?? undefined,
     customSlug,
@@ -297,6 +306,16 @@ export async function POST(req: Request): Promise<NextResponse> {
     return bad("That teamspace is suspended.", 403);
   }
 
+  // The visibility default is applied HERE, not in readInput, because it
+  // depends on where the document lands and the teamspace is not known until
+  // now: personal is one person sharing a link, so public; a shared teamspace
+  // is team content, so unlisted. The web composer always sends an explicit
+  // value, so this only decides for API callers — and for exactly those, the
+  // old unconditional "public" meant a script that omitted the field published
+  // a team's document to the open web.
+  const visibility =
+    input.visibility ?? defaultVisibilityFor(!!teamspace.is_personal);
+
   // The document cap now comes from the teamspace's PLAN, not the legacy
   // quota_docs column (which still holds its pre-billing default of 200 on
   // every existing row and is deliberately not backfilled — migration 0015 is
@@ -313,12 +332,12 @@ export async function POST(req: Request): Promise<NextResponse> {
   // Visibility-dependent requirements.
   let passwordHash: string | null = null;
   let expiresAt: number | null = null;
-  if (input.visibility === "password") {
+  if (visibility === "password") {
     if (!input.password || input.password.length < 1) {
       return bad("A password is required when visibility is 'password'.");
     }
     passwordHash = await hashPassword(input.password);
-  } else if (input.visibility === "expiring") {
+  } else if (visibility === "expiring") {
     if (input.expiresAt === undefined) {
       return bad("Field 'expiresAt' is required when visibility is 'expiring'.");
     }
@@ -397,7 +416,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     slug,
     source_type: sourceType,
     title,
-    visibility: input.visibility,
+    visibility,
     password_hash: passwordHash,
     manage_token_hash: manageTokenHash,
     expires_at: expiresAt,
@@ -411,7 +430,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   await writeSlugRecord(slug, {
     doc_id: doc.id,
-    visibility: input.visibility,
+    visibility,
     current_version_id: version.id,
     rendered_r2_key: version.rendered_r2_key,
     raw_r2_key: version.raw_r2_key,
@@ -434,11 +453,23 @@ export async function POST(req: Request): Promise<NextResponse> {
 async function resolveNamedTeamspace(
   userId: string,
   teamspaceId: string,
-): Promise<{ id: string; status: string; quota_docs: number } | null> {
+): Promise<{
+  id: string;
+  status: string;
+  quota_docs: number;
+  // Selected because the visibility default keys on it. ensurePersonalTeamspace
+  // returns a full TeamspaceRow, so both arms of the union carry the column.
+  is_personal: number;
+} | null> {
   const role = await getMembership(teamspaceId, userId);
   if (!canPublishInto(role)) return null;
-  return queryFirst<{ id: string; status: string; quota_docs: number }>(
-    "SELECT id, status, quota_docs FROM teamspaces WHERE id = ?",
+  return queryFirst<{
+    id: string;
+    status: string;
+    quota_docs: number;
+    is_personal: number;
+  }>(
+    "SELECT id, status, quota_docs, is_personal FROM teamspaces WHERE id = ?",
     teamspaceId,
   );
 }
