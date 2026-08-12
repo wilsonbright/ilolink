@@ -50,8 +50,13 @@ export default async function ConnectPage() {
       </p>
 
       <section className="mb-10">
+        {/* ChatGPT is named here, not in the token section below. Its custom
+            connector flow is OAuth — it registers itself with us dynamically
+            and never takes a pasted bearer token — so a ChatGPT user who reads
+            "Claude, and anything that supports OAuth" and scrolls past it lands
+            on a path their assistant cannot use. */}
         <h2 className="mb-2 font-medium text-ink">
-          Claude, and anything that supports OAuth
+          Claude, ChatGPT, and anything that supports OAuth
         </h2>
         <p className="mb-3 leading-relaxed text-ink-soft">
           Add a custom connector pointing at this URL:
@@ -85,7 +90,9 @@ export default async function ConnectPage() {
         </h2>
         <p className="mb-4 leading-relaxed text-ink-soft">
           Create a connector token and give it to the assistant as an
-          Authorization header.
+          Authorization header. This is for tools that let you set headers by
+          hand — not for Claude or ChatGPT, which both use the connector URL
+          above.
         </p>
         <TokenMinter
           connectorUrl={connectorUrl}

@@ -103,6 +103,41 @@ export async function getOwnedDoc(
   return row;
 }
 
+// ChatGPT's connector contract wants `fetch` to hand back the document's actual
+// text so the model can read and quote it; a stats blurb is not something it can
+// cite. This reads the CURRENT version's raw body out of R2.
+//
+// Only ever called with a doc getOwnedDoc() already proved belongs to the
+// caller's workspace — this function does no authorization of its own.
+export const MAX_FETCH_TEXT_CHARS = 100_000;
+
+export async function docBodyText(
+  DB: D1Database,
+  DOCS: R2Bucket,
+  doc: DocRow,
+): Promise<string | null> {
+  // PDFs are bytes. Handing back a decoded PDF stream would be noise, not text.
+  if (doc.source_type === "pdf") return null;
+
+  const version = await DB.prepare(
+    `SELECT v.raw_r2_key AS k
+       FROM documents d
+       JOIN document_versions v ON v.id = d.current_version_id
+      WHERE d.id = ?`,
+  )
+    .bind(doc.id)
+    .first<{ k: string }>();
+  if (!version?.k) return null;
+
+  const obj = await DOCS.get(version.k);
+  if (!obj) return null;
+  const text = await obj.text();
+  if (text.length <= MAX_FETCH_TEXT_CHARS) return text;
+  // Say it was cut. A model that silently receives half a document will
+  // confidently summarise the half it got as the whole thing.
+  return `${text.slice(0, MAX_FETCH_TEXT_CHARS)}\n\n… [truncated — open ${shareUrl(doc.slug)} for the full document]`;
+}
+
 interface ViewCounterStub {
   get(): Promise<number>;
 }

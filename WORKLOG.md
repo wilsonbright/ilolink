@@ -34,6 +34,29 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — ChatGPT connector audited against the accounts pivot (branch `fix/chatgpt-mcp-oauth`)
+
+- **Asked:** "in a new branch, check if the ChatGPT MCP setup is clean. I have added auth to the product. If ChatGPT requires it, ensure it is using OAuth flow similar to the Claude connector flow now."
+
+### The headline answer
+ChatGPT already goes through the **same OAuth flow as Claude** — there is no separate ChatGPT path left. Probed production before touching anything: AS metadata, protected-resource metadata at both `/` and `/mcp`, DCR endpoint live, PKCE `S256`, `401` carrying `WWW-Authenticate: … resource_metadata=…`, and CORS allowing `https://chatgpt.com`. The retired `/w_XXXX/mcp` token path answers with a "reconnect" JSON-RPC error. `search`/`fetch` are registered and already emit OpenAI's dual `structuredContent` + JSON-text shape.
+
+### What was NOT clean
+- **`/authorize` crashed on any bad request.** Measured live: no params → `500 error code: 1101`; unregistered `client_id` → same. `parseAuthRequest` throws and nothing caught it. ChatGPT hits this exactly when its DCR client record is gone — the moment the user most needs to be told to reconnect, and instead gets a blank Cloudflare page. Now a `400` with "remove the connector and add it again", `503` if the fault is ours (missing `MCP_HANDOFF_SECRET`). Verified on `wrangler dev`: both cases return the 400.
+- **Unsigned dashboard tokens still accepted** — `SECURITY-AUDIT-2026-07-23` finding #1. The bare `w_XXXX` branch existed only for the ChatGPT URL-token connector, where the id was already a bearer secret. That connector is retired, so the branch was dead code that still let a leaked workspace id open a whole workspace's analytics with no session. Deleted; the signature is mandatory now.
+- **`verifyDashboardToken` threw on a missing secret.** Callers default `DASHBOARD_SECRET` to `""`, and Web Crypto rejects a zero-length HMAC key — a `500` out of a public page. (My first guess was "an empty key is forgeable"; the test disproved it. Fails closed with `null` now.)
+- **`fetch` never returned the document body.** OpenAI's contract is that `text` is the document, because that is what ChatGPT reads and cites; a stats blurb is not quotable. Now returns the current version's raw body from R2, capped at 100k chars with an explicit `[truncated]` marker; PDFs keep the summary; the stats line moved to `metadata.summary`.
+- **CIMD was off.** OpenAI now prefers Client ID Metadata Documents over DCR, and wrangler warned about it on every boot. Needs *both* `clientIdMetadataDocumentEnabled: true` and the `global_fetch_strictly_public` compat flag — the flag is the SSRF guard for CIMD fetching an attacker-supplied `client_id` URL. Verified locally: metadata now reports `client_id_metadata_document_supported: true`.
+- **Stale copy and comments.** `/connect` filed ChatGPT under neither heading; a ChatGPT user reading "Claude, and anything that supports OAuth" would scroll past to the token path their assistant cannot use. Header comments in `workspace.ts`, `dashboard-token.ts` and `/w/[token]` still described ChatGPT as a URL-token client.
+
+### Verified
+`285/285` tests pass (13 new, in `test/dashboard-token.test.ts` + `test/fetch-body.test.ts`); `tsc --noEmit` clean for both the app and `mcp-worker`; error paths and CIMD advertisement observed on a local `wrangler dev`, not inferred. **Not deployed** — production still 500s on a bad `/authorize` until `mcp-worker` ships.
+
+### Files touched
+`mcp-worker/src/authorize.ts`, `mcp-worker/src/index.ts`, `mcp-worker/src/docs.ts`, `mcp-worker/src/agent.ts`, `mcp-worker/src/workspace.ts`, `mcp-worker/wrangler.jsonc`, `lib/mcp/dashboard-token.ts`, `app/(app)/connect/page.tsx`, `app/(app)/w/[token]/page.tsx`, `test/dashboard-token.test.ts` (new), `test/fetch-body.test.ts` (new).
+
+---
+
 ## 2026-08-12 — Agent pushed to the teamspace, audit run, and the metadata layer it found missing
 
 - **Asked:** "push the seo audit to ilolink blocksurvey team space and run the audit" → then "yes" to fixing what it found.

@@ -2,10 +2,18 @@
 // them) and the app dashboard route (which verifies them). Pure Web Crypto, no
 // env(); safe to import from either side.
 //
-// Two forms of dashboard token:
-//   - "w_XXXX"        → ChatGPT path: the workspace id IS a bearer secret.
-//   - "w_XXXX~<sig>"  → Claude OAuth path: id is not a publish secret, so it is
-//                        HMAC-signed to prevent enumeration.
+// One form of dashboard token: "w_XXXX~<sig>". The workspace id is not itself a
+// credential, so the signature is the only thing standing between a leaked id
+// and a stranger reading every document, slug, view count and comment in that
+// workspace.
+//
+// There used to be a second form — a bare "w_XXXX" accepted with no signature
+// check at all — because the retired ChatGPT connector used the workspace id as
+// its bearer secret, which made signing redundant on that path. It also made
+// the signature optional on EVERY path: presenting a Claude-OAuth id with the
+// "~sig" simply omitted skipped verification entirely (SECURITY-AUDIT-2026-07-23
+// finding #1). The ChatGPT token path is gone (mcp-worker/src/index.ts), so the
+// bare form is gone with it.
 
 function b64url(bytes: ArrayBuffer): string {
   let bin = "";
@@ -34,16 +42,17 @@ export async function signedDashboardUrl(
 }
 
 // Resolve a dashboard token to a workspace id, or null if it fails verification.
-// Accepts a bare "w_XXXX" (token path) or "w_XXXX~sig" (signed OAuth path).
+// The signature is mandatory: an unsigned id is not a token.
 export async function verifyDashboardToken(
   token: string,
   secret: string,
 ): Promise<string | null> {
+  // Callers default the secret to "" when the binding is absent. Web Crypto
+  // rejects a zero-length HMAC key, so this used to throw DataError out of a
+  // public page — a 500 where "this link is not valid" is the honest answer.
+  if (!secret) return null;
   const i = token.indexOf("~");
-  if (i < 0) {
-    // Bare workspace id (ChatGPT bearer-secret path).
-    return /^w_[0-9A-Za-z]+$/.test(token) ? token : null;
-  }
+  if (i < 0) return null;
   const id = token.slice(0, i);
   const sig = token.slice(i + 1);
   const expected = await hmac(secret, id);

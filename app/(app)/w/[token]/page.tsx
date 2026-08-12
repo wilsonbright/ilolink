@@ -1,6 +1,10 @@
 // Login-free workspace dashboard (companion spec §3, §4.5). The link is the key:
-// a signed OAuth token (w_XXXX~sig) or a bare ChatGPT token (w_XXXX). We verify,
-// resolve the workspace, and render its live documents from D1. No session.
+// a signed token (w_XXXX~sig). We verify the signature, resolve the workspace,
+// and render its live documents from D1. No session.
+//
+// Unsigned bare "w_XXXX" links used to be accepted here too, for the retired
+// ChatGPT URL-token connector. They are rejected now — see
+// lib/mcp/dashboard-token.ts.
 
 import type { Metadata } from "next";
 import Link from "next/link";
