@@ -119,18 +119,18 @@ export default async function RegistryPage({
 
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between gap-4">
-        <h1 className="text-2xl font-medium text-ink">Registry</h1>
+      <div className="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-divider pb-3">
+        <h1 className="text-2xl text-ink">Registry</h1>
         <span className="flex shrink-0 items-center gap-3 text-sm">
           <Link
             href={`/t/${id}/new-skill`}
-            className="text-accent transition-colors duration-150 hover:text-ink"
+            className="font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
           >
             New
           </Link>
           <Link
             href={`/t/${id}/import-skills`}
-            className="text-accent transition-colors duration-150 hover:text-ink"
+            className="font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
           >
             Import
           </Link>
@@ -154,7 +154,7 @@ export default async function RegistryPage({
       {pending > 0 && (
         <Link
           href={`/t/${id}/proposals`}
-          className="mb-6 block rounded-lg border border-hairline bg-accent-soft px-5 py-4 transition-colors duration-150 hover:border-accent"
+          className="mb-6 block border-2 border-divider bg-accent-soft px-5 py-4 transition-colors duration-150 hover:border-accent"
         >
           <span className="text-ink">
             {pending} {pending === 1 ? "change is" : "changes are"} waiting for
@@ -173,7 +173,7 @@ export default async function RegistryPage({
             href={`/t/${id}/registry`}
             className={
               active === null
-                ? "text-ink"
+                ? "font-extrabold text-ink"
                 : "text-ink-faint transition-colors duration-150 hover:text-ink"
             }
           >
@@ -187,7 +187,7 @@ export default async function RegistryPage({
               href={`/t/${id}/registry?kind=${k}`}
               className={
                 active === k
-                  ? "text-ink"
+                  ? "font-extrabold text-ink"
                   : "text-ink-faint transition-colors duration-150 hover:text-ink"
               }
             >
@@ -199,34 +199,34 @@ export default async function RegistryPage({
       )}
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-surface px-5 py-8">
+        <div className="border border-hairline bg-surface px-5 py-8">
           <p className="mb-2 text-ink">Nothing here yet.</p>
           <p className="leading-relaxed text-ink-soft">
             <Link
               href={`/t/${id}/import-skills`}
-              className="text-accent underline"
+              className="text-accent-strong underline"
             >
               Import the skills you already have
             </Link>{" "}
             from a repo,{" "}
-            <Link href={`/t/${id}/new-skill`} className="text-accent underline">
+            <Link href={`/t/${id}/new-skill`} className="text-accent-strong underline">
               write one here
             </Link>
             , or{" "}
-            <Link href="/connect" className="text-accent underline">
+            <Link href="/connect" className="text-accent-strong underline">
               connect an assistant
             </Link>{" "}
             and ask it to save one.
           </p>
         </div>
       ) : groups.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-surface px-5 py-8">
+        <div className="border border-hairline bg-surface px-5 py-8">
           <p className="mb-2 text-ink">
             No {active ? KINDS[active].plural.toLowerCase() : "artifacts"} yet.
           </p>
           <p className="leading-relaxed text-ink-soft">
             {active ? KINDS[active].description : ""}{" "}
-            <Link href={`/t/${id}/registry`} className="text-accent underline">
+            <Link href={`/t/${id}/registry`} className="text-accent-strong underline">
               See everything
             </Link>
           </p>
@@ -234,13 +234,15 @@ export default async function RegistryPage({
       ) : (
         groups.map(({ kind, items }) => (
           <section key={kind} className="mb-10 last:mb-0">
-            <div className="flex items-baseline justify-between gap-4">
-              <h2 className="font-medium text-ink">{KINDS[kind].plural}</h2>
+            {/* Table idiom: the kind title doubles as the table header, over
+                a strong 2px rule; the rows below it are ruled with hairlines. */}
+            <div className="flex items-baseline justify-between gap-4 border-b-2 border-divider pb-2">
+              <h2 className="text-ink">{KINDS[kind].plural}</h2>
               <span className="shrink-0 text-sm tabular-nums text-ink-faint">
                 {items.length}
               </span>
             </div>
-            <p className="mb-2 text-sm leading-relaxed text-ink-faint">
+            <p className="mb-2 mt-2 text-sm leading-relaxed text-ink-faint">
               {KINDS[kind].description}
             </p>
             <ul>
@@ -251,20 +253,20 @@ export default async function RegistryPage({
                 return (
                   <li
                     key={a.id}
-                    className="border-b border-hairline py-5 last:border-b-0"
+                    className="border-b border-hairline py-5 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
                   >
                     <div className="flex items-baseline justify-between gap-4">
                       {/* Nothing published means the detail page has nothing to
                           show, so the name is not a link — the row's route in
                           is the review inbox below. */}
                       {a.version == null ? (
-                        <span className="font-mono font-medium text-ink-soft">
+                        <span className="font-mono font-semibold text-ink-soft">
                           {a.name}
                         </span>
                       ) : (
                         <Link
                           href={`/t/${id}/skills/${encodeURIComponent(a.name)}?kind=${kind}`}
-                          className="font-mono font-medium text-ink transition-colors duration-150 hover:text-accent"
+                          className="font-mono font-semibold text-ink transition-colors duration-150 hover:text-accent"
                         >
                           {a.name}
                         </Link>
@@ -283,7 +285,7 @@ export default async function RegistryPage({
                       {a.version == null ? (
                         <Link
                           href={`/t/${id}/proposals`}
-                          className="text-accent transition-colors duration-150 hover:text-ink"
+                          className="text-accent-strong transition-colors duration-150 hover:text-ink"
                         >
                           awaiting review
                         </Link>

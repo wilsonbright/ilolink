@@ -111,16 +111,16 @@ export function PreviewOverlay({
         // The backdrop closes on click; the panel must not, or every click
         // inside the preview would dismiss it.
         onClick={(e) => e.stopPropagation()}
-        className="flex h-full w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-hairline bg-surface shadow-lg"
+        className="flex h-full w-full max-w-3xl flex-col overflow-hidden border-2 border-divider bg-surface shadow-lg"
       >
-        <div className="flex items-center justify-between gap-4 border-b border-hairline px-4 py-3">
-          <p className="truncate text-sm font-medium text-ink">{title}</p>
+        <div className="flex items-center justify-between gap-4 border-b-2 border-divider px-4 py-3">
+          <p className="truncate text-sm font-semibold text-ink">{title}</p>
           <div className="flex shrink-0 items-center gap-x-1">
             <a
               href={`/${slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md px-2 py-1 text-sm text-accent transition-colors duration-150 hover:bg-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="px-2 py-1 text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:bg-accent-soft/40"
             >
               Open
             </a>
@@ -129,7 +129,7 @@ export function PreviewOverlay({
               type="button"
               onClick={onClose}
               aria-label="Close preview"
-              className="rounded-md px-2 py-1 text-sm text-ink-soft transition-colors duration-150 hover:bg-accent-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="px-2 py-1 text-sm text-ink-soft transition-colors duration-150 hover:bg-ink/5 hover:text-ink"
             >
               Close
             </button>

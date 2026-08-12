@@ -15,7 +15,7 @@ export function SignOutButton() {
     // Full load: every RSC payload above us was rendered signed-in.
     window.location.assign("/signin");
   }
-  // The same pill as the header's nav links. It used to be a hand-copy of that
+  // The same flat nav link as the header's. It used to be a hand-copy of that
   // class string, because importing from app/(app)/layout.tsx would have pulled
   // a server component (and the session with it) into this client island —
   // lib/ui/nav.ts is plain strings with no imports, so it crosses that boundary

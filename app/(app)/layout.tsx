@@ -23,7 +23,7 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-dvh bg-canvas">
-      <header className="border-b border-hairline">
+      <header className="border-b-2 border-divider">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4">
           <Link href={user ? "/dashboard" : "/"} className={NAV_WORDMARK}>
             ilolink
@@ -64,7 +64,7 @@ export default async function AppLayout({
                 <SignOutButton />
               </span>
             ) : (
-              <Link href="/signin" className={`${NAV_ITEM} text-accent`}>
+              <Link href="/signin" className={`${NAV_ITEM} text-accent-strong`}>
                 Sign in
               </Link>
             )}

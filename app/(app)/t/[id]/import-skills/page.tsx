@@ -52,11 +52,11 @@ export default async function ImportSkillsPage({
 
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between gap-4">
-        <h1 className="text-2xl font-medium text-ink">Import skills</h1>
+      <div className="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-divider pb-3">
+        <h1 className="text-2xl text-ink">Import skills</h1>
         <Link
           href={`/t/${id}/skills`}
-          className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
+          className="shrink-0 text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
         >
           All skills
         </Link>

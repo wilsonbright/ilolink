@@ -65,7 +65,10 @@ export default async function InvitePage({
 
   return (
     <div className="mx-auto max-w-sm py-8">
-      <h1 className="mb-2 text-2xl font-medium text-ink">
+      <p className="mb-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
+        Invitation
+      </p>
+      <h1 className="mb-2 text-2xl text-ink">
         You&rsquo;re in{teamspace?.name ? `: ${teamspace.name}` : ""}
       </h1>
       <p className="mb-6 leading-relaxed text-ink-soft">
@@ -74,7 +77,7 @@ export default async function InvitePage({
       </p>
       <Link
         href="/dashboard"
-        className="inline-block rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90"
+        className="inline-block bg-accent px-4 py-2.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong"
       >
         Go to your documents
       </Link>
@@ -85,9 +88,12 @@ export default async function InvitePage({
 function Problem({ message }: { message: string }) {
   return (
     <div className="mx-auto max-w-sm py-8">
-      <h1 className="mb-2 text-2xl font-medium text-ink">Invitation</h1>
+      <h1 className="mb-2 text-2xl text-ink">Invitation</h1>
       <p className="mb-6 leading-relaxed text-ink-soft">{message}</p>
-      <Link href="/dashboard" className="text-accent underline">
+      <Link
+        href="/dashboard"
+        className="font-extrabold text-accent-strong underline underline-offset-2 transition-colors duration-150 hover:text-accent"
+      >
         Go to your documents
       </Link>
     </div>

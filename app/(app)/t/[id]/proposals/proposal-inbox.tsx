@@ -73,12 +73,18 @@ export function ProposalInbox({
   return (
     <div>
       {!canReview && (
-        <p className="mb-6 rounded-lg border border-hairline bg-surface px-5 py-4 leading-relaxed text-ink-soft">
+        <p className="mb-6 border border-hairline bg-surface px-5 py-4 leading-relaxed text-ink-soft">
           An owner or admin has to approve these. Yours will go live as soon as
           one of them does — nothing is lost while it waits.
         </p>
       )}
 
+      {/* Table idiom: uppercase header over a strong 2px rule, hairline rules
+          between the rows it governs. */}
+      <div className="flex items-baseline justify-between gap-4 border-b-2 border-divider pb-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
+        <span>Proposal</span>
+        <span>Proposed</span>
+      </div>
       <ul>
         {items.map((p) => {
           const outcome = resolved[p.versionId];
@@ -86,13 +92,13 @@ export function ProposalInbox({
           return (
             <li
               key={p.versionId}
-              className="border-b border-hairline py-5 last:border-b-0"
+              className="border-b border-hairline py-5 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
             >
               <div className="flex items-baseline justify-between gap-4">
                 <span className="min-w-0">
                   <Link
                     href={`/t/${teamspaceId}/skills/${encodeURIComponent(p.name)}?kind=${p.kind}&version=${p.version}`}
-                    className="font-mono font-medium text-ink transition-colors duration-150 hover:text-accent"
+                    className="font-mono font-semibold text-ink transition-colors duration-150 hover:text-accent"
                   >
                     {p.name}
                   </Link>
@@ -144,19 +150,19 @@ export function ProposalInbox({
                       maxLength={500}
                       aria-label={`Note on ${p.name}`}
                       placeholder="Note (optional)"
-                      className="min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+                      className="min-w-0 flex-1 border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
                     />
                     <button
                       onClick={() => decide(p.versionId, true)}
                       disabled={busy === p.versionId}
-                      className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+                      className="shrink-0 bg-accent px-4 py-2 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
                     >
                       {busy === p.versionId ? "Saving…" : "Approve"}
                     </button>
                     <button
                       onClick={() => decide(p.versionId, false)}
                       disabled={busy === p.versionId}
-                      className="shrink-0 rounded-lg border border-hairline px-4 py-2 text-sm text-ink-soft transition-colors duration-150 hover:text-ink disabled:opacity-50"
+                      className="shrink-0 border border-divider px-4 py-2 text-sm font-extrabold text-ink transition-colors duration-150 hover:bg-ink/5 disabled:opacity-45"
                     >
                       Reject
                     </button>

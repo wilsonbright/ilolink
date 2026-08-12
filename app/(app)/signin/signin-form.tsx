@@ -100,12 +100,15 @@ export function SignInForm({
   }
 
   const field =
-    "w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink " +
+    "w-full border border-hairline bg-surface px-3 py-2.5 text-ink " +
     "placeholder:text-ink-faint focus:border-accent focus:outline-none " +
     "transition-colors duration-150";
+  // Full-width primary: label flush left, per the DS (a wide button never
+  // centers its text). Hover moves the fill to accent-strong, not opacity.
   const button =
-    "w-full rounded-lg bg-accent px-4 py-2.5 font-medium text-white " +
-    "transition-opacity duration-150 hover:opacity-90 disabled:opacity-50";
+    "block w-full bg-accent px-4 py-2.5 text-left text-sm font-extrabold " +
+    "text-canvas transition-colors duration-150 hover:bg-accent-strong " +
+    "disabled:opacity-45";
 
   if (step === "email") {
     return (
@@ -179,7 +182,7 @@ export function SignInForm({
           setError(null);
           setNotice(null);
         }}
-        className="w-full text-sm text-ink-faint transition-colors duration-150 hover:text-accent"
+        className="block w-full py-1 text-left text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:bg-accent-soft/40"
       >
         Use a different email
       </button>

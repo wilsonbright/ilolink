@@ -82,13 +82,13 @@ export default async function WorkspaceDashboard({
 
   return (
     <section>
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold text-ink">Your workspace</h1>
-        <Link href="/connect" className="text-sm text-accent transition-colors duration-150 hover:text-ink">
+      <div className="flex items-baseline justify-between border-b-2 border-divider pb-3">
+        <h1 className="text-2xl text-ink">Your workspace</h1>
+        <Link href="/connect" className="text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink">
           Connect another app
         </Link>
       </div>
-      <p className="mt-2 text-sm text-ink-faint">
+      <p className="mt-3 text-sm text-ink-faint">
         Published from {ws.origin === "claude_oauth" ? "Claude" : ws.origin === "chatgpt_token" ? "ChatGPT" : "the web"} ·
         no login — this link is the key, keep it private.
       </p>
@@ -98,14 +98,14 @@ export default async function WorkspaceDashboard({
       ) : (
         <ul className="mt-8">
           {withViews.map((d) => (
-            <li key={d.id} className="border-b border-hairline py-5 last:border-b-0">
+            <li key={d.id} className="border-b border-hairline py-5 transition-colors duration-150 last:border-b-0 hover:bg-ink/5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <a
                     href={`https://ilolink.com/${d.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-lg font-medium text-ink transition-colors duration-150 hover:text-accent"
+                    className="text-lg font-semibold text-ink transition-colors duration-150 hover:text-accent"
                   >
                     {d.title || "Untitled"}
                   </a>
@@ -128,13 +128,13 @@ export default async function WorkspaceDashboard({
       )}
 
       {ws.origin === "chatgpt_token" ? (
-        <div className="mt-10 border-t border-hairline pt-6">
+        <div className="mt-10 border-t-2 border-divider pt-6">
           {/* Rotation is gone with the URL-token path it protected. This
               dashboard is a read-only legacy surface until it is retired;
               connector credentials are now managed at /connect. */}
           <a
             href="/connect"
-            className="text-sm text-accent transition-colors duration-150 hover:text-ink"
+            className="text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
           >
             Manage connectors
           </a>

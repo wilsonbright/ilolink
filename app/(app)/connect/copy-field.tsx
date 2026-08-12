@@ -32,7 +32,7 @@ export function CopyField({ value, label }: { value: string; label: string }) {
 
   return (
     <div className="flex items-stretch gap-2">
-      <code className="min-w-0 flex-1 overflow-x-auto rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink">
+      <code className="min-w-0 flex-1 overflow-x-auto border border-hairline bg-surface px-3 py-2 text-sm text-ink">
         {value}
       </code>
       {/* Filled rather than a hairline outline: at rest it used to be faint
@@ -43,7 +43,7 @@ export function CopyField({ value, label }: { value: string; label: string }) {
         type="button"
         onClick={copy}
         aria-label={`Copy ${label}`}
-        className="min-w-20 shrink-0 rounded-lg border border-accent bg-accent-soft px-3 py-2 text-center text-sm font-medium text-accent transition-colors duration-150 hover:bg-accent hover:text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="min-w-20 shrink-0 bg-accent px-3 py-2 text-center text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong"
       >
         {copied ? "Copied" : "Copy"}
       </button>

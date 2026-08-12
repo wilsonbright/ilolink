@@ -1,32 +1,92 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────
-   ilolink design tokens (zen). One accent, warm off-white, calm.
+   ilolink design tokens (Modernist). Flat, architectural, set
+   entirely in Archivo: near-mono red on a light ground, visible
+   structure, zero corner radius, strong 2px rules, flush-left.
+   Derived from the Aug 2026 design handoff (Modernist DS).
+
    Tailwind v4 CSS-first config: these @theme vars generate the
    utility classes (bg-canvas, text-ink, etc). No ad-hoc hex in JSX.
+
+   Token map, kept deliberately stable so the ~100 files written
+   against the old (zen) names restyle without being touched:
+     canvas    — the page ground            (DS --color-bg)
+     surface   — panels and fills           (DS --color-surface)
+     ink       — text                       (DS --color-text)
+     ink-soft  — secondary text             (DS 78% ink)
+     ink-faint — tertiary/muted text        (DS 60% ink)
+     hairline  — MINOR 1px rules            (DS neutral-300)
+     divider   — MAJOR structural rules     (DS --color-divider, 40% ink)
+                 → border-2 for structure (section tops, header bottoms,
+                   panel title strips). The one sanctioned 1px use is a
+                   secondary BUTTON's border — the DS's own .btn-secondary
+                   is 1px divider. Anything else at 1px is a hairline that
+                   lied about its role.
+     accent    — the one red                (DS --color-accent)
+     accent-soft   — tinted fills, hovers   (DS accent-200)
+     accent-strong — accent-colored TEXT at paragraph size
+                 (DS accent-700 — the raw accent is tuned to 3:1
+                  against the ground: enough for chrome and large
+                  type, not for body copy)
    ───────────────────────────────────────────────────────────── */
 @theme {
-  /* Surfaces — warm off-white, near-black ink */
-  --color-canvas: #fafaf8;
-  --color-surface: #ffffff;
-  --color-ink: #1a1a17;
-  --color-ink-soft: #56564f;
-  --color-ink-faint: #8a8a80;
-  --color-hairline: #eae8e1;
+  /* Surfaces — light warm-grey ground, near-black ink */
+  --color-canvas: #f3f2f2;
+  --color-surface: #eae9e9;
+  --color-ink: #201e1d;
+  --color-ink-soft: color-mix(in srgb, #201e1d 78%, transparent);
+  /* 65%, not the DS's 60%: at 60% small ink-faint text lands at ~4.2:1 on the
+     ground — under AA. 65% clears 4.5:1 and is visually indistinguishable. */
+  --color-ink-faint: color-mix(in srgb, #201e1d 65%, transparent);
+  --color-hairline: #d7d3d3;
+  --color-divider: color-mix(in srgb, #201e1d 40%, transparent);
 
-  /* The single accent */
-  --color-accent: #3b5bdb;
-  --color-accent-soft: #edf0fd;
+  /* The single accent, and its working steps */
+  --color-accent: #ec3013;
+  --color-accent-soft: #ffe0d9;
+  --color-accent-strong: #ae1800;
 
-  /* Type — grotesque UI, optional reading serif for doc bodies */
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: "Newsreader", ui-serif, Georgia, serif;
+  /* The poster statement — the DS's one place red runs as a field (the
+     landing's closing banner). Deliberately does NOT flip in dark mode: a
+     poster that inverts to pastel salmon stops being the statement. Fixed
+     pair, both modes. */
+  --color-poster: #ec3013;
+  --color-poster-ink: #f3f2f2;
+
+  /* Type — Archivo everywhere. --font-archivo is set by next/font in
+     app/layout.tsx; the fallback chain covers anything rendered before
+     it (emails preview, tests). The old reading serif is gone: the DS
+     is single-family on purpose. font-serif is kept as an alias so any
+     stray usage degrades to the same face rather than to Georgia. */
+  --font-sans: var(--font-archivo, "Archivo"), ui-sans-serif, system-ui,
+    -apple-system, sans-serif;
+  --font-serif: var(--font-archivo, "Archivo"), ui-sans-serif, system-ui,
+    sans-serif;
+
+  /* Zero radius, everywhere, on purpose — the DS does not round a
+     corner. Zeroing the theme steps retunes every rounded-* utility
+     already in the codebase without touching JSX. rounded-full is NOT
+     a theme step (Tailwind emits calc(infinity*1px)) and survives —
+     correct, since the only honest circles left are dots and spinners. */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
 
   /* Reading measure + rhythm */
-  --leading-relaxed: 1.65;
+  --leading-relaxed: 1.55;
 }
 
-/* Dark: same restraint, inverted warmth */
+/* Dark: the DS is light-first, but the product has shipped dark mode
+   since launch and dropping it would be a regression the handoff never
+   asked for. Derived per the DS's own dark-ground guidance: ink ground,
+   accent one step lighter (accent-400) so it keeps its 3:1 against the
+   dark ground, tinted fills from the deep end of the ramp. */
 @layer base {
   :root {
     color-scheme: light;
@@ -34,14 +94,16 @@
   @media (prefers-color-scheme: dark) {
     :root {
       color-scheme: dark;
-      --color-canvas: #17171a;
-      --color-surface: #1f1f23;
-      --color-ink: #edece7;
-      --color-ink-soft: #a8a79f;
-      --color-ink-faint: #6f6e67;
-      --color-hairline: #2c2c31;
-      --color-accent: #7c93f0;
-      --color-accent-soft: #23263a;
+      --color-canvas: #1b1a19;
+      --color-surface: #262423;
+      --color-ink: #f3f2f2;
+      --color-ink-soft: color-mix(in srgb, #f3f2f2 78%, transparent);
+      --color-ink-faint: color-mix(in srgb, #f3f2f2 58%, transparent);
+      --color-hairline: #3b3836;
+      --color-divider: color-mix(in srgb, #f3f2f2 40%, transparent);
+      --color-accent: #ff9783;
+      --color-accent-soft: #4d170e;
+      --color-accent-strong: #ffc4b8;
     }
   }
 
@@ -55,14 +117,33 @@
     font-family: var(--font-sans);
   }
 
+  /* Headings carry the system: Archivo 800, tight, flush left. Weight
+     comes from here rather than per-element font-bold classes so every
+     h1–h4 in ~100 files lands on the DS pairing at once; utilities can
+     still override where a heading is deliberately quiet. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 800;
+    letter-spacing: -0.015em;
+  }
+
   ::selection {
-    background: var(--color-accent-soft);
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+
+  /* Themed keyboard focus, never the browser default blue. Components
+     that draw their own focus ring simply paint over this. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────
    Article prose. Hand-rolled (no typography plugin) so marketing
-   bodies stay on the same zen tokens as the app. Applied via the
+   bodies stay on the same tokens as the app. Applied via the
    <Prose> component's `.prose` wrapper — plain HTML inside renders
    with reading rhythm without per-element classes.
    ───────────────────────────────────────────────────────────── */
@@ -78,16 +159,16 @@
   .prose h2 {
     color: var(--color-ink);
     font-size: 1.5rem;
-    font-weight: 600;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
     margin-top: 2.5rem;
     scroll-margin-top: 5rem;
   }
   .prose h3 {
     color: var(--color-ink);
     font-size: 1.15rem;
-    font-weight: 600;
+    font-weight: 800;
     line-height: 1.35;
     margin-top: 1.75rem;
   }
@@ -97,11 +178,13 @@
     max-width: 68ch;
   }
   .prose a {
-    color: var(--color-accent);
+    color: var(--color-accent-strong);
     text-decoration: underline;
-    text-underline-offset: 2px;
+    text-underline-offset: 3px;
     text-decoration-thickness: 1px;
   }
+  /* Hover moves to ink, not raw accent: body links are paragraph-size, and
+     the raw accent is tuned to 3:1 — chrome, not copy. */
   .prose a:hover {
     color: var(--color-ink);
   }
@@ -128,13 +211,13 @@
   .prose code {
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-size: 0.9em;
-    background: var(--color-accent-soft);
+    background: var(--color-surface);
+    border: 1px solid var(--color-hairline);
     color: var(--color-ink);
-    padding: 0.12em 0.35em;
-    border-radius: 4px;
+    padding: 0.08em 0.35em;
   }
   .prose blockquote {
-    border-left: 2px solid var(--color-hairline);
+    border-left: 2px solid var(--color-divider);
     padding-left: 1rem;
     color: var(--color-ink-faint);
   }

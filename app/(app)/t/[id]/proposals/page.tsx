@@ -66,12 +66,12 @@ export default async function ProposalsPage({
 
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between gap-4">
-        <h1 className="text-2xl font-medium text-ink">Proposals</h1>
+      <div className="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-divider pb-3">
+        <h1 className="text-2xl text-ink">Proposals</h1>
         <span className="flex shrink-0 items-center gap-3 text-sm">
           <Link
             href={`/t/${id}/registry`}
-            className="text-accent transition-colors duration-150 hover:text-ink"
+            className="font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
           >
             Registry
           </Link>
@@ -90,11 +90,11 @@ export default async function ProposalsPage({
       </p>
 
       {proposals.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-surface px-5 py-8">
+        <div className="border border-hairline bg-surface px-5 py-8">
           <p className="mb-2 text-ink">Nothing waiting.</p>
           <p className="leading-relaxed text-ink-soft">
             Everything in{" "}
-            <Link href={`/t/${id}/registry`} className="text-accent underline">
+            <Link href={`/t/${id}/registry`} className="text-accent-strong underline">
               the registry
             </Link>{" "}
             is live.

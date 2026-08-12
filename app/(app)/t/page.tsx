@@ -142,15 +142,15 @@ export default async function TeamspacesPage() {
   return (
     <div>
       <div className="mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <h1 className="text-2xl font-medium text-ink">Teamspaces</h1>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b-2 border-divider pb-4">
+          <h1 className="text-2xl text-ink">Teamspaces</h1>
           <div className="flex shrink-0 items-center gap-2">
             {/* This was a bare text link, and the designer read it as another
                 line of copy rather than the way out to the document list. It is
                 a bordered control now so it looks like something you press. */}
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-surface px-3 py-2 text-sm font-medium text-ink transition-colors duration-150 hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-2 border border-divider px-3 py-2 text-sm font-extrabold text-ink transition-colors duration-150 hover:bg-ink/5"
             >
               <IconDocument className="h-4 w-4" />
               Documents
@@ -159,7 +159,7 @@ export default async function TeamspacesPage() {
                 anchor down to it rather than a second copy of it up here. */}
             <Link
               href="#new-teamspace"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity duration-150 hover:opacity-90"
+              className="inline-flex items-center gap-1.5 bg-accent px-4 py-2 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong"
             >
               <IconPlus className="h-4 w-4" />
               New teamspace
@@ -180,19 +180,19 @@ export default async function TeamspacesPage() {
           return (
             <li
               key={t.id}
-              className="rounded-lg border border-hairline bg-surface p-4"
+              className="border border-hairline bg-surface p-4"
             >
               <div className="flex items-start gap-3">
                 <span
                   aria-hidden
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent-soft font-medium text-accent"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center bg-accent-soft font-extrabold text-accent-strong"
                 >
                   {initial}
                 </span>
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/t/${t.id}`}
-                    className="font-medium text-ink transition-colors duration-150 hover:text-accent"
+                    className="font-semibold text-ink transition-colors duration-150 hover:text-accent"
                   >
                     {t.name}
                   </Link>
@@ -241,7 +241,8 @@ export default async function TeamspacesPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
-                  <span className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium capitalize text-ink">
+                  {/* Square tag, not a pill — Modernist has no rounded chips. */}
+                  <span className="bg-accent-soft px-2.5 py-0.5 text-[11px] font-semibold capitalize text-accent-strong">
                     {t.role}
                   </span>
                   {/* The mockup's overflow menu has no per-row actions to hold
@@ -251,7 +252,7 @@ export default async function TeamspacesPage() {
                   <Link
                     href={`/t/${t.id}`}
                     aria-label={`Manage ${t.name}`}
-                    className="rounded-md p-1.5 text-ink-faint transition-colors duration-150 hover:text-ink"
+                    className="p-1.5 text-ink-faint transition-colors duration-150 hover:text-ink"
                   >
                     <IconMore className="h-4 w-4" />
                   </Link>
@@ -286,9 +287,9 @@ export default async function TeamspacesPage() {
           under /guides explains what a teamspace is, and pointing it at the
           nearest page that mentions them (/pricing) would answer a different
           question than the one the sentence asks. */}
-      <section className="mt-6 rounded-lg border border-hairline p-4">
+      <section className="mt-6 border border-hairline p-4">
         <p className="text-sm leading-relaxed text-ink-soft">
-          <span className="font-medium text-ink">What is a teamspace?</span>{" "}
+          <span className="font-semibold text-ink">What is a teamspace?</span>{" "}
           It&rsquo;s where your team&rsquo;s documents, skills, and knowledge
           live together.
         </p>

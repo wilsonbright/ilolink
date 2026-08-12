@@ -62,14 +62,14 @@ export function PageHeader({
   return (
     <header className="mb-10">
       {eyebrow && (
-        <p className="mb-3 text-sm font-medium tracking-wide text-accent">
+        <p className="mb-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
           {eyebrow}
         </p>
       )}
-      <h1 className="text-3xl font-semibold leading-[1.15] text-ink sm:text-4xl">
+      <h1 className="text-3xl font-extrabold leading-[1.15] text-ink sm:text-4xl">
         {title}
       </h1>
-      <p className="mt-5 border-l-2 border-accent/40 pl-4 text-lg leading-relaxed text-ink-soft">
+      <p className="mt-5 border-l-2 border-divider pl-4 text-lg leading-relaxed text-ink-soft">
         {lead}
       </p>
     </header>
@@ -91,8 +91,8 @@ export function Callout({
   children: React.ReactNode;
 }) {
   return (
-    <aside className="my-8 rounded-lg border border-hairline bg-surface p-5 text-[0.95rem] leading-relaxed text-ink-soft">
-      {title && <p className="mb-1 font-medium text-ink">{title}</p>}
+    <aside className="my-8 border-2 border-divider p-5 text-[0.95rem] leading-relaxed text-ink-soft">
+      {title && <p className="mb-1 font-extrabold text-ink">{title}</p>}
       {children}
     </aside>
   );
@@ -119,13 +119,13 @@ export function ComparisonTable({
           <caption className="mb-3 text-left text-ink-faint">{caption}</caption>
         )}
         <thead>
-          <tr className="border-b border-ink/15">
+          <tr className="border-b-2 border-divider">
             {columns.map((col, i) => (
               <th
                 key={col}
                 scope="col"
-                className={`py-2.5 pr-4 text-left font-semibold ${
-                  i === highlightCol ? "text-accent" : "text-ink"
+                className={`py-2.5 pr-4 text-left font-extrabold ${
+                  i === highlightCol ? "text-accent-strong" : "text-ink"
                 }`}
               >
                 {col}
@@ -141,7 +141,7 @@ export function ComparisonTable({
                   key={c}
                   className={`py-2.5 pr-4 ${
                     c === 0
-                      ? "font-medium text-ink"
+                      ? "font-semibold text-ink"
                       : c === highlightCol
                         ? "text-ink"
                         : "text-ink-soft"
@@ -164,11 +164,11 @@ export function Faq({ items }: { items: FaqItem[] }) {
   return (
     <section className="mt-14">
       <JsonLd data={faqPage(items)} />
-      <h2 className="text-2xl font-semibold text-ink">Questions</h2>
+      <h2 className="text-2xl font-extrabold text-ink">Questions</h2>
       <dl className="mt-6 divide-y divide-hairline">
         {items.map((it) => (
           <div key={it.q} className="py-5">
-            <dt className="font-medium text-ink">{it.q}</dt>
+            <dt className="font-extrabold text-ink">{it.q}</dt>
             <dd className="mt-2 max-w-[68ch] leading-relaxed text-ink-soft">
               {it.a}
             </dd>
@@ -194,15 +194,17 @@ export function Cta({
   sub?: string;
 }) {
   return (
-    <div className="mt-14 rounded-xl border border-hairline bg-surface p-6 sm:p-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-14 border-2 border-divider p-6 sm:p-8">
+      <div className="flex flex-col gap-5">
         <div>
-          <p className="text-lg font-medium text-ink">Try it on your own doc</p>
+          <p className="text-lg font-extrabold text-ink">
+            Try it on your own doc
+          </p>
           {sub && <p className="mt-1 text-sm text-ink-soft">{sub}</p>}
         </div>
         <Link
           href={href}
-          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity duration-150 hover:opacity-90"
+          className="inline-flex items-center justify-center self-start bg-accent px-5 py-2.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong"
         >
           {label}
         </Link>
@@ -221,15 +223,15 @@ export function RelatedLinks({
   links: { path: string; title: string; blurb?: string }[];
 }) {
   return (
-    <section className="mt-14 border-t border-hairline pt-10">
-      <h2 className="text-sm font-medium tracking-wide text-ink-faint">
+    <section className="mt-14 border-t-2 border-divider pt-10">
+      <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
         {title}
       </h2>
       <ul className="mt-5 grid gap-5 sm:grid-cols-2">
         {links.map((l) => (
           <li key={l.path}>
             <Link href={l.path} className="group block">
-              <p className="font-medium text-ink transition-colors duration-150 group-hover:text-accent">
+              <p className="font-semibold text-ink transition-colors duration-150 group-hover:text-accent">
                 {l.title}
               </p>
               {l.blurb && (

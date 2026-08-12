@@ -32,7 +32,7 @@ export function AdminLogin() {
 
   return (
     <main className="mx-auto max-w-sm px-6 py-24">
-      <h1 className="text-lg font-medium text-ink">Moderation</h1>
+      <h1 className="border-b-2 border-divider pb-3 text-lg text-ink">Moderation</h1>
       <form onSubmit={submit} className="mt-4">
         <input
           type="password"
@@ -40,16 +40,16 @@ export function AdminLogin() {
           onChange={(e) => setKey(e.target.value)}
           autoFocus
           placeholder="Admin key"
-          className="w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink"
+          className="w-full border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
         />
         <button
           type="submit"
           disabled={busy || !key}
-          className="mt-3 w-full rounded-lg bg-accent px-4 py-2 text-sm font-medium text-canvas transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+          className="mt-3 w-full bg-accent px-4 py-2 text-left text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
         >
           {busy ? "…" : "Enter"}
         </button>
-        {err ? <p className="mt-2 text-sm text-[#b3261e]">Wrong key.</p> : null}
+        {err ? <p className="mt-2 text-sm font-semibold text-accent-strong">Wrong key.</p> : null}
       </form>
     </main>
   );

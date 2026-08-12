@@ -47,7 +47,7 @@ export function ArtifactList({
 }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border border-hairline bg-surface px-5 py-8">
+      <div className="border-2 border-divider bg-surface px-5 py-8">
         <p className="mb-2 text-ink">
           No {KINDS[kind].plural.toLowerCase()} yet.
         </p>
@@ -56,7 +56,7 @@ export function ArtifactList({
             useful thing an empty list can say. */}
         <p className="leading-relaxed text-ink-soft">
           {KINDS[kind].description}{" "}
-          <Link href="/connect" className="text-accent underline">
+          <Link href="/connect" className="text-accent-strong underline">
             Connect an assistant
           </Link>{" "}
           to push them here.
@@ -76,18 +76,18 @@ export function ArtifactList({
           return (
             <li
               key={a.id}
-              className="border-b border-hairline py-5 last:border-b-0"
+              className="border-b border-hairline py-5 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
             >
               <div className="flex items-baseline justify-between gap-4">
                 {href ? (
                   <Link
                     href={href}
-                    className="font-mono font-medium text-ink transition-colors duration-150 hover:text-accent"
+                    className="font-mono font-semibold text-ink transition-colors duration-150 hover:text-accent"
                   >
                     {a.name}
                   </Link>
                 ) : (
-                  <span className="font-mono font-medium text-ink-soft">
+                  <span className="font-mono font-semibold text-ink-soft">
                     {a.name}
                   </span>
                 )}
@@ -103,7 +103,7 @@ export function ArtifactList({
                 {a.version == null ? (
                   <Link
                     href={`/t/${teamspaceId}/proposals`}
-                    className="text-accent transition-colors duration-150 hover:text-ink"
+                    className="text-accent-strong transition-colors duration-150 hover:text-ink"
                   >
                     awaiting review
                   </Link>
@@ -126,7 +126,7 @@ export function ArtifactList({
           Showing the first {truncatedAt}.{" "}
           <Link
             href={`/t/${teamspaceId}/registry?kind=${kind}`}
-            className="text-accent underline"
+            className="text-accent-strong underline"
           >
             Open the registry
           </Link>{" "}

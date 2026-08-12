@@ -42,7 +42,7 @@ export default function DocumentDetailPage() {
               document published since the accounts pivot — and it told people
               to go hunting for the wrong browser when signing in was the
               answer. */}
-          <h1 className="text-2xl font-semibold text-ink">
+          <h1 className="text-2xl text-ink">
             Can&rsquo;t open these analytics
           </h1>
           <p className="leading-relaxed text-ink-soft">
@@ -59,7 +59,7 @@ export default function DocumentDetailPage() {
         </div>
       ) : (
         <>
-          <h1 className="mt-6 text-2xl font-semibold text-ink">
+          <h1 className="mt-6 text-2xl text-ink">
             {entry.title || "Untitled"}
           </h1>
           <a
@@ -75,7 +75,7 @@ export default function DocumentDetailPage() {
             <StatsView slug={entry.slug} token={entry.manageToken} />
           </div>
 
-          <div className="mt-16 border-t border-hairline pt-10">
+          <div className="mt-16 border-t-2 border-divider pt-10">
             <HeatmapView slug={entry.slug} token={entry.manageToken} />
           </div>
 
@@ -116,8 +116,8 @@ function DangerZone({ slug, token }: { slug: string; token: string }) {
   }
 
   return (
-    <div className="mt-16 border-t border-hairline pt-10">
-      <h2 className="text-sm font-medium tracking-wide text-ink-faint">
+    <div className="mt-16 border-t-2 border-divider pt-10">
+      <h2 className="text-[12px] uppercase tracking-[0.08em] text-ink-faint">
         Danger
       </h2>
       <div className="mt-4 max-w-prose space-y-3">
@@ -130,7 +130,7 @@ function DangerZone({ slug, token }: { slug: string; token: string }) {
           <button
             type="button"
             onClick={() => setArmed(true)}
-            className="text-sm text-[#b3261e] transition-colors duration-150 hover:text-[#8f1d18] dark:text-[#f2827a] dark:hover:text-[#f6a49e]"
+            className="text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:bg-accent-soft/40"
           >
             Delete document
           </button>
@@ -143,7 +143,7 @@ function DangerZone({ slug, token }: { slug: string; token: string }) {
               type="button"
               onClick={del}
               disabled={deleting}
-              className="text-sm font-medium text-[#b3261e] transition-colors duration-150 hover:text-[#8f1d18] disabled:opacity-50 dark:text-[#f2827a] dark:hover:text-[#f6a49e]"
+              className="text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:bg-accent-soft/40 disabled:opacity-45"
             >
               {deleting ? "Deleting…" : "Confirm delete"}
             </button>
@@ -151,14 +151,14 @@ function DangerZone({ slug, token }: { slug: string; token: string }) {
               type="button"
               onClick={() => setArmed(false)}
               disabled={deleting}
-              className="text-sm text-ink-faint transition-colors duration-150 hover:text-ink disabled:opacity-50"
+              className="text-sm text-ink-faint transition-colors duration-150 hover:text-ink disabled:opacity-45"
             >
               Cancel
             </button>
           </div>
         )}
 
-        {error ? <p className="text-sm text-[#b3261e] dark:text-[#f2827a]">{error}</p> : null}
+        {error ? <p className="text-sm text-accent-strong">{error}</p> : null}
       </div>
     </div>
   );

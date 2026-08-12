@@ -53,13 +53,13 @@ export default async function EditSkillPage({
 
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between gap-4">
-        <h1 className="font-mono text-2xl font-medium text-ink">
+      <div className="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-divider pb-3">
+        <h1 className="font-mono text-2xl text-ink">
           {found.artifact.name}
         </h1>
         <Link
           href={`/t/${id}/skills/${encodeURIComponent(found.artifact.name)}`}
-          className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
+          className="shrink-0 text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
         >
           Cancel
         </Link>

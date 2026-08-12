@@ -48,7 +48,7 @@ export function EmbeddedComposer({
           href={`/signin?next=${encodeURIComponent("/dashboard")}`}
           target="_blank"
           rel="noopener"
-          className="text-accent underline"
+          className="text-accent-strong underline"
         >
           Sign in
         </a>{" "}
@@ -66,7 +66,7 @@ export function EmbeddedComposer({
             setDone(false);
             setText("");
           }}
-          className="text-accent underline"
+          className="text-accent-strong underline"
         >
           Write another
         </button>
@@ -114,14 +114,14 @@ export function EmbeddedComposer({
         rows={3}
         maxLength={4000}
         placeholder="Add a comment…"
-        className="w-full resize-y rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+        className="w-full resize-y border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
       />
       <div className="mt-2 flex items-center justify-between gap-3">
         <span className="truncate text-xs text-ink-faint">as {email}</span>
         <button
           type="submit"
           disabled={busy || !text.trim()}
-          className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+          className="shrink-0 bg-accent px-3 py-1.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
         >
           {busy ? "Posting…" : "Post"}
         </button>

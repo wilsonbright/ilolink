@@ -43,7 +43,15 @@ export default async function ConnectPage() {
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-medium text-ink">Connect an assistant</h1>
+      {/* The kicker and the numbered cells below come from the Connect
+          handoff prototype; the functional content of each cell is this
+          page's own and stays exactly what it was. */}
+      <p className="mb-4 text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
+        One connector, both halves
+      </p>
+      <h1 className="-ml-[0.058em] mb-3 text-3xl text-ink">
+        Connect an assistant
+      </h1>
       <p className="mb-3 leading-relaxed text-ink-soft">
         Let Claude, ChatGPT, or any MCP-capable assistant publish documents and
         use your teamspace&rsquo;s shared skills.
@@ -51,21 +59,24 @@ export default async function ConnectPage() {
       {/* This page is the doing half. /mcp is the explaining half — per-client
           setup steps and what the tools actually are — and it is public, so it
           is also the page to send someone who has not signed up yet. */}
-      <p className="mb-10 text-sm text-ink-faint">
+      <p className="mb-12 text-sm text-ink-faint">
         New to MCP?{" "}
-        <Link href="/mcp" className="text-accent hover:underline">
+        <Link href="/mcp" className="text-accent-strong hover:underline">
           What the connector does, client by client
         </Link>
         .
       </p>
 
-      <section className="mb-10">
+      <section className="mb-12 border-t-2 border-divider pt-5">
+        <p aria-hidden className="mb-3 text-[15px] font-extrabold tabular-nums text-ink">
+          01
+        </p>
         {/* ChatGPT is named here, not in the token section below. Its custom
             connector flow is OAuth — it registers itself with us dynamically
             and never takes a pasted bearer token — so a ChatGPT user who reads
             "Claude, and anything that supports OAuth" and scrolls past it lands
             on a path their assistant cannot use. */}
-        <h2 className="mb-2 font-medium text-ink">
+        <h2 className="mb-2 text-lg text-ink">
           Claude, ChatGPT, and anything that supports OAuth
         </h2>
         <p className="mb-3 leading-relaxed text-ink-soft">
@@ -94,8 +105,11 @@ export default async function ConnectPage() {
         </p>
       </section>
 
-      <section className="mb-10">
-        <h2 className="mb-2 font-medium text-ink">
+      <section className="mb-12 border-t-2 border-divider pt-5">
+        <p aria-hidden className="mb-3 text-[15px] font-extrabold tabular-nums text-ink">
+          02
+        </p>
+        <h2 className="mb-2 text-lg text-ink">
           Assistants without OAuth support
         </h2>
         <p className="mb-4 leading-relaxed text-ink-soft">
@@ -110,32 +124,37 @@ export default async function ConnectPage() {
         />
       </section>
 
-      <p className="mb-3 text-sm leading-relaxed text-ink-faint">
-        Once connected, ask your assistant to publish something, or to list your
-        team&rsquo;s skills.
-      </p>
-      {/* This was an underlined fragment trailing the sentence above, so it
-          read as part of the copy rather than as the way on from here. Same
-          bordered control as "Documents" on /t, so the two pages agree. */}
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3 py-2 text-sm font-medium text-accent transition-colors duration-150 hover:bg-accent hover:text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        Your documents
-        <svg
-          className="h-4 w-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
+      <section className="border-t-2 border-divider pt-5">
+        <p aria-hidden className="mb-3 text-[15px] font-extrabold tabular-nums text-ink">
+          03
+        </p>
+        <p className="mb-3 text-sm leading-relaxed text-ink-faint">
+          Once connected, ask your assistant to publish something, or to list
+          your team&rsquo;s skills.
+        </p>
+        {/* This was an underlined fragment trailing the sentence above, so it
+            read as part of the copy rather than as the way on from here. Same
+            bordered control as "Documents" on /t, so the two pages agree. */}
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 border border-divider px-3 py-2 text-sm font-extrabold text-ink transition-colors duration-150 hover:bg-ink/5"
         >
-          <path d="M5 12h14" />
-          <path d="m13 5 7 7-7 7" />
-        </svg>
-      </Link>
+          Your documents
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M5 12h14" />
+            <path d="m13 5 7 7-7 7" />
+          </svg>
+        </Link>
+      </section>
     </div>
   );
 }

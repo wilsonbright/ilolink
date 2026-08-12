@@ -36,7 +36,7 @@ function Section({
 }) {
   return (
     <section className="mt-12 first:mt-8">
-      <h2 className="text-sm font-medium tracking-wide text-ink-faint">
+      <h2 className="border-b-2 border-divider pb-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
         {heading}
       </h2>
       <ul className="mt-4 divide-y divide-hairline">
@@ -44,7 +44,7 @@ function Section({
           <li key={p.path} className="py-5">
             <Link href={p.path} className="group block">
               <p
-                className={`font-medium text-ink transition-colors duration-150 group-hover:text-accent ${
+                className={`font-semibold text-ink transition-colors duration-150 group-hover:text-accent ${
                   size === "lg" ? "text-xl" : "text-base"
                 }`}
               >

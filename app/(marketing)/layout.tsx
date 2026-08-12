@@ -13,8 +13,8 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="flex min-h-dvh flex-col bg-canvas">
-      <header className="border-b border-hairline">
-        {/* Same pill nav as the app shell (lib/ui/nav.ts). This header was left
+      <header className="border-b-2 border-divider">
+        {/* Same flat nav as the app shell (lib/ui/nav.ts). This header was left
             behind by the first pass at the Aug 2026 design review, so a guide
             page hovered differently from the product it is a guide for. */}
         <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4">
@@ -34,11 +34,13 @@ export default function MarketingLayout({
 
       <div className="flex-1">{children}</div>
 
-      <footer className="border-t border-hairline">
+      <footer className="border-t-2 border-divider">
         <div className="mx-auto max-w-2xl px-6 py-12">
           <div className="grid gap-8 sm:grid-cols-3">
             <div>
-              <p className="text-sm font-medium text-ink">Guides</p>
+              <p className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
+                Guides
+              </p>
               <ul className="mt-3 space-y-2 text-sm">
                 {Object.values(PILLARS).map((p) => (
                   <li key={p.path}>
@@ -53,7 +55,9 @@ export default function MarketingLayout({
               </ul>
             </div>
             <div>
-              <p className="text-sm font-medium text-ink">Product</p>
+              <p className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
+                Product
+              </p>
               <ul className="mt-3 space-y-2 text-sm">
                 <li>
                   <Link
@@ -101,7 +105,9 @@ export default function MarketingLayout({
               </ul>
             </div>
             <div>
-              <p className="text-sm font-medium text-ink">Legal</p>
+              <p className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
+                Legal
+              </p>
               <ul className="mt-3 space-y-2 text-sm">
                 {Object.values(LEGAL).map((l) => (
                   <li key={l.path}>

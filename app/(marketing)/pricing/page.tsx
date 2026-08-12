@@ -78,13 +78,13 @@ function PlanCard({ plan, featured }: { plan: Plan; featured?: boolean }) {
   const paid = plan.priceCents > 0;
   return (
     <div
-      className={`rounded-xl border bg-surface p-6 ${
-        featured ? "border-accent/50" : "border-hairline"
+      className={`border-2 bg-surface p-6 ${
+        featured ? "border-accent" : "border-divider"
       }`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 className="text-lg font-medium text-ink">{plan.label}</h3>
-        <p className="text-2xl font-semibold text-ink">
+        <h3 className="text-lg font-extrabold text-ink">{plan.label}</h3>
+        <p className="text-2xl font-extrabold text-ink">
           {formatPrice(plan.priceCents)}
           {paid && (
             <span className="ml-1.5 align-middle text-sm font-normal text-ink-faint">
@@ -96,7 +96,7 @@ function PlanCard({ plan, featured }: { plan: Plan; featured?: boolean }) {
 
       <p className="mt-2 text-sm leading-relaxed text-ink-soft">{plan.blurb}</p>
 
-      <p className="mt-4 text-sm font-medium text-ink">
+      <p className="mt-4 text-sm font-semibold text-ink">
         {seatLine(plan)} · {plan.docs} published documents
       </p>
       {/* Only for paid plans: the free plan's own feature bullet already says
@@ -111,7 +111,7 @@ function PlanCard({ plan, featured }: { plan: Plan; featured?: boolean }) {
       <ul className="mt-4 space-y-2 text-sm leading-relaxed text-ink-soft">
         {extraFeatures(plan).map((f) => (
           <li key={f} className="flex gap-2">
-            <span aria-hidden className="text-accent">
+            <span aria-hidden className="text-accent-strong">
               ·
             </span>
             <span>{f}</span>
@@ -121,19 +121,17 @@ function PlanCard({ plan, featured }: { plan: Plan; featured?: boolean }) {
 
       <Link
         href={cta.href}
-        className={`mt-6 inline-flex w-full items-center justify-center rounded-lg px-5 py-2.5 text-sm font-medium transition-opacity duration-150 hover:opacity-90 ${
+        className={`mt-6 inline-flex w-full items-center justify-start px-5 py-2.5 text-left text-sm font-extrabold transition-colors duration-150 ${
           featured
-            ? "bg-accent text-white"
-            : "border border-hairline text-ink"
+            ? "bg-accent text-canvas hover:bg-accent-strong"
+            : "border border-divider text-ink hover:bg-ink/5"
         }`}
       >
         {cta.label}
       </Link>
 
       {paid && (
-        <p className="mt-3 text-center text-xs text-ink-faint">
-          Paid once. Kept forever.
-        </p>
+        <p className="mt-3 text-xs text-ink-faint">Paid once. Kept forever.</p>
       )}
     </div>
   );

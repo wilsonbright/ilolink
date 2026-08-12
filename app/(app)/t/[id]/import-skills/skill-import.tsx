@@ -167,7 +167,7 @@ export function SkillImport({
             multiple
             accept=".md,.markdown,.txt"
             onChange={(e) => onFiles(e.target.files)}
-            className="mt-1 w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-accent file:px-4 file:py-2 file:font-medium file:text-white"
+            className="mt-1 w-full text-sm text-ink-soft file:mr-3 file:border-0 file:bg-accent file:px-4 file:py-2 file:font-extrabold file:text-canvas"
           />
         </div>
         <p className="text-sm leading-relaxed text-ink-faint">
@@ -190,7 +190,7 @@ export function SkillImport({
               webkitdirectory: "",
               directory: "",
             } as Record<string, string>)}
-            className="mt-1 w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border-0 file:bg-surface file:px-4 file:py-2 file:text-ink"
+            className="mt-1 w-full text-sm text-ink-soft file:mr-3 file:border file:border-solid file:border-divider file:bg-surface file:px-4 file:py-2 file:font-extrabold file:text-ink"
           />
         </div>
         {readError && <p className="text-sm text-ink">{readError}</p>}
@@ -198,7 +198,8 @@ export function SkillImport({
 
       {items.length > 0 && (
         <>
-          <h2 className="mb-3 text-sm font-medium text-ink-soft">
+          {/* Table idiom: uppercase header over the strong rule, hairline rows. */}
+          <h2 className="border-b-2 border-divider pb-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
             {items.length} file{items.length === 1 ? "" : "s"} — review before
             importing
           </h2>
@@ -206,10 +207,10 @@ export function SkillImport({
             {items.map((it) => (
               <li
                 key={it.path}
-                className="border-b border-hairline py-4 last:border-b-0"
+                className="border-b border-hairline py-4 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
               >
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="font-mono font-medium text-ink">
+                  <span className="font-mono font-semibold text-ink">
                     {it.name || "—"}
                   </span>
                   <span className="shrink-0 text-sm text-ink-faint">
@@ -251,7 +252,7 @@ export function SkillImport({
             <button
               onClick={importAll}
               disabled={busy || importable.length === 0}
-              className="rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+              className="bg-accent px-4 py-2.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
             >
               {busy
                 ? `Importing… (${done}/${importable.length})`

@@ -174,21 +174,21 @@ export default async function DashboardPage({
         {/* Was "Your documents". The page now holds ten artifact kinds as well,
             so naming one axis value as if it were the whole page was wrong. The
             URL is unchanged, so nothing anyone has bookmarked moves. */}
-        <h1 className="text-2xl font-medium text-ink">Your library</h1>
+        <h1 className="text-2xl text-ink">Your library</h1>
         {/* On an artifact kind "Publish new" would open a DOCUMENT composer,
             which is not what the person is looking at. Send them where that
             kind is actually created instead. */}
         {activeKind === DOCUMENTS_KIND ? (
           <Link
             href={publishHref}
-            className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
+            className="shrink-0 px-2 py-1 text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:bg-accent-soft/40"
           >
             Publish new
           </Link>
         ) : (
           <Link
             href={`/t/${activeTab}/registry?kind=${activeKind}`}
-            className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
+            className="shrink-0 px-2 py-1 text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:bg-accent-soft/40"
           >
             Open in registry
           </Link>
@@ -198,7 +198,7 @@ export default async function DashboardPage({
       <ClaimBanner knownSlugs={docs.map((d) => d.slug)} />
 
       {tabs.length > 1 && (
-        <div className="mb-4 flex flex-wrap gap-2 border-b border-hairline pb-3">
+        <div className="mb-4 flex flex-wrap gap-2 border-b-2 border-divider pb-3">
           {tabs.map((tab) => (
             <Link
               key={tab.id}
@@ -206,14 +206,22 @@ export default async function DashboardPage({
               // while looking at Agents keeps you on Agents.
               href={dashboardHref(tab.id, activeKind, tabs[0]?.id)}
               className={
-                "rounded-full px-3 py-1 text-sm transition-colors duration-150 " +
+                "px-3 py-1 text-sm font-semibold transition-colors duration-150 " +
                 (tab.id === activeTab
-                  ? "bg-accent-soft text-ink"
-                  : "text-ink-soft hover:text-ink")
+                  ? "bg-accent text-canvas"
+                  : "text-ink-soft hover:bg-ink/5 hover:text-ink")
               }
             >
               {tab.label}
-              <span className="ml-1.5 tabular-nums text-ink-faint">
+              <span
+                className={
+                  "ml-1.5 tabular-nums " +
+                  // Full canvas, not /80: 14px text on the accent fill is
+                  // already only ~3.8:1 in light mode — dimming it fails even
+                  // the graphics floor.
+                  (tab.id === activeTab ? "text-canvas" : "text-ink-faint")
+                }
+              >
                 {tab.count + sumKindCounts(countsByTeamspace.get(tab.id))}
               </span>
             </Link>
@@ -226,7 +234,7 @@ export default async function DashboardPage({
           mean nobody with a single teamspace ever discovers that skills and
           agents live here, which is the entire point of the page.
 
-          Quieter than the teamspace pills on purpose: two rows of identical
+          Quieter than the teamspace tabs on purpose: two rows of identical
           weight read as one confusing row. This is the registry's treatment. */}
       {allowArtifacts && (
         <div className="mb-8">
@@ -238,7 +246,7 @@ export default async function DashboardPage({
                 className={
                   "transition-colors duration-150 " +
                   (k.id === activeKind
-                    ? "font-medium text-ink"
+                    ? "font-semibold text-ink"
                     : "text-ink-faint hover:text-ink")
                 }
               >
@@ -255,7 +263,7 @@ export default async function DashboardPage({
             <p className="mt-3 text-sm leading-relaxed text-ink-faint">
               Skills, agents, specs and plans arrive when a connected assistant
               pushes them.{" "}
-              <Link href="/connect" className="text-accent underline">
+              <Link href="/connect" className="text-accent-strong underline">
                 Connect an assistant
               </Link>
             </p>
@@ -274,14 +282,14 @@ export default async function DashboardPage({
         <>
 
       {live.length === 0 && unpublished.length === 0 ? (
-        <div className="rounded-lg border border-hairline bg-surface px-5 py-8">
+        <div className="border-2 border-divider bg-surface px-5 py-8">
           <p className="mb-2 text-ink">
             Nothing published yet{tabs.length > 1 ? ` in ${activeLabel}` : ""}.
           </p>
           <p className="leading-relaxed text-ink-soft">
             Publish a document and it will appear here, on every device you sign
             in from.{" "}
-            <Link href={publishHref} className="text-accent underline">
+            <Link href={publishHref} className="text-accent-strong underline">
               Publish your first document
             </Link>
             .
@@ -292,7 +300,7 @@ export default async function DashboardPage({
           {rootGroup && <DocList docs={rootGroup.docs} showTeamspace={showTeamspace} teamspaces={teamspaces} />}
           {folderGroups.map(([id, g]) => (
             <section key={id} className="mt-8">
-              <h2 className="mb-1 text-sm font-medium text-ink-soft">
+              <h2 className="mb-1 border-b-2 border-divider pb-2 text-[12px] uppercase tracking-[0.08em] text-ink-soft">
                 {g.name}
                 <span className="ml-2 tabular-nums text-ink-faint">
                   {g.docs.length}
@@ -306,12 +314,14 @@ export default async function DashboardPage({
 
       {unpublished.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-3 text-sm font-medium text-ink-soft">Unpublished</h2>
+          <h2 className="mb-3 border-b-2 border-divider pb-2 text-[12px] uppercase tracking-[0.08em] text-ink-soft">
+            Unpublished
+          </h2>
           <ul>
             {unpublished.map((d) => (
               <li
                 key={d.id}
-                className="border-b border-hairline py-4 last:border-b-0"
+                className="border-b border-hairline py-4 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
               >
                 <Link
                   href={`/dashboard/${d.slug}`}
@@ -354,7 +364,7 @@ function DocList({
       {docs.map((d) => (
             <li
               key={d.id}
-              className="group/row border-b border-hairline py-5 last:border-b-0"
+              className="group/row border-b border-hairline py-5 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
             >
               <div className="flex items-baseline justify-between gap-4">
                 <DocumentTitle docId={d.id} slug={d.slug} title={d.title} />

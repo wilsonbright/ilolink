@@ -31,9 +31,9 @@ export function NavAuth() {
     };
   }, []);
 
-  // Same pill as every other header destination (lib/ui/nav.ts) — this renders
-  // into the landing nav, so styling it any other way would leave one item in
-  // that row hovering differently from its neighbours.
+  // Same flat nav item as every other header destination (lib/ui/nav.ts) —
+  // this renders into the landing nav, so styling it any other way would leave
+  // one item in that row hovering differently from its neighbours.
   if (state === "in") {
     return (
       <Link href="/dashboard" className={NAV_LINK}>

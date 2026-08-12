@@ -66,11 +66,11 @@ export default async function TeamspacePage({
 
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between">
-        <h1 className="text-2xl font-medium text-ink">{teamspace.name}</h1>
+      <div className="mb-4 flex items-baseline justify-between border-b-2 border-divider pb-3">
+        <h1 className="text-2xl text-ink">{teamspace.name}</h1>
         <Link
           href="/dashboard"
-          className="text-sm text-accent transition-colors duration-150 hover:text-ink"
+          className="text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
         >
           Documents
         </Link>
@@ -101,12 +101,12 @@ export default async function TeamspacePage({
         }))}
       />
 
-      <section className="mt-12 border-t border-hairline pt-8">
+      <section className="mt-12 border-t-2 border-divider pt-8">
         <div className="mb-2 flex items-baseline justify-between gap-4">
-          <h2 className="font-medium text-ink">Registry</h2>
+          <h2 className="text-ink">Registry</h2>
           <Link
             href={`/t/${id}/registry`}
-            className="shrink-0 text-sm text-accent transition-colors duration-150 hover:text-ink"
+            className="shrink-0 text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
           >
             {artifacts === 0
               ? "View"
@@ -124,7 +124,7 @@ export default async function TeamspacePage({
           <p className="mt-3 leading-relaxed text-ink-soft">
             <Link
               href={`/t/${id}/proposals`}
-              className="text-accent underline"
+              className="text-accent-strong underline"
             >
               {proposals} {proposals === 1 ? "change is" : "changes are"}{" "}
               waiting for review
@@ -143,7 +143,7 @@ export default async function TeamspacePage({
           reconnect it and pick{" "}
           <span className="text-ink">{teamspace.name}</span> on the approval
           screen, or create a connector token scoped to this teamspace.{" "}
-          <Link href="/connect" className="text-accent underline">
+          <Link href="/connect" className="text-accent-strong underline">
             Connect an assistant
           </Link>
         </p>

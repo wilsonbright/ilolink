@@ -92,7 +92,7 @@ export function DocumentTitle({
       <span className="flex min-w-0 items-baseline gap-2">
         <Link
           href={`/dashboard/${slug}`}
-          className="truncate font-medium text-ink transition-colors duration-150 hover:text-accent"
+          className="truncate font-semibold text-ink transition-colors duration-150 hover:text-accent"
         >
           {title || slug}
         </Link>
@@ -107,7 +107,7 @@ export function DocumentTitle({
           // device has no hover at all, so a purely hover-revealed control is
           // one that phone users can never reach. Keyboard focus reveals it at
           // every width.
-          className="shrink-0 rounded-md p-1 text-ink-faint opacity-100 transition duration-150 hover:bg-accent-soft hover:text-ink focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:opacity-0 sm:group-hover/row:opacity-100"
+          className="shrink-0 p-1 text-ink-faint opacity-100 transition duration-150 hover:bg-accent-soft hover:text-ink focus-visible:opacity-100 sm:opacity-0 sm:group-hover/row:opacity-100"
         >
           <IconPencil />
         </button>
@@ -140,7 +140,7 @@ export function DocumentTitle({
           // Blur saves rather than discards: clicking away from a field you have
           // just typed into should not silently throw the typing away.
           onBlur={() => void save()}
-          className="w-full min-w-0 rounded-md border border-hairline bg-surface px-2 py-1 font-medium text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
+          className="w-full min-w-0 border border-hairline bg-surface px-2 py-1 font-semibold text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
         />
       </span>
       {error ? (

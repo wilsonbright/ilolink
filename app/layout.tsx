@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
+import { Archivo } from "next/font/google";
 import "./globals.css";
 import { SITE_METADATA } from "@/lib/seo/metadata";
+
+// The whole system is set in Archivo — headings at 800, body at 400 — per the
+// Modernist design handoff. next/font self-hosts the files, so no runtime
+// request leaves the origin and the landing page stays statically prerenderable.
+const archivo = Archivo({
+  subsets: ["latin"],
+  weight: ["400", "600", "800"],
+  variable: "--font-archivo",
+  display: "swap",
+});
 
 // Defaults for anything that doesn't declare its own. The object itself lives
 // in lib/seo/metadata.ts (with the reasoning behind each field) so a test can
@@ -16,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={archivo.variable}>
       <body className="antialiased">{children}</body>
     </html>
   );

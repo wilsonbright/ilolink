@@ -44,10 +44,10 @@ export function ActionButton({
       type="button"
       onClick={run}
       disabled={busy}
-      className={`transition-colors duration-150 disabled:opacity-50 ${
+      className={`font-extrabold transition-colors duration-150 disabled:opacity-45 ${
         danger
-          ? "text-[#b3261e] hover:text-[#8f1d18] dark:text-[#f2827a]"
-          : "text-accent hover:text-ink"
+          ? "text-accent-strong hover:text-accent"
+          : "text-ink hover:text-accent-strong"
       }`}
     >
       {busy ? "…" : err ? `${label} (retry)` : label}

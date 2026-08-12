@@ -31,10 +31,10 @@ export function ClaimBanner({ knownSlugs }: { knownSlugs: string[] }) {
 
   if (state === "done") {
     return (
-      <div className="mb-8 rounded-lg border border-hairline bg-accent-soft px-4 py-3">
+      <div className="mb-8 border-2 border-divider bg-accent-soft px-4 py-3">
         <p className="text-sm text-ink">
           Added {claimed} {claimed === 1 ? "document" : "documents"} to your
-          account. <a href="/dashboard" className="text-accent underline">Refresh</a>
+          account. <a href="/dashboard" className="text-accent-strong underline">Refresh</a>
         </p>
       </div>
     );
@@ -65,8 +65,8 @@ export function ClaimBanner({ knownSlugs }: { knownSlugs: string[] }) {
   }
 
   return (
-    <div className="mb-8 rounded-lg border border-hairline bg-surface px-4 py-4">
-      <p className="mb-1 text-sm font-medium text-ink">
+    <div className="mb-8 border-2 border-divider bg-surface px-4 py-4">
+      <p className="mb-1 text-sm font-semibold text-ink">
         {pending.length} {pending.length === 1 ? "document" : "documents"} published
         from this browser
       </p>
@@ -83,7 +83,7 @@ export function ClaimBanner({ knownSlugs }: { knownSlugs: string[] }) {
       <button
         onClick={claim}
         disabled={state === "working"}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+        className="bg-accent px-4 py-2 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
       >
         {state === "working" ? "Adding…" : "Add to my account"}
       </button>

@@ -182,7 +182,7 @@ function Section({
 }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-sm font-medium tracking-wide text-ink-faint">
+      <h2 className="border-b-2 border-divider pb-2 text-[12px] uppercase tracking-[0.08em] text-ink-faint">
         {title}
       </h2>
       {children}
@@ -220,12 +220,14 @@ function Tiles({ stats }: { stats: Load<StatsData> }) {
       {tiles.map((t) => (
         <div
           key={t.label}
-          className="rounded-lg border border-hairline bg-surface px-4 py-5"
+          className="border-2 border-divider px-4 py-5"
         >
-          <div className="text-2xl font-semibold text-ink tabular-nums">
+          <div className="text-2xl font-extrabold tracking-tight text-ink tabular-nums">
             {stats.state === "error" ? "—" : t.value}
           </div>
-          <div className="mt-1 text-xs text-ink-faint">{t.label}</div>
+          <div className="mt-1 text-[11px] uppercase tracking-[0.08em] text-ink-faint">
+            {t.label}
+          </div>
         </div>
       ))}
     </div>
@@ -266,9 +268,9 @@ function ScrollFunnel({ stats }: { stats: Load<Stats> }) {
               <span className="w-10 shrink-0 text-right text-xs tabular-nums text-ink-faint">
                 {r.t}%
               </span>
-              <div className="h-6 flex-1 overflow-hidden rounded bg-accent-soft">
+              <div className="h-6 flex-1 overflow-hidden bg-accent-soft">
                 <div
-                  className="h-full rounded bg-accent transition-[width] duration-200"
+                  className="h-full bg-accent transition-[width] duration-200"
                   style={{ width: `${Math.max(2, r.frac * 100)}%` }}
                 />
               </div>
@@ -331,7 +333,7 @@ function BreakdownList({
           {rows.map((r) => (
             <li key={r.label} className="relative">
               <div
-                className="absolute inset-y-0 left-0 rounded bg-accent-soft"
+                className="absolute inset-y-0 left-0 bg-accent-soft"
                 style={{ width: `${max > 0 ? (r.n / max) * 100 : 0}%` }}
                 aria-hidden
               />
@@ -427,7 +429,7 @@ function Reactions({ feedback }: { feedback: Load<FeedbackData> }) {
           {REACTIONS.map((emoji) => (
             <div
               key={emoji}
-              className="flex items-center gap-2 rounded-lg border border-hairline bg-surface px-3 py-2"
+              className="flex items-center gap-2 border border-hairline bg-surface px-3 py-2"
             >
               <span className="text-lg leading-none">{emoji}</span>
               <span className="text-sm tabular-nums text-ink-soft">
@@ -458,7 +460,7 @@ function Notes({ feedback }: { feedback: Load<FeedbackData> }) {
           {notes.map((note, i) => (
             <li
               key={i}
-              className="rounded-lg border border-hairline bg-surface px-4 py-3"
+              className="border border-hairline bg-surface px-4 py-3"
             >
               <p className="text-sm text-ink-soft">{note.value}</p>
               <p className="mt-1 text-xs text-ink-faint">
@@ -498,12 +500,12 @@ function Moderation({
             return (
               <li
                 key={c.id}
-                className={`rounded-lg border border-hairline bg-surface px-4 py-3 transition-opacity duration-150 ${
-                  action ? "opacity-50" : ""
+                className={`border border-hairline bg-surface px-4 py-3 transition-opacity duration-150 ${
+                  action ? "opacity-45" : ""
                 }`}
               >
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm font-medium text-ink">
+                  <span className="text-sm font-semibold text-ink">
                     {c.author_name?.trim() || "Anonymous"}
                   </span>
                   <span className="text-xs text-ink-faint">
@@ -511,7 +513,7 @@ function Moderation({
                   </span>
                 </div>
                 {c.anchor?.quote ? (
-                  <p className="mt-1.5 border-l-2 border-hairline pl-2.5 text-xs italic text-ink-faint">
+                  <p className="mt-1.5 border-l-2 border-divider pl-2.5 text-xs italic text-ink-faint">
                     “{c.anchor.quote}”
                   </p>
                 ) : null}

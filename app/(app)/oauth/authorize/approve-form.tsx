@@ -34,7 +34,7 @@ export function ApproveForm({
         <div>
           <label
             htmlFor="teamspace"
-            className="mb-1.5 block text-sm text-ink-soft"
+            className="mb-1.5 block text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink"
           >
             Publish into
           </label>
@@ -43,7 +43,7 @@ export function ApproveForm({
             name="teamspace"
             value={teamspaceId}
             onChange={(e) => setTeamspaceId(e.target.value)}
-            className="w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
+            className="w-full border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
           >
             {teamspaces.map((t) => (
               <option key={t.id} value={t.id}>
@@ -60,7 +60,9 @@ export function ApproveForm({
       <button
         type="submit"
         disabled={busy || !teamspaceId}
-        className="w-full rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+        // Full-width primary: label flush left per the DS; hover moves the
+        // fill to accent-strong rather than fading opacity.
+        className="block w-full bg-accent px-4 py-2.5 text-left text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
       >
         {busy ? "Connecting…" : "Approve"}
       </button>

@@ -42,7 +42,7 @@ export default async function OAuthAuthorizePage({
   if (!req || !sig || !constantTimeEqual(sig, await hmac(handoffSecret(), req))) {
     return (
       <div className="mx-auto max-w-sm py-8">
-        <h1 className="mb-2 text-2xl font-medium text-ink">Connection request</h1>
+        <h1 className="mb-2 text-2xl text-ink">Connection request</h1>
         <p className="leading-relaxed text-ink-soft">
           This connection link isn&rsquo;t valid. Start again from your
           assistant&rsquo;s connector settings.
@@ -66,23 +66,35 @@ export default async function OAuthAuthorizePage({
 
   return (
     <div className="mx-auto max-w-md py-8">
-      <h1 className="mb-2 text-2xl font-medium text-ink">
+      <p className="mb-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
+        Connection request
+      </p>
+      <h1 className="mb-2 text-2xl text-ink">
         Connect {appName} to ilolink
       </h1>
       <p className="mb-6 leading-relaxed text-ink-soft">
         Signed in as {user.email}.
       </p>
 
-      <ul className="mb-6 space-y-2 text-ink-soft">
-        <li>Publish documents to a shareable link, straight from your chat.</li>
-        <li>Read views, scroll depth, and comments on those documents.</li>
+      <ul className="mb-6 border-2 border-divider text-ink-soft">
+        <li className="flex items-start gap-2.5 px-4 py-3">
+          <span className="mt-1.5 h-2 w-2 shrink-0 bg-accent" aria-hidden />
+          Publish documents to a shareable link, straight from your chat.
+        </li>
+        <li className="flex items-start gap-2.5 border-t border-hairline px-4 py-3">
+          <span className="mt-1.5 h-2 w-2 shrink-0 bg-accent" aria-hidden />
+          Read views, scroll depth, and comments on those documents.
+        </li>
         {/* Says "registry", not "skills": since the artifact migration this
             grant also reaches specs, plans, design docs and session handoffs.
             A consent screen that understates what it is granting is the one
             place in the product where vague copy is a real problem. */}
-        <li>
-          Read and write your teamspace&rsquo;s registry — skills, agents,
-          specs, plans, workflows and handoffs.
+        <li className="flex items-start gap-2.5 border-t border-hairline px-4 py-3">
+          <span className="mt-1.5 h-2 w-2 shrink-0 bg-accent" aria-hidden />
+          <span>
+            Read and write your teamspace&rsquo;s registry — skills, agents,
+            specs, plans, workflows and handoffs.
+          </span>
         </li>
       </ul>
 

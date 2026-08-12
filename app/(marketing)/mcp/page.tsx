@@ -259,7 +259,7 @@ export default function Page() {
       />
 
       <section>
-        <h2 className="text-2xl font-semibold text-ink">
+        <h2 className="text-2xl font-extrabold text-ink">
           What MCP is, in one paragraph
         </h2>
         <p className="mt-3 leading-relaxed text-ink-soft">
@@ -283,7 +283,7 @@ export default function Page() {
       </section>
 
       <section className="mt-12">
-        <h2 className="text-2xl font-semibold text-ink">
+        <h2 className="text-2xl font-extrabold text-ink">
           Connecting, per assistant
         </h2>
         <p className="mt-3 leading-relaxed text-ink-soft">
@@ -294,19 +294,19 @@ export default function Page() {
         <div className="mt-8 space-y-10">
           {CLIENTS.map((c) => (
             <div key={c.name}>
-              <h3 className="text-lg font-medium text-ink">{c.name}</h3>
+              <h3 className="text-lg font-extrabold text-ink">{c.name}</h3>
               <p className="mt-1.5 leading-relaxed text-ink-soft">{c.blurb}</p>
               <ol className="mt-4 space-y-3">
                 {c.steps.map((s, i) => (
                   <li key={s.name} className="flex gap-3">
                     <span
                       aria-hidden
-                      className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-medium text-accent"
+                      className="mt-0.5 flex size-6 shrink-0 items-center justify-center bg-accent-soft text-xs font-extrabold text-accent-strong"
                     >
                       {i + 1}
                     </span>
                     <span className="leading-relaxed text-ink-soft">
-                      <span className="font-medium text-ink">{s.name}.</span>{" "}
+                      <span className="font-semibold text-ink">{s.name}.</span>{" "}
                       {s.text}
                     </span>
                   </li>
@@ -319,7 +319,7 @@ export default function Page() {
         <Callout title="Assistants that can't do OAuth">
           Some tools let you set an <code>Authorization</code> header by hand
           but have no OAuth support. For those, create a connector token on{" "}
-          <Link href="/connect" className="text-accent hover:underline">
+          <Link href="/connect" className="text-accent-strong hover:underline">
             your connect page
           </Link>{" "}
           and pass it as a bearer token. Claude and ChatGPT don&rsquo;t need
@@ -328,7 +328,7 @@ export default function Page() {
       </section>
 
       <section className="mt-14">
-        <h2 className="text-2xl font-semibold text-ink">
+        <h2 className="text-2xl font-extrabold text-ink">
           What your assistant can do once it&rsquo;s connected
         </h2>
         <p className="mt-3 leading-relaxed text-ink-soft">
@@ -340,12 +340,12 @@ export default function Page() {
         <div className="mt-8 space-y-10">
           {TOOL_GROUPS.map((g) => (
             <div key={g.heading}>
-              <h3 className="text-lg font-medium text-ink">{g.heading}</h3>
+              <h3 className="text-lg font-extrabold text-ink">{g.heading}</h3>
               <p className="mt-1.5 leading-relaxed text-ink-soft">{g.intro}</p>
-              <dl className="mt-4 divide-y divide-hairline border-t border-hairline">
+              <dl className="mt-4 divide-y divide-hairline border-t-2 border-divider">
                 {g.tools.map((t) => (
                   <div key={t.name} className="py-3 sm:flex sm:gap-6">
-                    <dt className="shrink-0 font-mono text-sm text-accent sm:w-52">
+                    <dt className="shrink-0 font-mono text-sm text-accent-strong sm:w-52">
                       {t.name}
                     </dt>
                     <dd className="mt-1 leading-relaxed text-ink-soft sm:mt-0">
@@ -360,31 +360,31 @@ export default function Page() {
       </section>
 
       <section className="mt-14">
-        <h2 className="text-2xl font-semibold text-ink">
+        <h2 className="text-2xl font-extrabold text-ink">
           What the connection can and can&rsquo;t reach
         </h2>
         <ul className="mt-4 space-y-3 leading-relaxed text-ink-soft">
           <li>
-            <span className="font-medium text-ink">One teamspace, for life.</span>{" "}
+            <span className="font-semibold text-ink">One teamspace, for life.</span>{" "}
             You choose it when you approve the connection, and it never moves.
             Connect again to use a different one.
           </li>
           <li>
-            <span className="font-medium text-ink">
+            <span className="font-semibold text-ink">
               Membership is checked every call.
             </span>{" "}
             Not once at approval — on every request, against the live
             membership table.
           </li>
           <li>
-            <span className="font-medium text-ink">
+            <span className="font-semibold text-ink">
               Published documents default to unlisted.
             </span>{" "}
             The link works; search engines are told to stay away and previews
             don&rsquo;t quote the text.
           </li>
           <li>
-            <span className="font-medium text-ink">
+            <span className="font-semibold text-ink">
               Your team can require review.
             </span>{" "}
             Turn it on and a member&rsquo;s registry write becomes a proposal an

@@ -114,8 +114,8 @@ export default async function ArtifactDetailPage({
 
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between gap-4">
-        <h1 className="font-mono text-2xl font-medium text-ink">
+      <div className="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-divider pb-3">
+        <h1 className="font-mono text-2xl text-ink">
           {found.artifact.name}
         </h1>
         <span className="flex shrink-0 items-center gap-3 text-sm">
@@ -126,7 +126,7 @@ export default async function ArtifactDetailPage({
           {kind === "skill" && (
             <Link
               href={`/t/${id}/skills/${encodeURIComponent(found.artifact.name)}/edit`}
-              className="text-accent transition-colors duration-150 hover:text-ink"
+              className="font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
             >
               Edit
             </Link>
@@ -152,33 +152,36 @@ export default async function ArtifactDetailPage({
           read" and "this is what someone suggested agents read" is the entire
           point of the review step, and the two look identical otherwise. */}
       {found.status === "proposed" && (
-        <p className="mb-6 rounded-lg border border-hairline bg-accent-soft px-5 py-4 leading-relaxed text-ink-soft">
+        <p className="mb-6 border-2 border-divider bg-accent-soft px-5 py-4 leading-relaxed text-ink-soft">
           <span className="text-ink">Proposed — not live.</span> No assistant
           reads this version until an owner or admin approves it.{" "}
-          <Link href={`/t/${id}/proposals`} className="text-accent underline">
+          <Link href={`/t/${id}/proposals`} className="text-accent-strong underline">
             Review it
           </Link>
         </p>
       )}
       {found.status === "rejected" && (
-        <p className="mb-6 rounded-lg border border-hairline bg-surface px-5 py-4 leading-relaxed text-ink-soft">
+        <p className="mb-6 border border-hairline bg-surface px-5 py-4 leading-relaxed text-ink-soft">
           <span className="text-ink">Rejected.</span> Kept for the record — it
           was never what assistants read.
         </p>
       )}
 
-      <pre className="mb-10 overflow-x-auto whitespace-pre-wrap break-words rounded-lg border border-hairline bg-surface px-5 py-4 font-mono text-sm leading-relaxed text-ink">
+      <pre className="mb-10 overflow-x-auto whitespace-pre-wrap break-words border border-hairline bg-surface px-5 py-4 font-mono text-sm leading-relaxed text-ink">
         {found.body}
       </pre>
 
       {history.length > 1 && (
         <section>
-          <h2 className="mb-3 text-sm font-medium text-ink-soft">History</h2>
+          {/* Table idiom: uppercase header over the strong rule, hairline rows. */}
+          <h2 className="border-b-2 border-divider pb-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
+            History
+          </h2>
           <ul>
             {history.map((h) => (
               <li
                 key={h.version}
-                className="flex items-baseline justify-between gap-4 border-b border-hairline py-3 last:border-b-0"
+                className="flex items-baseline justify-between gap-4 border-b border-hairline py-3 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
               >
                 <span className="text-ink-soft">
                   <Link
@@ -202,7 +205,7 @@ export default async function ArtifactDetailPage({
       <p className="mt-10 text-sm leading-relaxed text-ink-faint">
         Edits here and edits from a connected assistant go through the same
         path, so the version history is one story either way.{" "}
-        <Link href="/connect" className="text-accent underline">
+        <Link href="/connect" className="text-accent-strong underline">
           Connect an assistant
         </Link>
       </p>

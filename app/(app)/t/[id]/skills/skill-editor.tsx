@@ -86,7 +86,7 @@ export function SkillEditor({ teamspaceId, initial }: SkillEditorProps) {
           // leaving a trace. Archive and re-create instead.
           readOnly={editing}
           placeholder="commit-style"
-          className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 font-mono text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none read-only:text-ink-faint"
+          className="mt-1 w-full border border-hairline bg-surface px-3 py-2.5 font-mono text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none read-only:text-ink-faint"
         />
         <p className="mt-1 text-sm text-ink-faint">
           {editing
@@ -106,7 +106,7 @@ export function SkillEditor({ teamspaceId, initial }: SkillEditorProps) {
           required
           maxLength={500}
           placeholder="Use when writing a commit message in this repo"
-          className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+          className="mt-1 w-full border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
         />
         <p className="mt-1 text-sm text-ink-faint">
           This is the line other agents match on, so write <em>when to use it</em>
@@ -125,7 +125,7 @@ export function SkillEditor({ teamspaceId, initial }: SkillEditorProps) {
           required
           rows={18}
           placeholder={"# Commit style\n\nImperative mood, no trailing period."}
-          className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 font-mono text-sm leading-relaxed text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+          className="mt-1 w-full border border-hairline bg-surface px-3 py-2.5 font-mono text-sm leading-relaxed text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
         />
       </div>
 
@@ -140,7 +140,7 @@ export function SkillEditor({ teamspaceId, initial }: SkillEditorProps) {
             onChange={(e) => setChangelog(e.target.value)}
             maxLength={200}
             placeholder="Tightened the publishing rule"
-            className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+            className="mt-1 w-full border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
           />
         </div>
       )}
@@ -149,7 +149,7 @@ export function SkillEditor({ teamspaceId, initial }: SkillEditorProps) {
         <button
           type="submit"
           disabled={busy || !name.trim() || !description.trim() || !body.trim()}
-          className="rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+          className="bg-accent px-4 py-2.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
         >
           {busy ? "Saving…" : editing ? "Save new version" : "Create skill"}
         </button>

@@ -60,9 +60,11 @@ export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
     <form
       id="new-teamspace"
       onSubmit={submit}
-      className="scroll-mt-6 rounded-lg border border-hairline bg-surface p-5"
+      className="scroll-mt-6 border border-hairline bg-surface p-5"
     >
-      <h2 className="font-medium text-ink">Create a new teamspace</h2>
+      <h2 className="border-b-2 border-divider pb-3 text-ink">
+        Create a new teamspace
+      </h2>
 
       {/* items-end so the two controls sit on one line even though the copy
           label is long enough to wrap above its select. */}
@@ -84,7 +86,7 @@ export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Acme Design"
-            className="mt-1 w-full min-w-0 rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
+            className="mt-1 w-full min-w-0 border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
           />
         </div>
 
@@ -100,7 +102,7 @@ export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
               id="ts-copy"
               value={copyFrom}
               onChange={(e) => setCopyFrom(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
+              className="mt-1 w-full border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
             >
               <option value="">Don&rsquo;t copy — start empty</option>
               {sources.map((s) => (
@@ -117,7 +119,7 @@ export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
       <button
         type="submit"
         disabled={busy || !name.trim()}
-        className="mt-4 rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+        className="mt-4 bg-accent px-4 py-2.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
       >
         {busy ? "Creating…" : "Create teamspace"}
       </button>

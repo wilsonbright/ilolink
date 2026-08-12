@@ -45,13 +45,13 @@ export default async function PublishPage({
     <main className="mx-auto min-h-dvh w-full max-w-2xl px-6 py-16 sm:py-24">
       <Link
         href="/"
-        className="text-sm font-medium tracking-wide text-accent transition-colors duration-150 hover:text-ink"
+        className="text-sm font-extrabold tracking-tight text-ink transition-colors duration-150 hover:text-accent"
       >
         ilolink
       </Link>
 
       <div className="mt-12">
-        <h1 className="text-3xl font-semibold leading-tight text-ink">
+        <h1 className="text-3xl leading-tight text-ink">
           Publish a document
         </h1>
         {/* Said "No account needed" until 2026-08-08 — left over from the

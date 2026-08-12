@@ -185,7 +185,7 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="mr-auto text-sm font-medium tracking-wide text-ink-faint">
+        <h2 className="mr-auto text-[12px] uppercase tracking-[0.08em] text-ink-faint">
           Heatmap
         </h2>
         <Toggle<Layer>
@@ -224,11 +224,11 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
                 onLoad={measure}
                 sandbox="allow-same-origin"
                 scrolling="no"
-                className="block w-full rounded-lg border border-hairline bg-surface"
+                className="block w-full border border-hairline bg-surface"
                 style={{ width, minHeight: 320 }}
               />
             ) : (
-              <div className="flex h-80 items-center justify-center rounded-lg border border-hairline bg-surface">
+              <div className="flex h-80 items-center justify-center border border-hairline bg-surface">
                 <Quiet>Loading preview…</Quiet>
               </div>
             )}
@@ -241,7 +241,9 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
             />
 
             {(heat.state === "loading" || isEmpty) && (
-              <div className="pointer-events-none absolute left-1/2 top-8 -translate-x-1/2 rounded-full border border-hairline bg-surface px-3 py-1 text-xs text-ink-faint shadow-sm">
+              // A floating status over the preview — square per the DS; its
+              // overlay shadow stays.
+              <div className="pointer-events-none absolute left-1/2 top-8 -translate-x-1/2 border border-hairline bg-surface px-3 py-1 text-xs text-ink-soft shadow-sm">
                 {heat.state === "loading" ? "Loading…" : emptyMsg}
               </div>
             )}
@@ -346,16 +348,16 @@ function Toggle<T extends string>({
   options: { value: T; label: string }[];
 }) {
   return (
-    <div className="inline-flex rounded-lg border border-hairline bg-surface p-0.5">
+    <div className="inline-flex border border-divider">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`rounded-md px-2.5 py-1 text-xs tabular-nums transition-colors duration-150 ${
+          className={`px-2.5 py-1 text-xs font-semibold tabular-nums transition-colors duration-150 ${
             value === o.value
-              ? "bg-accent-soft text-accent"
-              : "text-ink-faint hover:text-ink"
+              ? "bg-accent text-canvas"
+              : "text-ink-faint hover:bg-ink/5 hover:text-ink"
           }`}
         >
           {o.label}

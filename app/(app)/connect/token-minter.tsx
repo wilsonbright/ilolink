@@ -60,8 +60,8 @@ export function TokenMinter({
 
   if (token) {
     return (
-      <div className="rounded-lg border border-hairline bg-surface p-4">
-        <p className="mb-2 text-sm font-medium text-ink">
+      <div className="border border-hairline bg-surface p-4">
+        <p className="mb-2 text-sm font-semibold text-ink">
           Copy this now — it is not shown again.
         </p>
         {issuedFor && (
@@ -72,7 +72,7 @@ export function TokenMinter({
             Scoped to <span className="text-ink">{issuedFor}</span>.
           </p>
         )}
-        <code className="mb-3 block overflow-x-auto rounded-lg bg-canvas px-3 py-2 font-mono text-sm text-ink">
+        <code className="mb-3 block overflow-x-auto bg-canvas px-3 py-2 font-mono text-sm text-ink">
           {token}
         </code>
         <button
@@ -82,7 +82,7 @@ export function TokenMinter({
               () => setCopied(false),
             );
           }}
-          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white transition-opacity duration-150 hover:opacity-90"
+          className="bg-accent px-3 py-1.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong"
         >
           {copied ? "Copied" : "Copy token"}
         </button>
@@ -111,7 +111,7 @@ export function TokenMinter({
     // it in place once the token exists.
     <form
       onSubmit={mint}
-      className="space-y-4 rounded-lg border border-hairline bg-surface p-4"
+      className="space-y-4 border border-hairline bg-surface p-4"
     >
       <div>
         <label htmlFor="tname" className="block text-sm text-ink-soft">
@@ -123,7 +123,7 @@ export function TokenMinter({
           onChange={(e) => setName(e.target.value)}
           placeholder="ChatGPT"
           maxLength={60}
-          className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+          className="mt-1 w-full border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
         />
       </div>
 
@@ -139,7 +139,7 @@ export function TokenMinter({
             id="tspace"
             value={teamspace}
             onChange={(e) => setTeamspace(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
+            className="mt-1 w-full border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
           >
             {teamspaces.map((t) => (
               <option key={t.id} value={t.id}>
@@ -153,7 +153,9 @@ export function TokenMinter({
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
+        // Full-width, so the label sits flush left per the DS — a wide button
+        // never centers its text.
+        className="flex w-full justify-start bg-accent px-4 py-2.5 text-left text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
       >
         {busy ? "Creating…" : "Create token"}
       </button>

@@ -65,16 +65,18 @@ export default async function ModerationPage() {
       .all<Ws>()
   ).results;
 
-  const box = "rounded-lg border border-hairline bg-surface p-4";
+  const box = "border-2 border-divider bg-surface p-4";
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-2xl font-semibold text-ink">Moderation</h1>
-      <p className="mt-2 text-sm text-ink-faint">
-        {reports.length} reported · {suspended.length} suspended · {flagged.length} flagged
-      </p>
+      <div className="border-b-2 border-divider pb-4">
+        <h1 className="text-2xl text-ink">Moderation</h1>
+        <p className="mt-2 text-sm text-ink-faint">
+          {reports.length} reported · {suspended.length} suspended · {flagged.length} flagged
+        </p>
+      </div>
 
-      <h2 className="mt-10 text-lg font-medium text-ink">Open reports</h2>
+      <h2 className="mt-10 border-b-2 border-divider pb-2 text-lg text-ink">Open reports</h2>
       {reports.length === 0 ? (
         <p className="mt-2 text-ink-soft">No open reports.</p>
       ) : (
@@ -87,7 +89,7 @@ export default async function ModerationPage() {
                     href={`https://ilolink.com/${r.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-medium text-ink hover:text-accent"
+                    className="font-semibold text-ink hover:text-accent-strong"
                   >
                     {r.title || "Untitled"}
                   </a>
@@ -115,7 +117,7 @@ export default async function ModerationPage() {
         </ul>
       )}
 
-      <h2 className="mt-12 text-lg font-medium text-ink">Suspended workspaces</h2>
+      <h2 className="mt-12 border-b-2 border-divider pb-2 text-lg text-ink">Suspended workspaces</h2>
       {suspended.length === 0 ? (
         <p className="mt-2 text-ink-soft">None.</p>
       ) : (
@@ -134,7 +136,7 @@ export default async function ModerationPage() {
         </ul>
       )}
 
-      <h2 className="mt-12 text-lg font-medium text-ink">Flagged (active)</h2>
+      <h2 className="mt-12 border-b-2 border-divider pb-2 text-lg text-ink">Flagged (active)</h2>
       {flagged.length === 0 ? (
         <p className="mt-2 text-ink-soft">None.</p>
       ) : (

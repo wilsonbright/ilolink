@@ -436,27 +436,28 @@ export function PublishForm({
   return (
     <form onSubmit={onSubmit} className="mt-12 space-y-8">
       {/* Composer ─────────────────────────────────────────── */}
-      <section className="space-y-3">
-        <label htmlFor="doc" className="block text-sm font-medium text-ink">
-          Your document
-        </label>
-        <div
-          onDragEnter={onDragEnter}
-          onDragOver={(e) => e.preventDefault()}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-          className={`relative rounded-lg border bg-surface transition-colors duration-150 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent-soft ${
-            dragging
-              ? "border-accent ring-2 ring-accent/30"
-              : isEmpty
-                ? // Dashed only while the field is empty: it reads as a target to
-                  // drop onto, and goes solid the moment it holds real content.
-                  "border-dashed border-hairline"
-                : "border-hairline"
-          }`}
-        >
+      {/* The panel mirrors the "Your document" panel in the landing prototype:
+          a 2px divider frame, a title-bar strip over the dropzone, and a
+          footer strip carrying the format tags and the Publish action. */}
+      <section>
+        <div className="border-2 border-divider bg-surface transition-colors duration-150 focus-within:border-accent">
+          <div className="border-b-2 border-divider px-5 py-3">
+            <label
+              htmlFor="doc"
+              className="block text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink"
+            >
+              Your document
+            </label>
+          </div>
+          <div
+            onDragEnter={onDragEnter}
+            onDragOver={(e) => e.preventDefault()}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            className="relative"
+          >
           {dragging ? (
-            <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-accent bg-accent-soft/85 text-center backdrop-blur-[1px]">
+            <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-start justify-center gap-2 border-2 border-dashed border-accent bg-accent-soft/85 px-5 text-left backdrop-blur-[1px]">
               <svg
                 className="h-8 w-8 text-accent"
                 viewBox="0 0 24 24"
@@ -471,8 +472,8 @@ export function PublishForm({
                 <path d="m6 10 6-6 6 6" />
                 <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
               </svg>
-              <p className="text-sm font-medium text-accent">Drop your file to upload</p>
-              <p className="text-xs text-ink-faint">
+              <p className="text-sm font-extrabold text-accent-strong">Drop your file to upload</p>
+              <p className="text-xs text-ink-soft">
                 PDF, DOCX, Markdown, HTML, images, JSON, CSV
               </p>
             </div>
@@ -484,7 +485,7 @@ export function PublishForm({
             // clicking anywhere still puts the cursor in the field and
             // paste-to-publish — the core flow — is untouched. Only the picker
             // button opts back into pointer events.
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-start justify-center gap-2 px-5 text-left">
               <svg
                 className="h-8 w-8 text-ink-faint"
                 viewBox="0 0 24 24"
@@ -499,12 +500,12 @@ export function PublishForm({
                 <path d="m6 10 6-6 6 6" />
                 <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
               </svg>
-              <p className="text-sm font-medium text-ink">
+              <p className="text-sm font-extrabold text-ink">
                 Drag and drop your file here, or{" "}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="pointer-events-auto rounded-sm text-accent transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+                  className="pointer-events-auto font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
                 >
                   click to choose a file
                 </button>
@@ -512,20 +513,12 @@ export function PublishForm({
               <p id="doc-hint" className="text-xs text-ink-faint">
                 You can also click anywhere below and paste Markdown or HTML
               </p>
-              <div className="mt-1 flex items-center gap-1.5" aria-hidden>
-                <span className="rounded border border-hairline px-2 py-0.5 font-mono text-xs text-ink-faint">
-                  .md
-                </span>
-                <span className="rounded border border-hairline px-2 py-0.5 font-mono text-xs text-ink-faint">
-                  .html
-                </span>
-              </div>
             </div>
           ) : null}
           {isFileUpload ? (
             // Binary/data uploads: the content is a base64 data URL — never show
             // that wall of text. Show a friendly file chip instead.
-            <div className="flex h-72 flex-col items-center justify-center gap-3 px-4 text-center">
+            <div className="flex h-72 flex-col items-start justify-center gap-3 px-5 text-left">
               <div className="text-3xl" aria-hidden>
                 {content.startsWith("data:application/pdf")
                   ? "📄"
@@ -533,7 +526,7 @@ export function PublishForm({
                     ? "🖼️"
                     : "📝"}
               </div>
-              <div className="max-w-full truncate font-medium text-ink">
+              <div className="max-w-full truncate font-extrabold text-ink">
                 {fileName || "Uploaded file"}
               </div>
               <div className="text-sm text-ink-faint">
@@ -555,7 +548,7 @@ export function PublishForm({
                   setFileName(null);
                   setSourceLocked(false);
                 }}
-                className="text-sm text-accent transition-colors duration-150 hover:text-ink"
+                className="text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
               >
                 Remove
               </button>
@@ -571,9 +564,29 @@ export function PublishForm({
               // the same hint through aria-describedby.
               aria-describedby={isEmpty ? "doc-hint" : undefined}
               spellCheck={false}
-              className="block h-72 w-full resize-y rounded-lg bg-transparent px-4 py-3.5 font-mono text-sm leading-relaxed text-ink focus:outline-none"
+              className="block h-72 w-full resize-y bg-transparent px-5 py-4 font-mono text-sm leading-relaxed text-ink focus:outline-none"
             />
           )}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t-2 border-divider px-5 py-3">
+            <div className="flex flex-wrap items-center gap-1.5" aria-hidden>
+              {[".md", ".html", ".pdf", ".docx", ".json", ".csv"].map((ext) => (
+                <span
+                  key={ext}
+                  className="border border-accent px-2.5 py-0.5 text-[11px] text-accent-strong"
+                >
+                  {ext}
+                </span>
+              ))}
+            </div>
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className="inline-flex items-center bg-accent px-8 py-3 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
+            >
+              {submitting ? "Publishing…" : "Publish"}
+            </button>
+          </div>
         </div>
 
         {/* One picker for both entry points — the button inside the empty
@@ -591,7 +604,7 @@ export function PublishForm({
         />
 
         {isEmpty ? (
-          <>
+          <div className="mt-3 space-y-1.5">
             <p className="text-sm text-ink-faint">Markdown or HTML</p>
             {/* Guidance for the empty state, which is the only place it helps:
                 once something is in the box the format is already settled, and
@@ -602,12 +615,12 @@ export function PublishForm({
               code, images, PDF, and DOCX. Auto-detected, no need to choose a
               format.
             </p>
-          </>
+          </div>
         ) : (
           // Loudest first: what you just did (the file name), then how it will be
           // read, then the quiet way to swap it. These three used to share one
           // size, weight and colour and read as a single undifferentiated line.
-          <div className="space-y-1.5">
+          <div className="mt-3 space-y-1.5">
             {fileName && (
               <span className="flex min-w-0 items-center gap-1.5">
                 <svg
@@ -653,7 +666,7 @@ export function PublishForm({
                         setSourceLocked(true);
                         setSource((s) => (s === "md" ? "html" : "md"));
                       }}
-                      className="rounded-sm text-accent transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+                      className="font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
                     >
                       switch to {source === "md" ? "HTML" : "Markdown"}
                     </button>
@@ -666,7 +679,7 @@ export function PublishForm({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="ml-auto rounded-sm text-ink-faint transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+                className="ml-auto text-ink-faint transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
               >
                 {fileName ? "Choose a different file" : "Choose a file"}
               </button>
@@ -675,9 +688,10 @@ export function PublishForm({
         )}
       </section>
 
-      {/* Primary action ───────────────────────────────────── */}
-      {/* Publish sits directly under the composer so it's never hunted for; */}
-      {/* everything optional collapses behind the Options disclosure. */}
+      {/* Destination, status, and options ─────────────────── */}
+      {/* Publish sits in the composer panel's footer strip so it's never */}
+      {/* hunted for; everything optional collapses behind the Options */}
+      {/* disclosure. */}
       <div className="space-y-4">
         {/* Deliberately NOT behind the Options disclosure. Until now the form
             sent no teamspace at all and every document silently landed in the
@@ -695,7 +709,7 @@ export function PublishForm({
           <div>
             <label
               htmlFor="teamspace"
-              className="mb-1.5 block text-sm font-medium text-ink"
+              className="mb-1.5 block text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink"
             >
               Publish into
             </label>
@@ -716,7 +730,7 @@ export function PublishForm({
                   );
                 }
               }}
-              className="w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none sm:w-auto"
+              className="w-full border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none sm:w-auto"
             >
               {targets.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -728,10 +742,11 @@ export function PublishForm({
         )}
 
         {needsAuth && (
-          <div className="rounded-lg border border-hairline bg-surface p-4">
-            <p className="mb-1 text-sm font-medium text-ink">
+          <div className="border-2 border-divider bg-surface">
+            <p className="border-b-2 border-divider px-5 py-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink">
               Sign in to publish
             </p>
+            <div className="p-5">
             <p className="mb-4 text-sm leading-relaxed text-ink-soft">
               Your draft stays exactly as it is — we&rsquo;ll email you a code.
               Readers never need an account.
@@ -750,6 +765,7 @@ export function PublishForm({
                 if (discoverTeamspaces) loadTeamspaces();
               }}
             />
+            </div>
           </div>
         )}
 
@@ -765,19 +781,14 @@ export function PublishForm({
           </p>
         )}
         <Turnstile onToken={onTurnstileToken} />
+        {/* The submit button itself lives in the composer panel's footer strip
+            above (prototype treatment); this row keeps only the disclosure. */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="inline-flex w-full items-center justify-center rounded-md bg-accent px-8 py-3 text-sm font-medium text-canvas transition-opacity duration-150 hover:opacity-90 disabled:opacity-40 sm:w-auto"
-          >
-            {submitting ? "Publishing…" : "Publish"}
-          </button>
           <button
             type="button"
             onClick={() => setShowOptions((v) => !v)}
             aria-expanded={showOptions}
-            className="text-sm text-ink-soft transition-colors duration-150 hover:text-ink"
+            className="text-sm font-extrabold text-ink-soft transition-colors duration-150 hover:text-ink"
           >
             {showOptions ? "Hide options" : "Options"}
           </button>
@@ -801,10 +812,12 @@ export function PublishForm({
 
       {/* Options (collapsed by default) ───────────────────── */}
       {showOptions && (
-      <div className="space-y-10 border-t border-hairline pt-8">
+      <div className="space-y-10 border-t-2 border-divider pt-8">
       {/* Visibility ───────────────────────────────────────── */}
       <section className="space-y-3">
-        <span className="block text-sm font-medium text-ink">Who can see it</span>
+        <span className="block text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink">
+          Who can see it
+        </span>
         <div
           role="radiogroup"
           aria-label="Visibility"
@@ -824,10 +837,10 @@ export function PublishForm({
                   visibilityTouched.current = true;
                   setVisibility(opt.value);
                 }}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+                className={`border px-3 py-2 text-sm font-extrabold transition-colors duration-150 ${
                   active
-                    ? "bg-accent-soft text-accent"
-                    : "bg-surface text-ink-soft hover:text-ink"
+                    ? "border-accent bg-accent text-canvas"
+                    : "border-hairline bg-surface text-ink-soft hover:bg-ink/5 hover:text-ink"
                 }`}
               >
                 {opt.label}
@@ -852,7 +865,7 @@ export function PublishForm({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Set a password"
-              className="w-full max-w-sm rounded-md border border-hairline bg-surface px-3.5 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
+              className="w-full max-w-sm border border-hairline bg-surface px-3.5 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
             />
           </div>
         )}
@@ -866,7 +879,7 @@ export function PublishForm({
               type="datetime-local"
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
-              className="w-full max-w-sm rounded-md border border-hairline bg-surface px-3.5 py-2 text-sm text-ink transition-colors duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
+              className="w-full max-w-sm border border-hairline bg-surface px-3.5 py-2 text-sm text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
             />
           </div>
         )}
@@ -876,10 +889,13 @@ export function PublishForm({
       <section>
         {showSlug ? (
           <div className="space-y-2">
-            <label htmlFor="slug" className="block text-sm font-medium text-ink">
+            <label
+              htmlFor="slug"
+              className="block text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink"
+            >
               Custom link
             </label>
-            <div className="flex max-w-md items-stretch overflow-hidden rounded-md border border-hairline bg-surface transition-colors duration-150 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent-soft">
+            <div className="flex max-w-md items-stretch overflow-hidden border border-hairline bg-surface transition-colors duration-150 focus-within:border-accent">
               <span className="flex select-none items-center pl-3.5 pr-1 text-sm text-ink-faint">
                 /
               </span>
@@ -904,7 +920,7 @@ export function PublishForm({
           <button
             type="button"
             onClick={() => setShowSlug(true)}
-            className="text-sm text-accent transition-colors duration-150 hover:text-ink"
+            className="text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:bg-accent-soft/40"
           >
             Add a custom link
           </button>
@@ -1055,15 +1071,17 @@ function ShareCard({
 
   return (
     <div className="mt-12">
-      <p className="text-sm font-medium text-accent">Published</p>
-      <h2 className="mt-2 text-2xl font-semibold text-ink">Your link is ready</h2>
+      <p className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
+        Published
+      </p>
+      <h2 className="mt-2 text-2xl text-ink">Your link is ready</h2>
 
       {/* Removal used to be entirely silent. A tester published a page, saw
           pieces of it missing, and had nothing to go on — the trusted-HTML
           option that would have kept them was off by default AND hidden behind
           a collapsed disclosure. Say what went, and say what to do about it. */}
       {removedParts.length > 0 && (
-        <div className="mt-6 rounded-lg border border-hairline bg-surface p-4">
+        <div className="mt-6 border-2 border-divider bg-surface p-4">
           <p className="text-sm text-ink">
             Removed for safety: {removedParts.join(", ")}.
           </p>
@@ -1083,7 +1101,7 @@ function ShareCard({
               every other AI tool, and it stops two words of chrome competing
               with the link itself. Both keep an aria-label and a title so the
               meaning survives without the word. */}
-          <div className="flex items-stretch overflow-hidden rounded-md border border-hairline bg-surface transition-colors duration-150 focus-within:border-accent">
+          <div className="flex items-stretch overflow-hidden border-2 border-divider bg-surface transition-colors duration-150 focus-within:border-accent">
             <input
               readOnly
               value={result.url}
@@ -1167,13 +1185,13 @@ function ShareCard({
             <button
               type="button"
               onClick={onAnother}
-              className="inline-flex w-full items-center justify-center rounded-md bg-accent px-8 py-3 text-sm font-medium text-canvas transition-opacity duration-150 hover:opacity-90 focus:outline-2 focus:outline-offset-2 focus:outline-accent sm:w-auto"
+              className="inline-flex w-full items-center justify-start bg-accent px-8 py-3 text-left text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong focus:outline-2 focus:outline-offset-2 focus:outline-accent sm:w-auto"
             >
               Publish another
             </button>
             <a
               href="/dashboard"
-              className="rounded-sm text-sm font-medium text-accent transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+              className="text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
             >
               Your documents →
             </a>
@@ -1258,18 +1276,20 @@ function Preview({ slug, token }: { slug: string; token: string }) {
   return (
     <div className="mt-10">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-ink-faint">Preview</p>
+        <p className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink">
+          Preview
+        </p>
         {responsive && (
-          <div className="flex gap-0.5 rounded-md border border-hairline p-0.5">
+          <div className="flex divide-x divide-hairline border border-hairline">
             {DEVICES.map((d) => (
               <button
                 key={d.key}
                 type="button"
                 onClick={() => setDevice(d.key)}
-                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
+                className={`px-2.5 py-1 text-xs font-extrabold transition-colors duration-150 ${
                   device === d.key
-                    ? "bg-accent text-surface"
-                    : "text-ink-soft hover:text-ink"
+                    ? "bg-accent text-canvas"
+                    : "text-ink-soft hover:bg-ink/5 hover:text-ink"
                 }`}
               >
                 {d.label}
@@ -1280,7 +1300,7 @@ function Preview({ slug, token }: { slug: string; token: string }) {
       </div>
       <div
         ref={boxRef}
-        className="flex justify-center overflow-hidden rounded-lg border border-hairline bg-surface"
+        className="flex justify-center overflow-hidden border-2 border-divider bg-surface"
         style={{ height: html == null ? 288 : scaledH }}
       >
         {html == null ? (
@@ -1297,6 +1317,9 @@ function Preview({ slug, token }: { slug: string; token: string }) {
                 width: dev.w,
                 height: FRAME_H,
                 border: 0,
+                // Literal white on purpose, not a theme token: this iframe
+                // previews the PUBLISHED document, and the doc origin renders
+                // on white regardless of this app's color scheme.
                 background: "#fff",
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",
@@ -1340,7 +1363,7 @@ export function QrCode({ text }: { text: string }) {
       role="img"
       aria-label="QR code for the share link"
       shapeRendering="crispEdges"
-      className="rounded-md border border-hairline"
+      className="border-2 border-divider"
     >
       <rect width={total} height={total} fill="var(--color-surface)" />
       <path d={d} fill="var(--color-ink)" />

@@ -51,7 +51,10 @@ export default async function SignInPage({
 
   return (
     <div className="mx-auto max-w-sm py-8">
-      <h1 className="mb-2 text-2xl font-medium text-ink">
+      <p className="mb-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
+        Account
+      </p>
+      <h1 className="mb-2 text-2xl text-ink">
         {isNew ? "Create your ilolink account" : "Sign in to ilolink"}
       </h1>
       <p className="mb-8 leading-relaxed text-ink-soft">
@@ -65,7 +68,9 @@ export default async function SignInPage({
           <>Your documents, teamspaces, and skills — in one place.</>
         )}
       </p>
-      <SignInForm next={next} initialError={params.e} />
+      <div className="border-2 border-divider p-5">
+        <SignInForm next={next} initialError={params.e} />
+      </div>
     </div>
   );
 }

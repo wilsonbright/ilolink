@@ -66,10 +66,11 @@ function IconMove() {
   );
 }
 
+// No per-button focus ring: the global :focus-visible rule draws the DS's
+// square 2px accent outline.
 const BTN =
-  "rounded-md p-1.5 text-ink-faint transition-colors duration-150 " +
-  "hover:bg-accent-soft hover:text-ink " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+  "p-1.5 text-ink-faint transition-colors duration-150 " +
+  "hover:bg-accent-soft hover:text-ink";
 
 export function DocumentRowActions({
   docId,
@@ -222,14 +223,14 @@ export function DocumentRowActions({
             </button>
             {menuOpen && (
               <div role="menu"
-                className="absolute right-0 z-20 mt-1 min-w-48 rounded-lg border border-hairline bg-surface py-1 shadow-lg">
+                className="absolute right-0 z-20 mt-1 min-w-48 border-2 border-divider bg-surface py-1 shadow-lg">
                 <p className="px-3 py-1.5 text-xs text-ink-faint">
                   Move to — the link stays the same
                 </p>
                 {moveTargets.map((t) => (
                   <button key={t.id} type="button" role="menuitem"
                     onClick={() => move(t.id)} disabled={moving}
-                    className="block w-full px-3 py-1.5 text-left text-sm text-ink-soft transition-colors duration-150 hover:bg-accent-soft hover:text-ink focus-visible:bg-accent-soft focus-visible:text-ink focus-visible:outline-none disabled:opacity-50">
+                    className="block w-full px-3 py-1.5 text-left text-sm text-ink-soft transition-colors duration-150 hover:bg-accent-soft hover:text-ink focus-visible:bg-accent-soft focus-visible:text-ink disabled:opacity-45">
                     {t.label}
                   </button>
                 ))}

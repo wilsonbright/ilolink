@@ -168,11 +168,18 @@ export function MembersAdmin({
 
   return (
     <div>
+      {/* Table idiom: an uppercase header over a strong 2px rule, hairline
+          rules between rows. The invited/pending rows below share the same
+          two columns, so one header covers all three lists. */}
+      <div className="flex items-center justify-between border-b-2 border-divider pb-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
+        <span>Member</span>
+        <span>Role</span>
+      </div>
       <ul className="mb-8">
         {rows.map((m) => (
           <li
             key={m.user_id}
-            className="flex items-center justify-between border-b border-hairline py-3 last:border-b-0"
+            className="flex items-center justify-between border-b border-hairline py-3 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
           >
             <span className="text-ink">
               {m.email}
@@ -187,7 +194,7 @@ export function MembersAdmin({
                   value={m.role}
                   disabled={saving === m.user_id}
                   onChange={(ev) => changeRole(m, ev.target.value as TeamRole)}
-                  className="rounded-lg border border-hairline bg-surface px-2 py-1 text-sm text-ink transition-colors duration-150 focus:border-accent focus:outline-none disabled:opacity-50"
+                  className="border border-hairline bg-surface px-2 py-1 text-sm text-ink transition-colors duration-150 focus:border-accent focus:outline-none disabled:opacity-45"
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -201,7 +208,7 @@ export function MembersAdmin({
               {canRemove(m) && (
                 <button
                   onClick={() => remove(m.user_id, m.email)}
-                  className="transition-colors duration-150 hover:text-accent"
+                  className="transition-colors duration-150 hover:text-accent-strong"
                 >
                   {m.user_id === currentUserId ? "leave" : "remove"}
                 </button>
@@ -212,7 +219,7 @@ export function MembersAdmin({
         {invited.map((i) => (
           <li
             key={`new-${i.email}`}
-            className="flex items-center justify-between border-b border-hairline py-3 last:border-b-0"
+            className="flex items-center justify-between border-b border-hairline py-3 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
           >
             <span className="text-ink-soft">{i.email}</span>
             <span className="text-sm text-ink-faint">
@@ -223,7 +230,7 @@ export function MembersAdmin({
         {pending.map((i) => (
           <li
             key={i.id}
-            className="flex items-center justify-between border-b border-hairline py-3 last:border-b-0"
+            className="flex items-center justify-between border-b border-hairline py-3 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
           >
             <span className="text-ink-soft">{i.email_norm}</span>
             <span className="flex items-center gap-3 text-sm text-ink-faint">
@@ -231,7 +238,7 @@ export function MembersAdmin({
               {isOwner && (
                 <button
                   onClick={() => revoke(i.id, i.email_norm)}
-                  className="transition-colors duration-150 hover:text-accent"
+                  className="transition-colors duration-150 hover:text-accent-strong"
                 >
                   revoke
                 </button>
@@ -254,13 +261,13 @@ export function MembersAdmin({
               value={email}
               onChange={(ev) => setEmail(ev.target.value)}
               placeholder="teammate@example.com"
-              className="min-w-0 flex-1 rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+              className="min-w-0 flex-1 border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
             />
             <select
               aria-label="Role for the invitation"
               value={inviteRole}
               onChange={(ev) => setInviteRole(ev.target.value as TeamRole)}
-              className="shrink-0 rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
+              className="shrink-0 border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -271,7 +278,7 @@ export function MembersAdmin({
             <button
               type="submit"
               disabled={busy || !email}
-              className="shrink-0 rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+              className="shrink-0 bg-accent px-4 py-2.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
             >
               {busy ? "Sending…" : "Invite"}
             </button>
@@ -300,10 +307,10 @@ export function MembersAdmin({
           else. See lib/teamspace/invites.ts: forwarding an invitation is the
           expected case, not a hole. */}
       {lastLink && (
-        <div className="mt-4 rounded-lg border border-hairline bg-surface p-4">
+        <div className="mt-4 border-2 border-divider bg-surface p-4">
           <p className="mb-2 text-sm text-ink">
             Invitation link for{" "}
-            <span className="font-medium">{lastLink.email}</span>
+            <span className="font-semibold">{lastLink.email}</span>
           </p>
           <CopyField value={lastLink.link} label="the invitation link" />
           <p className="mt-2 text-sm text-ink-faint">

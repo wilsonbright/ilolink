@@ -59,9 +59,9 @@ export function Upgrade({
   );
 
   return (
-    <section className="mt-10 rounded-lg border border-hairline bg-surface p-5">
-      <h2 className="font-medium text-ink">Plan</h2>
-      <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
+    <section className="mt-10 border border-hairline bg-surface p-5">
+      <h2 className="border-b-2 border-divider pb-3 text-ink">Plan</h2>
+      <p className="mt-3 text-sm leading-relaxed text-ink-soft">
         {plan.label} — {seatsUsed} of {plan.seats}{" "}
         {plan.seats === 1 ? "seat" : "seats"} used, {docsUsed} of {plan.docs}{" "}
         documents published.
@@ -70,7 +70,7 @@ export function Upgrade({
       {offers.length === 0 ? (
         <p className="mt-3 text-sm text-ink-faint">
           This is the largest plan. Need more room?{" "}
-          <a href="mailto:hello@sacca.ai" className="text-accent underline">
+          <a href="mailto:hello@sacca.ai" className="text-accent-strong underline">
             Get in touch
           </a>
           .
@@ -89,7 +89,7 @@ export function Upgrade({
                 type="button"
                 disabled={busy !== null}
                 onClick={() => buy(id)}
-                className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+                className="bg-accent px-4 py-2 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
               >
                 {busy === id
                   ? "Starting checkout…"
