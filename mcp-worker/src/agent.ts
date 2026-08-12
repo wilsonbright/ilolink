@@ -17,6 +17,7 @@ import {
   listDocuments,
   searchDocuments,
   getOwnedDoc,
+  docBodyText,
   docViews,
   docComments,
   unpublishDoc,
@@ -547,9 +548,9 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
     this.server.registerTool(
       "fetch",
       {
-        title: "Fetch an ilolink document summary",
+        title: "Fetch an ilolink document",
         description:
-          "Fetch metadata and a stats summary for one of your ilolink documents by id. Never returns the raw document body.",
+          "Fetch one of your ilolink documents by id: its full text, share URL, and a stats summary. PDFs return the summary only.",
         inputSchema: { id: z.string() },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
@@ -557,18 +558,32 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
         try {
           const ws = await this.workspaceId();
           const doc = await getOwnedDoc(this.env.DB, ws, id);
-          const [views, comments] = await Promise.all([
+          const [views, comments, body] = await Promise.all([
             docViews(this.env.VIEW_COUNTER, doc.id),
             docComments(this.env.DB, doc.id),
+            // Never fail the whole fetch over a missing R2 body — the metadata
+            // is still worth returning, and the summary covers for it.
+            docBodyText(this.env.DB, this.env.DOCS, doc).catch(() => null),
           ]);
           const url = shareUrl(doc.slug);
-          const text = `${doc.title ?? "Untitled"} — ${doc.source_type} document published ${new Date(doc.published_at).toISOString().slice(0, 10)}. ${views} views, ${comments} comments. Visibility: ${doc.visibility}. Open: ${url}`;
+          const summary = `${doc.title ?? "Untitled"} — ${doc.source_type} document published ${new Date(doc.published_at).toISOString().slice(0, 10)}. ${views} views, ${comments} comments. Visibility: ${doc.visibility}. Open: ${url}`;
           return jsonResult({
             id: doc.id,
             title: doc.title ?? "Untitled",
-            text,
+            // `text` is the document itself when we have it. ChatGPT reads this
+            // field to answer from and to cite; a stats line in its place is not
+            // something a model can quote, which is why the summary moved into
+            // metadata rather than sitting here.
+            text: body ?? summary,
             url,
-            metadata: { views, comments, visibility: doc.visibility, format: doc.source_type },
+            metadata: {
+              summary,
+              views,
+              comments,
+              visibility: doc.visibility,
+              format: doc.source_type,
+              body_included: body !== null,
+            },
           });
         } catch (e) {
           return errResult(e instanceof PublishError ? e.message : "Fetch failed.");

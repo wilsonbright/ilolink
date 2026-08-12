@@ -5,6 +5,70 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — ChatGPT connector audited against the accounts pivot (branch `fix/chatgpt-mcp-oauth`)
+
+- **Asked:** "in a new branch, check if the ChatGPT MCP setup is clean. I have added auth to the product. If ChatGPT requires it, ensure it is using OAuth flow similar to the Claude connector flow now."
+
+### The headline answer
+ChatGPT already goes through the **same OAuth flow as Claude** — there is no separate ChatGPT path left. Probed production before touching anything: AS metadata, protected-resource metadata at both `/` and `/mcp`, DCR endpoint live, PKCE `S256`, `401` carrying `WWW-Authenticate: … resource_metadata=…`, and CORS allowing `https://chatgpt.com`. The retired `/w_XXXX/mcp` token path answers with a "reconnect" JSON-RPC error. `search`/`fetch` are registered and already emit OpenAI's dual `structuredContent` + JSON-text shape.
+
+### What was NOT clean
+- **`/authorize` crashed on any bad request.** Measured live: no params → `500 error code: 1101`; unregistered `client_id` → same. `parseAuthRequest` throws and nothing caught it. ChatGPT hits this exactly when its DCR client record is gone — the moment the user most needs to be told to reconnect, and instead gets a blank Cloudflare page. Now a `400` with "remove the connector and add it again", `503` if the fault is ours (missing `MCP_HANDOFF_SECRET`). Verified on `wrangler dev`: both cases return the 400.
+- **Unsigned dashboard tokens still accepted** — `SECURITY-AUDIT-2026-07-23` finding #1. The bare `w_XXXX` branch existed only for the ChatGPT URL-token connector, where the id was already a bearer secret. That connector is retired, so the branch was dead code that still let a leaked workspace id open a whole workspace's analytics with no session. Deleted; the signature is mandatory now.
+- **`verifyDashboardToken` threw on a missing secret.** Callers default `DASHBOARD_SECRET` to `""`, and Web Crypto rejects a zero-length HMAC key — a `500` out of a public page. (My first guess was "an empty key is forgeable"; the test disproved it. Fails closed with `null` now.)
+- **`fetch` never returned the document body.** OpenAI's contract is that `text` is the document, because that is what ChatGPT reads and cites; a stats blurb is not quotable. Now returns the current version's raw body from R2, capped at 100k chars with an explicit `[truncated]` marker; PDFs keep the summary; the stats line moved to `metadata.summary`.
+- **CIMD was off.** OpenAI now prefers Client ID Metadata Documents over DCR, and wrangler warned about it on every boot. Needs *both* `clientIdMetadataDocumentEnabled: true` and the `global_fetch_strictly_public` compat flag — the flag is the SSRF guard for CIMD fetching an attacker-supplied `client_id` URL. Verified locally: metadata now reports `client_id_metadata_document_supported: true`.
+- **Stale copy and comments.** `/connect` filed ChatGPT under neither heading; a ChatGPT user reading "Claude, and anything that supports OAuth" would scroll past to the token path their assistant cannot use. Header comments in `workspace.ts`, `dashboard-token.ts` and `/w/[token]` still described ChatGPT as a URL-token client.
+
+### Verified
+`285/285` tests pass (13 new, in `test/dashboard-token.test.ts` + `test/fetch-body.test.ts`); `tsc --noEmit` clean for both the app and `mcp-worker`; error paths and CIMD advertisement observed on a local `wrangler dev`, not inferred. **Not deployed** — production still 500s on a bad `/authorize` until `mcp-worker` ships.
+
+### Files touched
+`mcp-worker/src/authorize.ts`, `mcp-worker/src/index.ts`, `mcp-worker/src/docs.ts`, `mcp-worker/src/agent.ts`, `mcp-worker/src/workspace.ts`, `mcp-worker/wrangler.jsonc`, `lib/mcp/dashboard-token.ts`, `app/(app)/connect/page.tsx`, `app/(app)/w/[token]/page.tsx`, `test/dashboard-token.test.ts` (new), `test/fetch-body.test.ts` (new).
+
+---
+
+## 2026-08-12 — Agent pushed to the teamspace, audit run, and the metadata layer it found missing
+
+- **Asked:** "push the seo audit to ilolink blocksurvey team space and run the audit" → then "yes" to fixing what it found.
+
+### The push finally went through
+- Connection reconnected, so `whoami` answered this time: teamspace **BlockSurvey** (`t_C9Oa_Xt2MzVAiyV1`), as `wilson@blocksurvey.org`, role **owner**, 8 members, 13 skills. Owner means the write publishes directly — no proposal step, which is worth stating because a member write in a reviewing teamspace would have landed invisible.
+- `artifacts_get` first: no existing `agent/seo-audit`, so this was a create, not an overwrite. `artifacts_put` with `if_version: 0` so a concurrent create would have been rejected rather than silently clobbered. Result: **version 1, published**. First `agent`-kind artifact in a teamspace that until now held only skills.
+- Pushed the file **verbatim including YAML frontmatter**, so a teammate can write it straight back to `.claude/agents/seo-audit.md` and it works; `source_path` records that path for a future sync.
+
+### The audit, run live against production
+Findings the agent reported and **I re-fetched by hand** before acting on any of them:
+- **Zero `og:` or `twitter:` tags on the entire site** — confirmed on `/`, `/guides/quick-start`, `/pricing`. ~60 marketing pages, every share on Slack/X/LinkedIn/iMessage unfurling bare.
+- **Every canonical relative** (`href="/pricing"`), which Lighthouse fails outright: *"Is not an absolute URL"*. Root cause: no `metadataBase` anywhere.
+- **The home page had no canonical at all** — the only one of the 58 sitemap URLs missing one.
+- `/favicon.ico` and `/apple-touch-icon.png` both **404**; only `icon.svg` existed.
+- `http://ilolink.com` returns **200 with no redirect** — two indexable schemes.
+- The **Cloudflare managed AI-crawler block is still live** above our robots.txt, exactly as the last entry recorded. Unchanged, still needs the dashboard toggle.
+- Good news it also confirmed by measurement: LCP 1.2s/1.9s, CLS 0, all 58 sitemap URLs 200, zero duplicate titles or descriptions, full SSR, valid JSON-LD, app routes correctly noindexed.
+
+### The fix, and the one thing that made it small
+- **Next's resolver settled the design.** `inheritFromMetadata` (Next's `resolve-metadata.ts`, confirmed in the docs rather than assumed) fills a missing `openGraph`/`twitter` title or description from the **resolved metadata of the segment being rendered**. So an `openGraph` block in the root layout that *deliberately omits* title and description gives all ~60 pages their **own** title and description — turning a 74-file refactor into one object. Setting them there would have done the opposite and stamped one title onto every page. That inversion is the whole reason this is commented at length and tested.
+- `og:url` omitted for the mirrored reason: unlike title there is nothing per-page to inherit, so a single value would claim every page is the home page. Unfurlers fall back to the URL they fetched.
+- **The canonical went on `app/page.tsx`, not the root layout**, because `alternates` is inherited wholesale by any segment declaring none — in the layout it would have stamped `canonical: "/"` onto `/signin`, `/dashboard` and every other app route. Verified after the fact: those three still emit `noindex, nofollow` and **no canonical**.
+- Metadata moved to **`lib/seo/metadata.ts`**, the same split `lib/seo/robots.ts` already uses: a plain data module is assertable without rendering a React tree or resolving a CSS import.
+- **Images made, not stubbed.** No ImageMagick on this machine, so the 1200×630 OG banner, the 180px apple icon and the 16/32px favicon were rendered with headless Chrome and **looked at** — the first two attempts drew the brand mark as an unreadable blue blob at that scale, so the final art uses the app-icon lockup and now matches the favicon exactly. `favicon.ico` is a hand-built multi-size ICO (PNG-in-ICO container); `file` confirms *"MS Windows icon resource - 2 icons, 16x16, 32x32"* rather than a renamed PNG.
+- **`.gitignore` had a blanket `*.png` under "Test artifacts"**, so both new images were invisible to git. They would have worked perfectly here and been **absent from a clean checkout** — the deploy serving no og:image and no apple-touch-icon, with nothing failing anywhere. Narrowed with two negations and a comment saying why.
+
+### Verified by observation, not reasoning
+- **Built, served the real build on :3123, and read the served HTML.** Home emits an absolute canonical plus 11 `og:`/`twitter:` tags; `/guides/quick-start` emits **its own** title and description in its og tags (the inheritance actually working, not just believed to); `/favicon.ico`, `/apple-icon.png`, `/opengraph-image.png`, `/icon.svg` all **200** with correct content types; `/signin`, `/publish`, `/connect` still `noindex, nofollow` with no canonical leaked.
+- **15 new tests, and each was proved to bite** — reintroduced the bug three times and watched the right test fail: `openGraph.title` added → og-inheritance test fails; home canonical deleted → home-canonical test fails; `metadataBase` deleted → metadataBase test fails. The first draft of the canonical test was a **false negative** (it matched the phrase inside my own code comment); `read()` now strips comments before asserting.
+- 279 tests pass total, `tsc --noEmit` exit 0, `next build` clean.
+- **Working tree shared with another live session** — `app/(app)/connect`, `app/(app)/dashboard/page.tsx`, `app/(app)/w/[token]`, `app/api/documents/route.ts`, `lib/mcp/dashboard-token.ts`, `lib/publish/title.ts`, `mcp-worker/*`, `document-title.tsx` and two of their test files are theirs. Left untouched and excluded from the commit; the 279 count includes their tests.
+- Files: `lib/seo/metadata.ts` (new), `test/seo-metadata.test.ts` (new), `app/opengraph-image.png` (new), `app/opengraph-image.alt.txt` (new), `app/apple-icon.png` (new), `app/favicon.ico` (new), `app/layout.tsx`, `app/page.tsx`, `.gitignore`.
+
+### Left undone, deliberately
+- **Cloudflare, unchanged and still the biggest item:** the managed robots.txt block and the missing http→https redirect are both zone settings this session's deploy-scoped credential cannot write (`PATCH` → 10405). Both need dashboard access.
+- **Not touched from the audit:** 11 meta descriptions over 160 chars (home is 262), 6 short titles, two "read more" anchors on `/guides`, ~300 ms of render-blocking on the guide template. All real, all bounded, none of them blocking a share or an index.
+- **Not verified by the audit either:** `www.ilolink.com` does not resolve in DNS at all, so no www→apex redirect could be tested; a genuine `/w/[token]` document page was never checked, only a synthetic bad token.
+
+---
+
 ## 2026-08-12 — SEO audit agent authored; teamspace push blocked on dead MCP connection
 
 - **Asked:** "create a agent for SEO audit … store this for reuse. and push to BlockSurvey teamspace using the mcp of ilolink."

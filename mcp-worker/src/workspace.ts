@@ -1,12 +1,17 @@
-// Anonymous workspace model (companion spec §3). A workspace is a private home
-// for a person's docs + analytics, resolved from an OAuth subject (Claude) or a
-// URL path token (ChatGPT). No accounts. Talks to D1 directly with the binding
-// it is handed — no OpenNext env().
+// Workspace model. A workspace is a private home for a teamspace's docs +
+// analytics. Talks to D1 directly with the binding it is handed — no OpenNext
+// env().
+//
+// Historical note: workspaces predate accounts, and were resolved either from an
+// OAuth subject (Claude) or from a URL path token (ChatGPT). Both ChatGPT and
+// Claude now arrive through the same OAuth flow, and a workspace is resolved
+// from the teamspace sealed into the grant — see getOrCreateForTeamspace below.
 
 import { customAlphabet } from "nanoid";
 
-// Unguessable, URL-safe workspace id. Doubles as the ChatGPT bearer token, so
-// keep the alphabet URL-safe and the entropy high (~95 bits at length 16).
+// Unguessable, URL-safe workspace id. It is no longer a bearer token, but it is
+// still the subject of a signed dashboard link, so keep the alphabet URL-safe
+// and the entropy high (~95 bits at length 16).
 const nano = customAlphabet(
   "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
   16,
@@ -15,6 +20,9 @@ export function mintWorkspaceId(): string {
   return `w_${nano()}`;
 }
 
+// "chatgpt_token" is never written any more — the path that minted it is
+// retired — but rows carrying it still exist in D1, so the union has to keep
+// reading it.
 export type WorkspaceOrigin = "claude_oauth" | "chatgpt_token" | "web";
 
 export interface Workspace {

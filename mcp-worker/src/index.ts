@@ -36,6 +36,15 @@ const provider = new OAuthProvider({
   tokenEndpoint: "/token",
   clientRegistrationEndpoint: "/register",
   scopesSupported: ["publish"],
+  // Client ID Metadata Documents — OpenAI's preferred way for ChatGPT to
+  // identify itself: one stable HTTPS metadata URL as the client_id, instead of
+  // Dynamic Client Registration minting a throwaway client record per connector
+  // instance. DCR stays on for everything else (Claude uses it).
+  //
+  // Takes BOTH this option and the `global_fetch_strictly_public` compatibility
+  // flag in wrangler.jsonc; with only one of the two the provider advertises
+  // client_id_metadata_document_supported: false and nothing changes.
+  clientIdMetadataDocumentEnabled: true,
 });
 
 function rpcError(message: string): Response {

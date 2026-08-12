@@ -63,99 +63,135 @@ function handoffSecret(env: Env): string {
   return s;
 }
 
+// A terminal, human-readable failure. Deliberately NOT an OAuth error redirect:
+// every path that reaches this has failed BEFORE `redirect_uri` was validated,
+// so bouncing the error back to it would forward a message to an address we
+// have no reason to trust.
+function fail(message: string, status = 400): Response {
+  return new Response(message, {
+    status,
+    headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+  });
+}
+
 export const authorizeHandler = {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const helpers = (env as unknown as { OAUTH_PROVIDER: OAuthHelpers }).OAUTH_PROVIDER;
-    const url = new URL(request.url);
-
-    // Step 1 — validate the OAuth request, then hand off to the app.
-    if (url.pathname === "/authorize" && request.method === "GET") {
-      // Canonicalise the RFC 8707 `resource` BEFORE the provider parses it.
-      // Whatever arrives here becomes the audience of the issued access token,
-      // and a token minted for "…/mcp." is rejected against the "…/mcp"
-      // resource server on every single request, with an "Invalid audience"
-      // 401 — which is what a real user hit after pasting the connector URL
-      // with a sentence's full stop attached. Fixing the path alone does not
-      // help: the token is already stamped with the wrong audience by then.
-      const rawResource = url.searchParams.get("resource");
-      if (rawResource) {
-        const fixed = canonicalResource(rawResource);
-        if (fixed !== rawResource) {
-          url.searchParams.set("resource", fixed);
-          request = new Request(url.toString(), request);
-        }
+    // Anything thrown below reached the client as Cloudflare's `error code:
+    // 1101` — an unstyled blank page with no hint of what to do. Measured:
+    // GET /authorize with no params, and with an unregistered client_id, both
+    // 500'd that way. `parseAuthRequest` throws on both, and nothing caught it.
+    // ChatGPT registers via DCR, so it only hits this if its client record is
+    // gone (KV evicted, or the connector re-added against a stale id) — the one
+    // moment the user most needs to be told "reconnect".
+    try {
+      return await handleAuthorize(request, env);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : "";
+      if (detail.includes("MCP_HANDOFF_SECRET")) {
+        // Ours, not theirs. Say so rather than blaming their connector.
+        return fail(
+          "ilolink cannot complete connections right now. Please try again shortly.",
+          503,
+        );
       }
-
-      const oauthReq = await helpers.parseAuthRequest(request);
-      const client = oauthReq.clientId
-        ? await helpers.lookupClient(oauthReq.clientId).catch(() => null)
-        : null;
-
-      const req = b64urlEncode(JSON.stringify(oauthReq));
-      const secret = handoffSecret(env);
-      const sig = await hmac(secret, req);
-
-      const target = new URL("/oauth/authorize", appOrigin(env));
-      target.searchParams.set("req", req);
-      target.searchParams.set("sig", sig);
-      if (client?.clientName) target.searchParams.set("app", client.clientName);
-      return Response.redirect(target.toString(), 302);
-    }
-
-    // Step 4 — the app says this user approved. Verify and issue.
-    if (url.pathname === "/authorize/complete" && request.method === "GET") {
-      const req = url.searchParams.get("req") ?? "";
-      const grant = url.searchParams.get("grant") ?? "";
-      const secret = handoffSecret(env);
-
-      // The OAuth request must still be one we signed in step 1.
-      const reqSig = url.searchParams.get("sig") ?? "";
-      if (!constantTimeEqual(reqSig, await hmac(secret, req))) {
-        return new Response("Invalid authorize request.", { status: 400 });
-      }
-
-      const assertion = await verifyPayload<GrantAssertion>(
-        secret,
-        grant,
-        Date.now(),
+      return fail(
+        "ilolink could not read that connection request. Remove the ilolink connector in your assistant and add it again from ilolink.com/connect.",
       );
-      if (!assertion) {
-        return new Response("That approval expired. Please try again.", {
-          status: 400,
-        });
-      }
-      // The assertion must belong to THIS request, not another one.
-      if (!constantTimeEqual(assertion.reqHash, await hmac(secret, req))) {
-        return new Response("Approval does not match this request.", {
-          status: 400,
-        });
-      }
-
-      let parsed: { scope?: string[] } & Record<string, unknown>;
-      try {
-        parsed = JSON.parse(b64urlDecode(req));
-      } catch {
-        return new Response("Invalid authorize request.", { status: 400 });
-      }
-
-      const { redirectTo } = await helpers.completeAuthorization({
-        request: parsed,
-        userId: assertion.userId,
-        scope: parsed.scope ?? ["publish"],
-        metadata: { email: assertion.email },
-        // Identity ONLY. No role, no permissions: those are re-read from D1 on
-        // every tool call (see mcp-worker/src/authz.ts), because this props
-        // object is decrypted once and then cached in a warm Durable Object.
-        props: {
-          userId: assertion.userId,
-          teamspaceId: assertion.teamspaceId,
-          tokenEpoch: assertion.tokenEpoch,
-          origin: "oauth",
-        },
-      });
-      return Response.redirect(redirectTo, 302);
     }
-
-    return new Response("Not found", { status: 404 });
   },
 };
+
+async function handleAuthorize(request: Request, env: Env): Promise<Response> {
+  const helpers = (env as unknown as { OAUTH_PROVIDER: OAuthHelpers }).OAUTH_PROVIDER;
+  const url = new URL(request.url);
+
+  // Step 1 — validate the OAuth request, then hand off to the app.
+  if (url.pathname === "/authorize" && request.method === "GET") {
+    // Canonicalise the RFC 8707 `resource` BEFORE the provider parses it.
+    // Whatever arrives here becomes the audience of the issued access token,
+    // and a token minted for "…/mcp." is rejected against the "…/mcp"
+    // resource server on every single request, with an "Invalid audience"
+    // 401 — which is what a real user hit after pasting the connector URL
+    // with a sentence's full stop attached. Fixing the path alone does not
+    // help: the token is already stamped with the wrong audience by then.
+    const rawResource = url.searchParams.get("resource");
+    if (rawResource) {
+      const fixed = canonicalResource(rawResource);
+      if (fixed !== rawResource) {
+        url.searchParams.set("resource", fixed);
+        request = new Request(url.toString(), request);
+      }
+    }
+
+    const oauthReq = await helpers.parseAuthRequest(request);
+    const client = oauthReq.clientId
+      ? await helpers.lookupClient(oauthReq.clientId).catch(() => null)
+      : null;
+
+    const req = b64urlEncode(JSON.stringify(oauthReq));
+    const secret = handoffSecret(env);
+    const sig = await hmac(secret, req);
+
+    const target = new URL("/oauth/authorize", appOrigin(env));
+    target.searchParams.set("req", req);
+    target.searchParams.set("sig", sig);
+    if (client?.clientName) target.searchParams.set("app", client.clientName);
+    return Response.redirect(target.toString(), 302);
+  }
+
+  // Step 4 — the app says this user approved. Verify and issue.
+  if (url.pathname === "/authorize/complete" && request.method === "GET") {
+    const req = url.searchParams.get("req") ?? "";
+    const grant = url.searchParams.get("grant") ?? "";
+    const secret = handoffSecret(env);
+
+    // The OAuth request must still be one we signed in step 1.
+    const reqSig = url.searchParams.get("sig") ?? "";
+    if (!constantTimeEqual(reqSig, await hmac(secret, req))) {
+      return new Response("Invalid authorize request.", { status: 400 });
+    }
+
+    const assertion = await verifyPayload<GrantAssertion>(
+      secret,
+      grant,
+      Date.now(),
+    );
+    if (!assertion) {
+      return new Response("That approval expired. Please try again.", {
+        status: 400,
+      });
+    }
+    // The assertion must belong to THIS request, not another one.
+    if (!constantTimeEqual(assertion.reqHash, await hmac(secret, req))) {
+      return new Response("Approval does not match this request.", {
+        status: 400,
+      });
+    }
+
+    let parsed: { scope?: string[] } & Record<string, unknown>;
+    try {
+      parsed = JSON.parse(b64urlDecode(req));
+    } catch {
+      return new Response("Invalid authorize request.", { status: 400 });
+    }
+
+    const { redirectTo } = await helpers.completeAuthorization({
+      request: parsed,
+      userId: assertion.userId,
+      scope: parsed.scope ?? ["publish"],
+      metadata: { email: assertion.email },
+      // Identity ONLY. No role, no permissions: those are re-read from D1 on
+      // every tool call (see mcp-worker/src/authz.ts), because this props
+      // object is decrypted once and then cached in a warm Durable Object.
+      props: {
+        userId: assertion.userId,
+        teamspaceId: assertion.teamspaceId,
+        tokenEpoch: assertion.tokenEpoch,
+        origin: "oauth",
+      },
+    });
+    return Response.redirect(redirectTo, 302);
+  }
+
+  return new Response("Not found", { status: 404 });
+}

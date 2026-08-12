@@ -6,7 +6,16 @@
   "name": "ilolink-mcp",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-20",
-  "compatibility_flags": ["nodejs_compat"],
+  // global_fetch_strictly_public is half of the CIMD gate (the other half is
+  // clientIdMetadataDocumentEnabled in src/index.ts — the provider needs both,
+  // or it advertises client_id_metadata_document_supported: false).
+  //
+  // It is not a formality. Under CIMD the client_id IS a URL, and the provider
+  // fetches it to read the client's metadata — an attacker-supplied fetch
+  // target from inside our Worker. This flag confines fetch() to public
+  // addresses, which is what stops that being an SSRF hole into private
+  // ranges and Cloudflare-internal services.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "account_id": "a8ec57aa9f4b6a49e48e60b1aa2a306e",
   "workers_dev": true,
   // Branded MCP endpoint. ilolink.com is on Cloudflare, so wrangler provisions
