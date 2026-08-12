@@ -158,6 +158,28 @@ const LOOP = [
   },
 ];
 
+// What the assistant gains, once connected. Deliberately phrased as things you
+// say out loud rather than tool names — nobody types `artifacts_push`. The full
+// list and the per-client setup live on /mcp.
+const CONNECTOR_DOES = [
+  {
+    title: "Publish what it just made",
+    body: "“Publish this as an ilolink page.” A link comes back, with analytics behind it. Markdown, HTML, a diagram, a PDF, an image.",
+  },
+  {
+    title: "Push to the team registry",
+    body: "“Save this spec for the team.” Skills, specs, plans, runbooks and six other kinds go where every teammate’s assistant can read them.",
+  },
+  {
+    title: "Read the team’s guidance first",
+    body: "“Check what we already have on this.” It pulls the team’s existing instructions before it starts, and tells you whose they are.",
+  },
+  {
+    title: "Search its own published work",
+    body: "“What did we publish about pricing?” Your documents become something the assistant can look things up in and quote.",
+  },
+];
+
 // Straight from lib/teamspace/permissions.ts. If the matrix changes there, this
 // copy is wrong — it is the same three roles described once, for humans.
 const ROLES = [
@@ -318,7 +340,11 @@ export default function Home() {
             For a PDF or a .docx, drop the file anywhere in it.
           </p>
           <div className="mt-6">
-            <PublishForm />
+            {/* A literal prop, not a session read — this page stays static.
+                The form asks /api/teamspaces itself once it has mounted, so a
+                signed-in visitor gets the "Publish into" picker here without
+                the homepage ever touching a cookie. */}
+            <PublishForm discoverTeamspaces />
           </div>
           <p className="mt-4 text-sm text-ink-faint">
             Write first and make an account at the end — your draft stays
@@ -625,17 +651,36 @@ export default function Home() {
             Publish and push straight from your AI chat
           </h2>
           <p className="mt-4 leading-relaxed text-ink-soft">
-            Add ilolink as a connector in Claude, ChatGPT, or any MCP-compatible
-            assistant. Then say &ldquo;publish this as an ilolink page&rdquo; and
-            get a link back, or &ldquo;save this as a team skill&rdquo; and it
-            goes to the registry. Same connection, no copy-paste.
+            Add ilolink as an MCP connector in Claude, Claude Code, ChatGPT, or
+            any MCP-compatible assistant. One approval, no API key, and you pick
+            which teamspace it may write into.
           </p>
-          <Link
-            href="/connect"
-            className="mt-6 inline-block rounded-lg bg-accent px-5 py-3 font-medium text-canvas transition-opacity duration-150 hover:opacity-90"
-          >
-            Connect an assistant
-          </Link>
+          <dl className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2">
+            {CONNECTOR_DOES.map((c) => (
+              <div key={c.title}>
+                <dt className="font-medium text-ink">{c.title}</dt>
+                <dd className="mt-1 text-sm leading-relaxed text-ink-soft">
+                  {c.body}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+            <Link
+              href="/connect"
+              className="inline-block rounded-lg bg-accent px-5 py-3 font-medium text-canvas transition-opacity duration-150 hover:opacity-90"
+            >
+              Connect an assistant
+            </Link>
+            {/* /connect is signed-in only, so anyone still deciding needs a
+                door that opens for them. */}
+            <Link
+              href="/mcp"
+              className="text-sm text-ink-soft transition-colors duration-150 hover:text-accent"
+            >
+              How the connector works &rarr;
+            </Link>
+          </div>
         </section>
 
         <footer className="mt-24 border-t border-hairline pt-12">
@@ -684,7 +729,7 @@ export default function Home() {
                 </li>
                 <li>
                   <Link
-                    href="/connect"
+                    href="/mcp"
                     className="text-ink-soft transition-colors duration-150 hover:text-accent"
                   >
                     Connect to Claude, ChatGPT &amp; more

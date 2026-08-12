@@ -484,6 +484,18 @@ export const REFERENCE = {
     group: "reference",
     priority: 0.8,
   },
+  // The connector's only public page. /connect — the one that actually shows
+  // the URL and mints tokens — is signed-in-only and noindex, so before this
+  // page existed there was nothing about MCP anywhere search could reach.
+  mcp: {
+    path: "/mcp",
+    title: "MCP connector for Claude, Claude Code & ChatGPT",
+    blurb:
+      "Add ilolink as an MCP connector and let your assistant publish pages and read the team's shared skills, specs and runbooks.",
+    group: "reference",
+    priority: 0.8,
+    updated: "2026-08-12",
+  },
   glossary: {
     path: "/glossary",
     title: "Glossary: AI output, artifacts, static hosting & GEO",

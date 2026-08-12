@@ -44,9 +44,19 @@ export default async function ConnectPage() {
   return (
     <div>
       <h1 className="mb-2 text-2xl font-medium text-ink">Connect an assistant</h1>
-      <p className="mb-10 leading-relaxed text-ink-soft">
+      <p className="mb-3 leading-relaxed text-ink-soft">
         Let Claude, ChatGPT, or any MCP-capable assistant publish documents and
         use your teamspace&rsquo;s shared skills.
+      </p>
+      {/* This page is the doing half. /mcp is the explaining half — per-client
+          setup steps and what the tools actually are — and it is public, so it
+          is also the page to send someone who has not signed up yet. */}
+      <p className="mb-10 text-sm text-ink-faint">
+        New to MCP?{" "}
+        <Link href="/mcp" className="text-accent hover:underline">
+          What the connector does, client by client
+        </Link>
+        .
       </p>
 
       <section className="mb-10">

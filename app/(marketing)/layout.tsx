@@ -72,11 +72,14 @@ export default function MarketingLayout({
                   </Link>
                 </li>
                 <li>
+                  {/* Points at /mcp, not /connect: /connect redirects a
+                      signed-out reader to /signin, and this footer is on
+                      pages people read before they have an account. */}
                   <Link
-                    href="/connect"
+                    href="/mcp"
                     className="text-ink-soft transition-colors duration-150 hover:text-accent"
                   >
-                    Connect to Claude, Grok &amp; more
+                    Connect to Claude, ChatGPT &amp; more
                   </Link>
                 </li>
                 <li>
