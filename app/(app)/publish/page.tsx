@@ -13,9 +13,12 @@ import { PublishForm } from "./publish-form";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// noindex: this is the signed-in composer, and `/` already carries the public
+// one — indexing both would compete for the same query with the gated copy.
 export const metadata: Metadata = {
   title: "Publish — ilolink",
   description: "Paste Markdown or HTML, get a link, and see how it's read.",
+  robots: { index: false, follow: false },
 };
 
 // Publishing requires a session (/api/publish returns 401 without one) and the

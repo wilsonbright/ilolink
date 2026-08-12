@@ -29,9 +29,18 @@ export const SITE_DESCRIPTION =
 // paid plans.
 export const COMPOSE_URL = "/";
 
-// Build date, kept explicit so sitemap output is deterministic across builds
-// (Next would otherwise stamp `new Date()` at build time, churning the diff).
-export const SITE_UPDATED = "2026-07-21";
+// Corpus date: the last time the whole marketing corpus was audited and
+// rewritten — the 2026-08-09 accountless-copy sweep, which touched every page
+// in this registry. It is the sitemap `lastmod` fallback for any page without
+// its own `updated`.
+//
+// Deliberately a constant, not `new Date()`: a build-time stamp would churn the
+// diff on every deploy and claim all 56 pages changed each time, which is what
+// makes a `lastmod` worth ignoring. It stayed at 2026-07-21 through the landing
+// rewrite (08-01), /pricing (08-09) and the sweep itself, so the whole sitemap
+// was three weeks stale — bump this when a pass touches the corpus, and set a
+// page's own `updated` when you edit that page alone.
+export const CORPUS_UPDATED = "2026-08-09";
 
 export type PageGroup =
   | "pillar"
@@ -51,6 +60,12 @@ export interface SitePage {
   group: PageGroup;
   /** sitemap priority hint 0–1. */
   priority: number;
+  /**
+   * `YYYY-MM-DD` this page alone was last meaningfully edited. Omit unless it
+   * is newer than CORPUS_UPDATED — the fallback already covers corpus-wide
+   * passes, and a stale per-page date is worse than no per-page date.
+   */
+  updated?: string;
 }
 
 // ── Pillars ──────────────────────────────────────────────────────────────

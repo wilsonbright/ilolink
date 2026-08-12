@@ -5,6 +5,52 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — /dashboard becomes "Your library": artifacts beside documents
+
+- **Asked:** "create a new design to add agents, skills, other ai artifacts categories inside personal and teamspace. by this all things are seen in one place." Planned first (spec approved before any code).
+- **It was a discovery problem, not a capability one.** The registry already worked, including in personal teamspaces — the only gate anywhere is `getMembership`, and `app/(app)/t/[id]/page.tsx:104-150` renders it unconditionally. But documents were at `/dashboard` and artifacts three clicks away at `/t` → `/t/<id>` → "View N artifacts", and `/dashboard` never linked to a registry at all. Production made the cost visible: **8 of 10 kinds had never been used once**, and no personal teamspace held a single artifact.
+- Kept the teamspace tabs, added a kind axis (Documents + all ten kinds, zeros included — the user's explicit call, on the grounds that the unused kinds are the unseen ones). Renamed the heading and the tab title to "Your library"; `/dashboard` URL unchanged.
+- **Absence of `?kind=` means Documents**, so every pre-existing `?ts=` link keeps its exact meaning by construction rather than by special case. Kind is sticky across a teamspace switch, and dropped on the shared tab.
+- **The bug the plan caught before it shipped:** an artifact whose only version is a proposal has `current_version_id NULL`; `getArtifact` returns null for it (`store-core.ts:162-169`) and the detail page turns that into `notFound()`. So `artifactHref` returns null and the row renders **unlinked** with "awaiting review" pointing at the proposals inbox. Linking it would have been a 404 on the front door.
+- Three other traps handled: "Publish new" opens a *document* composer and is wrong on an artifact kind (→ "Open in registry"); the kind axis must render even for a one-teamspace user, or nobody with a single teamspace ever discovers the feature (the `tabs.length > 1` guard applies to the teamspace bar only); and the shared tab gets **no** kind axis, because artifacts have no per-item sharing and ten permanent zeros would advertise something impossible.
+- **One grouped query for the whole grid** (`listDashboardArtifactCounts`), not ten `COUNT(*)`s per teamspace, and rows fetched only for the active kind — the registry fetches every kind at once because it renders them all; this page shows one. 4 queries → 5 on Documents, 7 on an artifact kind.
+- Teamspace tab counts now include artifacts, so a tab equals the sum of its kind tabs; the comment in `store.ts` that promised the old behaviour was corrected in the same commit. `/t` cards now name every populated kind ("1 skill · 1 agent") rather than skills only, which read as wrong the moment the library showed the agents.
+- **Verified by observation:** seeded a published skill and an awaiting-review agent in local D1 and drove the real page — bare `/dashboard` still shows documents, counts match the registry, all ten kinds render including zeros, an empty kind shows its `KINDS` description, the awaiting-review name is a `<span>` not an `<a>` and carries the proposals link, kind survives a teamspace switch, `/t` reads "1 document · 1 skill · 1 agent", no overflow at 375px, dark mode correct. Caught and fixed a stale `metadata.title` still reading "Your documents" that the `<h1>` rename had missed. 248 tests (20 new), `tsc` clean, `next build` clean. Commit `e4e40c8`.
+- Files: `lib/teamspace/dashboard-kinds.ts` (new), `test/dashboard-kinds.test.ts` (new), `app/(app)/dashboard/artifact-list.tsx` (new), `lib/teamspace/store.ts`, `app/(app)/dashboard/page.tsx`, `app/(app)/t/page.tsx`.
+- **Flagged, not done:** this now means two artifact lists exist — `/t/<id>/registry` and `/dashboard?ts=<id>&kind=skill` show the same rows with different chrome, which is the opposite of "one place". The honest end state is the registry redirecting into the dashboard; the blocker is that the registry has an "all kinds at once" view the dashboard deliberately does not. `artifactHref` is centralised as the down-payment. Also still open: archived artifacts have no view anywhere, and the registry's copy says "team" in personal teamspaces.
+
+---
+
+## 2026-08-12 — Three pending SEO findings closed: sitemap lastmod, robots.txt, copy-sweep backlog
+
+- **Asked:** "any findings from SEO that is pending to be done?" → then "complete 1,2,4" of the six I reported.
+- **Audited the worklog's deferred lists against the code rather than trusting them.** Most "deferred still" content items were in fact built: a registry-vs-filesystem diff found **56 registry paths, all 56 present on disk, zero orphans**, the only uncovered route being the `/guides` index that `app/sitemap.ts` adds by hand. Glossary, use-cases, 9 personas, comparisons, 6 help pages and the pdf/docx/spreadsheet format guides all shipped. What was actually open was infrastructure and bookkeeping.
+
+### 1. Every sitemap URL claimed to be three weeks stale
+- `SITE_UPDATED = "2026-07-21"` fed `lastModified` for **all 58 URLs**, unchanged through the landing rewrite (08-01), `/pricing` (08-09) and the corpus copy sweep (08-09).
+- **Not fixed by making it dynamic.** Its original comment was right: `new Date()` at build time churns the diff every deploy and asserts all 58 pages changed each time, which is what makes a `lastmod` worth ignoring. Renamed to **`CORPUS_UPDATED = "2026-08-09"`** — the date of the sweep that genuinely audited every page, so one date is *true* for all of them — and added an optional per-page `updated` for single-page edits after it. `SitePage.updated` is documented to be omitted unless newer than the corpus date, because a stale per-page date is worse than none.
+
+### 2. robots.txt still described the app as it was at launch
+- It disallowed only `/dashboard`, `/publish`, `/api/`. Since then `/t`, `/t/[id]/{registry,skills,proposals,import-skills,new-skill}`, `/connect`, `/signin`, `/invite`, `/oauth/authorize` and `/w/[token]` all became crawlable — including `/w/`, where **the URL is the credential**.
+- **The trap worth recording: `Disallow: /t` would have blocked `/terms`.** Disallow is a prefix match, and `/terms` is a legal page in the sitemap. Used `/t$` + `/t/` instead (`$` honoured by Google and Bing; a crawler ignoring it just sees a path that does not exist).
+- Belt and braces on purpose: robots.txt saves crawl budget but cannot stop a linked-but-uncrawled URL appearing bare in results, so app pages also carry `robots: { index: false, follow: false }`. 10 already did; added it to `/publish` (the signed-in composer, which would otherwise compete with `/` for the same query) and `/w/[token]` (`nofollow` too, so a crawl cannot leak the token in a referrer). **Deliberately not added to two:** `dashboard/[slug]` is `"use client"` and cannot export metadata, and `t/[id]/skills` is a bare redirect that emits no HTML — robots.txt covers both.
+
+### 3. The copy-sweep backlog was done but never closed, and would have generated phantom work
+- `docs/launch/copy-sweep.md` still listed 40 PUBLISHER + 12 BOTH lines to rewrite. **Re-resolved all 123 citations against the current tree rather than sampling** (script over the doc's own file:line list): **97** no longer carry the phrase, **0** files or line numbers had gone missing, **26** still matched a flagged phrase — and reading all 26 in context, **25 are reader-scoped and true** ("Readers need no account; publishing needs a free one"), which is the differentiator and must stay.
+- **The 26th was real and the greps had all walked past it:** `app/(marketing)/_components/content.tsx:183`, a *code comment* reading "ilolink is accountless — the composer is the signup". Five passes of page-copy greps missed it because it was a comment, not copy. Rewritten. Also re-checked corpus-wide: `2 MB`/`2&nbsp;MB` appears nowhere in the marketing corpus, and the one surviving "manage token" mention (`guides/where-hosted:74`) is a correct origin-isolation statement.
+- The doc is now a closed record with the verification numbers; the stale 241-line worklist was removed rather than left to mislead (git history keeps it).
+
+### Verified by observation, not by reasoning
+- `tsc --noEmit` exit 0. **248 tests pass** — 239 baseline (219 mine + 20 from another session's uncommitted `dashboard-kinds` work sharing this tree) plus **9 new** in `test/seo-sitemap-robots.test.ts`.
+- **The new test was proved to bite**, not just to pass: reintroduced `Disallow: /t` and watched it fail with *`robots rule "/t" blocks sitemap URL /terms`*, then restored. Its central invariant is that no robots rule may shadow any URL the sitemap advertises, so future prefix traps fail in CI rather than in production.
+- `npm run build` clean, `○ /robots.txt` and `○ /sitemap.xml` both still prerendered.
+- **Read the real output over HTTP** (`localhost:3000`, since the production `.next` was overwritten mid-verification by another session's `next dev`): robots.txt serves all 11 rules; sitemap serves **58 URLs, every one now `2026-08-09`** (was `2026-07-21`); `/terms` and `/pricing` both present and unblocked; `/publish` emits `noindex, nofollow`; `/` emits **no** robots meta, so the landing page stays indexable. `/w/w_bogus` → 404 before rendering, so for that route robots.txt is the guard that actually applies.
+- **Working tree is shared with another live session** (`app/(app)/dashboard/page.tsx`, `app/(app)/t/page.tsx`, `lib/teamspace/store.ts`, new `artifact-list.tsx`, `dashboard-kinds.ts`, `dashboard-kinds.test.ts` are theirs). Left untouched and excluded from the commit.
+- Files: `lib/seo/site.ts`, `app/sitemap.ts`, `app/robots.ts`, `app/(app)/publish/page.tsx`, `app/(app)/w/[token]/page.tsx`, `app/(marketing)/_components/content.tsx`, `docs/launch/copy-sweep.md`, `test/seo-sitemap-robots.test.ts` (new).
+- **Still open from the same audit, untouched:** (3) all four legal pages carry "Draft — not yet legally reviewed" and `/report` publishes `abuse@ilolink.com (placeholder)` inside FAQPage JSON-LD — needs a legal/mailbox decision; (5) per-competitor `/vs` pages, slides + diagram format pages; (6) `content-worker/src/index.ts:1114-1120` still builds `og:description` from a body excerpt for **unlisted** documents, so unfurlers cache private excerpts (`SECURITY-AUDIT-2026-07-23.md:274`).
+
+---
+
 ## 2026-08-12 — Shipped row actions, and caught the preview being broken on prod
 
 - **Asked:** "ship it and get it live."

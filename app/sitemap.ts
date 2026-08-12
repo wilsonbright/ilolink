@@ -3,26 +3,29 @@
 // (view.ilolink.com/*) are deliberately excluded — user content is noindex and
 // must not dilute the marketing domain.
 import type { MetadataRoute } from "next";
-import { ALL_PAGES, SITE_UPDATED, absolute } from "@/lib/seo/site";
+import { ALL_PAGES, CORPUS_UPDATED, absolute } from "@/lib/seo/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const updated = new Date(SITE_UPDATED);
+  // Corpus-wide fallback; a page carrying its own `updated` overrides it. Both
+  // the home page and the /guides index are swept with the corpus, and neither
+  // is in the registry (the registry lists leaf content), so they take it.
+  const corpus = new Date(CORPUS_UPDATED);
   return [
     {
       url: absolute("/"),
-      lastModified: updated,
+      lastModified: corpus,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: absolute("/guides"),
-      lastModified: updated,
+      lastModified: corpus,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     ...ALL_PAGES.map((p) => ({
       url: absolute(p.path),
-      lastModified: updated,
+      lastModified: p.updated ? new Date(p.updated) : corpus,
       changeFrequency: "monthly" as const,
       priority: p.priority,
     })),

@@ -179,8 +179,11 @@ export function Faq({ items }: { items: FaqItem[] }) {
   );
 }
 
-// Primary conversion block. Points at the live composer by default (ilolink is
-// accountless — the composer is the signup).
+// Primary conversion block. Points at the live composer by default: it renders
+// signed out and gates at submit, where the emailed code creates the account —
+// so the composer is still the signup even though publishing now needs one.
+// (It was literally accountless when this was written; the copy sweep of
+// 2026-08-09 corrected the pages, and this comment was the last line left.)
 export function Cta({
   label = "Publish your first doc",
   href = "/",

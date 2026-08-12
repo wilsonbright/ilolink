@@ -2,6 +2,7 @@
 // a signed OAuth token (w_XXXX~sig) or a bare ChatGPT token (w_XXXX). We verify,
 // resolve the workspace, and render its live documents from D1. No session.
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { env } from "@/lib/cf";
@@ -9,6 +10,15 @@ import { verifyDashboardToken } from "@/lib/mcp/dashboard-token";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// The URL itself is the credential, so this must never reach an index — nor be
+// followed onwards, which would leak the token in referrers off any crawl.
+// robots.txt disallows /w/ as well; this is the half that still holds if a
+// crawler fetches the page anyway.
+export const metadata: Metadata = {
+  title: "Workspace — ilolink",
+  robots: { index: false, follow: false, nocache: true },
+};
 
 interface Row {
   id: string;
