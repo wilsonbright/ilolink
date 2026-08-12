@@ -8,7 +8,7 @@
 // app had at launch. Neither failure could break a build or a page, which is
 // exactly why they need tests rather than care.
 import { describe, expect, it } from "vitest";
-import robots from "@/app/robots";
+import { DISALLOW, CONTENT_SIGNAL, renderRobotsTxt } from "@/lib/seo/robots";
 import sitemap from "@/app/sitemap";
 import { ALL_PAGES, CORPUS_UPDATED, SITE_URL } from "@/lib/seo/site";
 
@@ -41,11 +41,11 @@ function blocks(rule: string, path: string): boolean {
     : path.startsWith(rule);
 }
 
+// robots.txt moved from Next's typed metadata route to a route handler, so the
+// rules could sit alongside a Content-Signal line the typed route cannot emit.
+// The rules are plain data now, so this no longer has to unpick a union type.
 function disallowRules(): string[] {
-  const { rules } = robots();
-  const one = Array.isArray(rules) ? rules[0] : rules;
-  const disallow = one?.disallow ?? [];
-  return Array.isArray(disallow) ? disallow : [disallow];
+  return [...DISALLOW];
 }
 
 /** Sitemap URLs as origin-relative paths. */
@@ -101,6 +101,36 @@ describe("sitemap", () => {
   });
 });
 
+describe("rendered robots.txt", () => {
+  // The file is hand-assembled now rather than serialised by Next, so the shape
+  // is ours to get wrong.
+  it("declares one wildcard group with the signal and every rule", () => {
+    const txt = renderRobotsTxt();
+    expect(txt.match(/^User-agent:/gm)).toHaveLength(1);
+    expect(txt).toContain(`Content-Signal: ${CONTENT_SIGNAL}`);
+    expect(txt).toContain("Allow: /");
+    for (const rule of DISALLOW) expect(txt).toContain(`Disallow: ${rule}`);
+    expect(txt).toContain(`Sitemap: ${SITE_URL}/sitemap.xml`);
+  });
+
+  // Citing is distribution and we want it; training is a one-way transfer.
+  // Losing this line is how the reservation quietly disappears.
+  it("permits search and AI citation while refusing training", () => {
+    expect(CONTENT_SIGNAL).toMatch(/\bsearch=yes\b/);
+    expect(CONTENT_SIGNAL).toMatch(/\bai-input=yes\b/);
+    expect(CONTENT_SIGNAL).toMatch(/\bai-train=no\b/);
+  });
+
+  it("never blocks a named AI crawler outright", () => {
+    // The whole point of turning Cloudflare's managed robots.txt off was that it
+    // paired the signals with `Disallow: /` for every AI crawler. If a
+    // per-agent block reappears here, citation stops working again.
+    const txt = renderRobotsTxt();
+    expect(txt).not.toMatch(/User-agent:\s*(GPTBot|ClaudeBot|Google-Extended)/i);
+    expect(txt).not.toMatch(/^Disallow:\s*\/$/m);
+  });
+});
+
 describe("registry dates", () => {
   it("keeps the corpus date a plain past YYYY-MM-DD", () => {
     expect(CORPUS_UPDATED).toMatch(DATE_ONLY);
@@ -147,6 +177,6 @@ describe("robots.txt", () => {
   });
 
   it("points at the sitemap on the canonical origin", () => {
-    expect(robots().sitemap).toBe(`${SITE_URL}/sitemap.xml`);
+    expect(renderRobotsTxt()).toContain(`Sitemap: ${SITE_URL}/sitemap.xml`);
   });
 });
