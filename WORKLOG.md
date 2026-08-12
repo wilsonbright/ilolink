@@ -38,7 +38,16 @@ date, what was asked, what was done, files touched.
 - **299 tests pass** (was 287; +12), `tsc --noEmit` exit 0 on **all three** projects (the app, `content-worker`, `mcp-worker` — the worker tsconfig has no `@/` alias, so `doc-preview.ts` imports `../types` relatively or the worker typecheck fails), `next build` clean, 91/91 static, `○ /robots.txt` and `○ /sitemap.xml` still prerendered.
 - **All local seed data deleted** — four KV keys and the R2 object; re-read afterwards and each returns "Value not found". Nothing touched production.
 - Files: `lib/seo/doc-preview.ts` (new), `test/doc-preview.test.ts` (new), `lib/seo/robots.ts`, `content-worker/src/index.ts`, `app/sitemap.ts`, `test/seo-sitemap-robots.test.ts`, `.gitignore`.
-- **NOT DEPLOYED.** Both changes are inert until the workers ship, and `DEPLOY.md` puts `content-worker` first. Nothing here is live yet.
+### Pushed and deployed (same day, after the merge)
+- `origin/main` at **`215a8f1`**, confirmed with `git ls-remote` rather than a local ref. Fast-forwarded into `main` after checking divergence **both** ways (0 commits on main the branch lacked), so the merge was provably content-neutral.
+- Deployed **`ilolink-content` only**, version **`02a33eb9`**. The app worker was deliberately not redeployed: the only app-side change in this branch is a comment in `app/sitemap.ts` and two test files, so a redeploy would have been motion without a difference — and per the deploy-order note it is the content worker that has to lead anyway.
+- **Captured production baseline BEFORE deploying**, so a regression could be told apart from pre-existing state: `view.ilolink.com/robots.txt` **404**, `ilolink.com/gnt3pg` og:description carrying its real excerpt, `/tracker.js` 200.
+- **Verified after, against production:**
+  - `view.ilolink.com/robots.txt` → **200 `text/plain; charset=utf-8`**, `cache-control: public, max-age=86400`, Content-Signal present, `Disallow: /_`, no `Sitemap:`. The 404 is gone and the ai-train reservation now covers the origin that serves every document.
+  - **A real unlisted document** (`ilolink.com/84vfaj`, found with a read-only D1 query for one non-public slug): `og:description` is now the generic sentence where it previously carried a body excerpt, while `og:title` *"Ship Report — Week 30"* is deliberately kept, `noindex` present, `<title>` still the real one. This is the fix observed on live data, not only on the local seed.
+  - **Public documents unaffected:** every `<meta>` tag on `gnt3pg` is byte-identical before and after (diffed the extracted tags; only the per-request CSP nonce differs).
+  - Worker routes still healthy: `/tracker.js` 200, `/widget.js` 200, unknown slug 404, `/raw/gnt3pg` 404 (correct — that document is not a PDF).
+  - **The apex robots.txt is still the Next one**, not the worker's: it serves the 11 app rules and contains zero occurrences of the doc-origin marker line. Worth checking rather than assuming, since both hostnames now answer `/robots.txt` — `next.config.ts` only proxies dot-free slug-shaped paths, which is why the apex route wins.
 - **Noticed while verifying, not fixed:** an `expiring` document carries **no `noindex`** — only `unlisted` does — so it is indexable for its whole life and a search engine may hold a cached copy after it expires. That is pre-existing behaviour and a policy decision, not a bug to fix quietly.
 
 ---
