@@ -22,6 +22,7 @@
 // HARD CONSTRAINT: this page is statically prerendered (`○ /` in the build
 // output). Nothing here may read a session, a cookie, or a binding. Session
 // awareness comes only from the <NavAuth/> client island.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PublishForm } from "@/app/(app)/publish/publish-form";
 import { PILLARS, LEGAL } from "@/lib/seo/site";
@@ -33,6 +34,17 @@ import { PLANS, formatPrice } from "@/lib/billing/plans";
 // Safe to import into a static page: lib/artifacts/kinds is pure data with no
 // imports of its own — no bindings, no D1, nothing server-only to drag in.
 // lib/billing/plans is pure for the same reason — see the header comment there.
+
+// Title and description come from the root layout (SITE_TITLE/SITE_DESCRIPTION);
+// only the canonical is declared here. It lives on the page rather than in the
+// root layout because `alternates` is inherited wholesale by any segment that
+// does not set its own — putting `canonical: "/"` in the layout would stamp it
+// onto /signin, /dashboard and every other app route that declares no
+// alternates of its own. This page was the ONLY one of the 58 in the sitemap
+// with no canonical at all.
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 // What each format becomes. Checked against lib/publish/formats.ts and
 // app/api/publish/route.ts, not written from memory.
