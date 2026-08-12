@@ -192,7 +192,7 @@ export default function Page() {
           },
           {
             q: "Can ilolink use a custom domain?",
-            a: "Not yet. Docs are served from ilolink.com/<slug>, which redirects to the isolated view.ilolink.com render origin. If a custom domain is a hard requirement, a pure host like tiiny.host is the better fit today.",
+            a: "Not yet. Docs are served at ilolink.com/<slug>, which is the address readers see and the canonical URL — the isolated view.ilolink.com origin renders it behind a reverse proxy, with no redirect. If a custom domain is a hard requirement, a pure host like tiiny.host is the better fit today.",
           },
           {
             q: "Is pasted AI HTML safe to share on ilolink?",

@@ -5,6 +5,33 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — Four competitor comparison pages, every claim quoted from the vendor's own docs
+
+- **Asked:** "are the vs pages added?" → they were not, only tiiny.host since 2026-07-22 → "you research and add."
+- Chose four competitors people actually reach for when they have **one document and want a link**, deliberately spanning four *different* trade-offs so the pages are not one page with a name swapped: `/vs/netlify-drop` (folder versus document), `/vs/github-pages` (workflow cost — repo, commit, build), `/vs/notion` and `/vs/google-docs` (live-mirror publishing with no reader analytics). Branch `feat/vs-comparison-pages` in a project-local worktree, merged to main.
+- **Researched rather than recalled.** Every competitor claim is quoted from that vendor's own documentation, with the date read (2026-08-12) printed in the table caption, and each page carries a header comment naming its source URL. What the docs do not state is hedged — "not documented", "verify current terms" — rather than guessed, because a comparison page is where invented specifics do the most damage and where they are most likely to be quoted back at you.
+  - **Netlify Drop** — the finding worth the page: you *can* deploy without an account, but Netlify's quickstart says *"If you drop without signing in, your project URL is protected with a temporary password until you claim it."* So the no-account path does not produce a forwardable link. Also documented: deploys under 50 MB work best, files over 10 MB may get stuck, URL ends in `netlify.app`. Analytics is a separate paid add-on, hedged on price.
+  - **GitHub Pages** — quoted from its limits page: published sites *"may be no larger than 1 GB"*, a **soft** 100 GB/month bandwidth limit, a **soft** 10 builds/hour. Soft is reported as soft; calling a monitored threshold a hard wall would be the same false precision the page is arguing against. No built-in visitor analytics.
+  - **Notion** — from its own analytics guide: the viewer list *"won't include anonymous viewers who aren't members or guests, but have seen your page online"*, while those views are still counted. So a public page yields a number and no names; the fuller workspace analytics is Enterprise; scroll depth, heatmaps and referrers are documented nowhere.
+  - **Google Docs** — from the publish-to-the-web help page: a document publishes as *"a version with no toolbar"*, spreadsheet viewers *"can't view or edit formulas"*, and *"any changes you make to the original document will be updated in the published version"*. That last one is the real distinction — a live mirror versus ilolink's published version, which matters when a client might quote the document back at you. No view counts documented.
+- **Each page argues against itself in a "where X is the better tool" section** — Drop for folders and custom domains, Pages for git-versioned multi-page sites, Notion for writing and living documents, Docs for collaborative editing. The recommended pattern for the last two is stated outright: keep writing there, publish through ilolink when it matters whether the document landed.
+- **Registered in `lib/seo/site.ts`**, which is what makes them exist for search — `/pricing` once shipped rendering perfectly and invisible because it was missing from the registry. Each carries `updated: "2026-08-12"`, the per-page sitemap date added earlier today, so they are not stamped with the corpus date of a sweep that predates them.
+- **Fixed a false claim in the existing tiiny.host page** while there: its FAQ said `ilolink.com/<slug>` *"redirects to"* the isolated origin. It does not — measured in production as `200` with **0 redirects**; it is a reverse proxy (`next.config.ts` rewrites) and the apex is the canonical every document names.
+
+### Verified by observation
+- `tsc --noEmit` exit 0; **299 tests pass** (the metadata suite polices these pages: a self-referencing canonical per registered page, plain-literal descriptions ≤160, and no page overriding the shared `openGraph` object).
+- Titles and descriptions measured from source: **37–59 chars** and **148–154 chars** respectively, all inside the limits.
+- `next build` clean, **95 static pages** (was 91), all four prerendered `○`.
+- **Served the real build on :3126 and read the HTML**: all four `200`; each emits its **own** `og:title` (the Next inheritance contract actually working, not assumed); an absolute self-referencing canonical; and 8 JSON-LD blocks resolving to `Article`, `FAQPage`, `BreadcrumbList`, `SoftwareApplication`, `Organization` and `WebPage`. Comparison tables render with their sourced captions. `/guides` picked all five comparison pages up automatically from the registry.
+- **Sitemap 58 → 62 URLs**, each new page dated `2026-08-12` from its own `updated` rather than the corpus fallback.
+- **Corpus-wide duplicate check across all 62 served pages:** zero duplicate titles, zero duplicate descriptions, zero missing descriptions — the thin-page risk of adding four similar comparison pages, checked rather than assumed.
+- **One false alarm I caught in my own measurement, not the code:** a first pass reported 8 pages over the limits. They were all pre-existing pages whose descriptions contain apostrophes or `&`, and I was counting the HTML-escaped attribute (`&#x27;` for one character). Re-measured with entities decoded: **zero over limit**, which agrees with the earlier session's finding rather than contradicting it.
+- Files: `app/(marketing)/vs/{netlify-drop,github-pages,notion,google-docs}/page.tsx` (new), `lib/seo/site.ts`, `app/(marketing)/vs/tiiny-host/page.tsx`.
+- **NOT DEPLOYED.** The pages are static and inert until the app worker ships.
+- **Still open:** the `/alternatives/*` counterparts exist only for tiiny.host. They target a different query ("X alternative" rather than "ilolink vs X") and are the obvious next increment, but four more near-identical pages written in one sitting is exactly how a corpus gets thin — better done deliberately, and only where the query justifies it.
+
+---
+
 ## 2026-08-12 — The document origin gets its own robots.txt, and stops quoting private documents to unfurlers
 
 - **Asked:** "go with 2, 3, 4" from the pending-SEO list — the missing robots.txt on the content origin, two comments that were provably false, and the unlisted-document OG excerpt — "work on a separate branch and then merge to main".

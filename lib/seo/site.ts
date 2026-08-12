@@ -318,6 +318,49 @@ export const COMPARISONS = {
     group: "compare",
     priority: 0.6,
   },
+  // Added 2026-08-12. Each names a competitor people actually reach for when
+  // they have one document and want a link, and each is a different trade-off
+  // rather than the same page with a name swapped: Drop is folder-vs-document,
+  // Pages is workflow cost, Notion and Google Docs are live-mirror publishing
+  // with no reader analytics. Every competitor claim on these pages is quoted
+  // from that vendor's own documentation with the date it was read, because a
+  // comparison page is where invented specifics do the most damage.
+  vsNetlifyDrop: {
+    path: "/vs/netlify-drop",
+    title: "ilolink vs Netlify Drop",
+    blurb:
+      "Drag-and-drop hosting for a folder, versus publishing one document and measuring how it was read.",
+    group: "compare",
+    priority: 0.6,
+    updated: "2026-08-12",
+  },
+  vsGithubPages: {
+    path: "/vs/github-pages",
+    title: "ilolink vs GitHub Pages",
+    blurb:
+      "Free static hosting that costs you a repo, a commit and a build — and reports nothing about readers.",
+    group: "compare",
+    priority: 0.6,
+    updated: "2026-08-12",
+  },
+  vsNotion: {
+    path: "/vs/notion",
+    title: "ilolink vs Notion public pages",
+    blurb:
+      "A published Notion page counts anonymous views without listing them. What read-through adds on top.",
+    group: "compare",
+    priority: 0.6,
+    updated: "2026-08-12",
+  },
+  vsGoogleDocs: {
+    path: "/vs/google-docs",
+    title: "ilolink vs Google Docs publish to web",
+    blurb:
+      "Publish to the web mirrors your edits and reports no views. A published version you can measure instead.",
+    group: "compare",
+    priority: 0.6,
+    updated: "2026-08-12",
+  },
 } as const satisfies Record<string, SitePage>;
 
 // ── Persona landing pages (Group B4) ──────────────────────────────────────
