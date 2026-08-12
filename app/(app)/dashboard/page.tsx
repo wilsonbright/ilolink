@@ -37,6 +37,7 @@ import { buildMoveTargets } from "@/lib/teamspace/move-targets";
 import type { TeamRole } from "@/lib/teamspace/permissions";
 import { ClaimBanner } from "./claim-banner";
 import { DocumentRowActions } from "./document-row-actions";
+import { DocumentTitle } from "./document-title";
 
 // What buildMoveTargets needs from a teamspace row — listTeamspacesForUser
 // returns a superset.
@@ -353,15 +354,10 @@ function DocList({
       {docs.map((d) => (
             <li
               key={d.id}
-              className="border-b border-hairline py-5 last:border-b-0"
+              className="group/row border-b border-hairline py-5 last:border-b-0"
             >
               <div className="flex items-baseline justify-between gap-4">
-                <Link
-                  href={`/dashboard/${d.slug}`}
-                  className="font-medium text-ink transition-colors duration-150 hover:text-accent"
-                >
-                  {d.title || d.slug}
-                </Link>
+                <DocumentTitle docId={d.id} slug={d.slug} title={d.title} />
                 <span className="shrink-0 text-sm tabular-nums text-ink-faint">
                   {when(d.published_at)}
                 </span>
