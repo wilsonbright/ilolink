@@ -5,6 +5,51 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — Teamspace publishing from the landing page, invite copy-links, and a public /mcp page
+
+- **Asked:** three changes — (1) allow publishing to a teamspace from the landing page, personal defaulting to public and a teamspace to private; (2) a copy-link for member invites, plus a note to check spam; (3) communicate Claude/ChatGPT connection on a `/mcp` page and the landing page, listing the tools for marketing.
+- **"Private" resolved to `unlisted`**, confirmed with the user before starting. The schema has no `private` — `Visibility` is `public | unlisted | password | expiring` — and a real members-only gate would need session auth inside the content worker, which is a separate origin with no session concept. `unlisted` is the private one that already exists: the link works, the worker sets `noindex`, and `lib/seo/doc-preview.ts` refuses to quote the body.
+
+### 1. Publishing into a teamspace from `/`
+
+- The landing composer rendered `<PublishForm />` with **no props**, so the picker (gated on `teamspaces.length > 1`) never appeared and every publish from `/` fell through to `ensurePersonalTeamspace`. `app/page.tsx` is statically prerendered and may not read a session, so the list could not be passed as a prop.
+- **`GET /api/teamspaces`** (new, alongside the existing POST). Returns `{signedIn, teamspaces}` with `cache-control: private, no-store` — the first response to carry shared-teamspace *names* to the public landing page. Answers **200 with `signedIn:false`** rather than 401, mirroring `/api/auth/me`, because most `/` visitors are signed out and a 401 would put a console error on every load of the highest-traffic page. Deliberately not folded into `/api/auth/me`, which exists precisely to keep the landing page off D1-heavy work.
+- **`PublishTarget` gained `personal: boolean`** (`!!t.is_personal` — D1 returns 1/0), plus two pure helpers in the same file: `defaultVisibilityFor(isPersonal)` → `public`/`unlisted`, and `shouldShowTeamspacePicker(targets)`.
+- **The async load is a no-op for visibility, by construction.** `listTeamspacesForUser` orders `is_personal DESC`, so `targets[0]` is always Personal and the default is still `public` when the fetch resolves. The homepage composer therefore always *starts* Public; only a deliberate change of destination moves it. Nothing flips under someone who already read the summary line.
+- **A manual visibility pick is sticky** (`visibilityTouched` ref). Not politeness — someone who chose Password and typed one would have it silently discarded by an auto-override on teamspace switch.
+- **Re-fetch after inline sign-in.** Without it the first publish after signing in on `/` lands in Personal whatever the user meant — the exact surprise the picker exists to remove.
+- **Server-side default too** (own commit): `visibility` now parses to `undefined` and is defaulted **after** teamspace resolution, since the answer depends on where the document lands. `resolveNamedTeamspace` widened its SELECT to carry `is_personal`. The `?? undefined` on the JSON path is load-bearing: plain `b.visibility` would let an explicit `"visibility": null` reach `isVisibility` and 400 a request shape that has always published fine. Only affects API callers — the web client always sends a value — but for exactly those, the old unconditional `"public"` meant a script omitting the field published team content to the open web.
+- **MCP left alone, with a comment saying why.** `publish-core.ts` keeps its unconditional `unlisted`: the server instructions state that default as a contract agents are already written against, agent output is the last thing that should default public, and the connection is bound to one teamspace so the user never sees the choice being made.
+
+### 2. Invite copy-link + spam note
+
+- `POST /api/teamspaces/[id]/invite` built the accept link at line 146 and **threw it away** — the response was `{ok, expiresInDays}`. It now returns `link` as well, `no-store`. Consistent with the design, not a widening of it: `lib/teamspace/invites.ts` states outright that holding the link **is** the authority and that forwarding is expected. A send failure still 502s rather than falling back to the link, so a broken mailer stays visible.
+- `members-admin.tsx` shows the link after a successful invite, reusing **`CopyField`** from `app/(app)/connect/` rather than writing a fourth clipboard implementation (there were already three). Added a `role="status"` live region **inside `CopyField`**, so `/connect` gained the announcement too — a label flipping to "Copied" is silent to a screen reader.
+- The spam note sits under the form **before** anything is sent, not only after: someone who has already watched an invitation vanish needs to know the fallback exists while they are deciding whether to bother.
+
+### 3. `/mcp`
+
+- There was **no public page about MCP at all** — `grep -i mcp app/(marketing)` returned zero hits across ~60 pages, while `/connect` (the only connector page) redirects signed-out visitors to `/signin` and is `robots: {index:false}`. A working, shipped MCP server that nothing findable mentioned.
+- New `app/(marketing)/mcp/page.tsx`: what MCP is, per-client setup for **Claude, Claude Code and ChatGPT**, a curated tool list (publish/measure, the registry, `search`/`fetch`), what the connection can and can't reach, and six FAQs with `FAQPage` + `HowTo` schema. Registered in `lib/seo/site.ts` — the file whose own comment records that `/pricing` once shipped orphaned and invisible.
+- **Curated, not all 22 tools** (user's call): ping, whoami, archive/unarchive, the review queue and the superseded `skills_*` matter once you are using it, not while deciding whether to. Every tool named was checked against `mcp-worker/src/agent.ts`.
+- **No full stop ever sits flush against the connector URL on this page**, and the URL is a `CopyField` rather than prose — the `/mcp.` incident (four failed connects; OAuth succeeds against a bad path and only the transport call fails) is exactly what prose invites.
+- Landing `#connect` section expanded with a four-item "what your assistant gains" grid and a second CTA to `/mcp`. Both footers now point at `/mcp` rather than `/connect`, since that footer is on pages people read before they have an account — and the marketing footer's stale **"Claude, Grok & more"** is now "Claude, ChatGPT & more", matching the landing page. `/connect` gained a "New to MCP?" link back.
+
+### Verified, not assumed
+
+- `npx vitest run` — **306 passed**, including 15 in `test/publish-target.test.ts` (the three exact-object assertions updated for `personal`, plus the 1/0-coercion, `defaultVisibilityFor` and `shouldShowTeamspacePicker` cases).
+- `npm run build` — **`○ /` and `○ /mcp`**, so the landing page is still statically prerendered and the new page is static despite its client island.
+- **In a browser**, signed in as a user with Personal + a shared teamspace: the picker appears on `/`; the summary line reads "Publishing as **Public** into **Personal**" and flips to "**Unlisted** into **BlockSurvey**" on switch, *without opening Options*; a manual Public pick survives switching teamspaces both ways; a real publish landed in `t_localteam` as `unlisted`.
+- **Server default measured in D1**, not reasoned about: no `visibility` + shared → `unlisted`; + personal → `public`; no teamspace at all → `public`; explicit `null` → 201 and `unlisted` (not a 400); `"secret"` → 400.
+- Invite sent, link rendered, clipboard read back and byte-identical, button flipped to "Copied", live region announced, and the copied token accepted at `/invite?t=…`.
+- `/mcp` checked in **light and dark**, present in `/sitemap.xml`, no `robots` noindex, canonical `https://ilolink.com/mcp`. Footer confirmed free of "Grok".
+
+**Files touched:** `lib/teamspace/publish-target.ts`, `test/publish-target.test.ts`, `app/api/teamspaces/route.ts`, `app/(app)/publish/publish-form.tsx`, `app/page.tsx`, `app/api/publish/route.ts`, `mcp-worker/src/publish-core.ts` (comment only), `app/api/teamspaces/[id]/invite/route.ts`, `app/(app)/t/[id]/members-admin.tsx`, `app/(app)/connect/copy-field.tsx`, `app/(app)/connect/page.tsx`, `app/(marketing)/mcp/page.tsx` (new), `app/(marketing)/layout.tsx`, `lib/seo/site.ts`.
+
+**Left undone, deliberately:** the invite form is still gated on `isOwner` while the server allows admins (`canInvite` = `atLeast("admin")`). Aligning them widens who sees the form, so it is the user's call, not a drive-by.
+
+---
+
 ## 2026-08-12 — Four competitor comparison pages, every claim quoted from the vendor's own docs
 
 - **Asked:** "are the vs pages added?" → they were not, only tiiny.host since 2026-07-22 → "you research and add."
