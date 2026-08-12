@@ -41,5 +41,12 @@ cloudflare-env.d.ts
 .playwright-mcp/
 *.png
 
+# ...but Next's metadata images are source, not screenshots. Without these two
+# lines they are ignored by the blanket *.png above, so they work on the machine
+# that made them and are simply absent from a clean checkout — the deploy then
+# serves no og:image and no apple-touch-icon, with nothing failing anywhere.
+!app/opengraph-image.png
+!app/apple-icon.png
+
 # Public build vars only (NEXT_PUBLIC_*) — never real secrets
 !.env.production

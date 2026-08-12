@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { SITE_TITLE, SITE_DESCRIPTION } from "@/lib/seo/site";
+import { SITE_METADATA } from "@/lib/seo/metadata";
 
-// Default metadata for anything that doesn't declare its own; the copy itself
-// lives in lib/seo/site.ts with the rest of the site registry.
-export const metadata: Metadata = {
-  title: SITE_TITLE,
-  description: SITE_DESCRIPTION,
-};
+// Defaults for anything that doesn't declare its own. The object itself lives
+// in lib/seo/metadata.ts (with the reasoning behind each field) so a test can
+// assert it without rendering this layout — same split as lib/seo/robots.ts.
+//
+// app/favicon.ico, app/icon.svg, app/apple-icon.png and app/opengraph-image.png
+// are picked up by Next's file conventions; no tags for them are declared here.
+export const metadata: Metadata = SITE_METADATA;
 
 export default function RootLayout({
   children,

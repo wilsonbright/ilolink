@@ -1,0 +1,1 @@
+ilolink — publish a document as a link anyone can open, then see how it was read.
