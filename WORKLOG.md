@@ -5,6 +5,19 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — Shipped row actions, and caught the preview being broken on prod
+
+- **Asked:** "ship it and get it live."
+- Pushed `ff28d72`, `01fb2bf`; deployed app worker `ecbd3195`. No migrations, no `content-worker` changes.
+- **Production verification found a real bug that local verification could not have.** The preview overlay pointed its iframe at the live document URL. Every published document is served with `frame-ancestors 'none'` and `X-Frame-Options: DENY`, so the browser refused the frame and the overlay showed "ilolink.com refused to connect". Locally the same iframe merely 404'd — single-segment slugs rewrite to the content worker, which does not run under `next dev` — so it looked like an empty box rather than a refusal, and I read it as a local-only limitation. It was not.
+- Those headers are correct and stay: they are what stops a third-party site framing someone's document for clickjacking. The supported route is `/api/doc-html` — gated on `canRead` by the same guard as the analytics routes, serving the sanitized body under `script-src 'none'`, and written explicitly to be rendered as srcdoc by the owner. **`heatmap-view.tsx` has always done it this way**; the overlay had copied its sandbox but not its source. Fixed in `c83fa93`, deployed `873b6f0e`, plus loading and failure states since the body is now fetched rather than framed.
+- **Re-verified on production:** the overlay now renders the real document ("Working With Wilson — Founder Operating Manual…") via `srcDoc`, with `sandbox="allow-same-origin"` and `allow-scripts` absent, and no `src` attribute at all. Also confirmed live: all four row controls present, `2 views` from the real Durable Object counter, clipboard reading back `https://ilolink.com/gnt3pg`, and the move menu offering BlockSurvey while correctly excluding Personal (the document's current teamspace).
+- **Did not execute a move against production data** — the menu was opened and inspected only. Which of the 10 Personal documents belong in BlockSurvey is the owner's decision, not mine.
+- Probe sessions used for verification were deleted; confirmed `probes: 0` remaining.
+- **Lesson worth keeping:** "it did not render locally" is not the same finding as "it cannot render", and the difference was a shipped-broken feature. A local 404 and a production frame-refusal look identical through a screenshot of an empty box.
+
+---
+
 ## 2026-08-12 — Dashboard row actions: copy URL, preview, move, inline views
 
 - **Asked:** "give an option to copy URL, quick way to preview and option to move from personal to teamspace, show basic view stats inline."
