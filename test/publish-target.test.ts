@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   buildPublishTargets,
+  defaultVisibilityFor,
   resolvePublishTeamspace,
+  shouldShowTeamspacePicker,
 } from "@/lib/teamspace/publish-target";
 
 // listTeamspacesForUser orders is_personal DESC, so personal is always first.
@@ -12,20 +14,64 @@ const OTHER = { id: "t_other", name: "Sacca", is_personal: 0 };
 describe("buildPublishTargets", () => {
   it("labels the personal teamspace 'Personal' regardless of its stored name", () => {
     expect(buildPublishTargets([{ ...PERSONAL, name: "wilson's stuff" }])).toEqual([
-      { id: "t_personal", label: "Personal" },
+      { id: "t_personal", label: "Personal", personal: true },
     ]);
   });
 
   it("uses the real name for team teamspaces and keeps input order", () => {
     expect(buildPublishTargets([PERSONAL, TEAM, OTHER])).toEqual([
-      { id: "t_personal", label: "Personal" },
-      { id: "t_team", label: "BlockSurvey" },
-      { id: "t_other", label: "Sacca" },
+      { id: "t_personal", label: "Personal", personal: true },
+      { id: "t_team", label: "BlockSurvey", personal: false },
+      { id: "t_other", label: "Sacca", personal: false },
     ]);
+  });
+
+  // D1 hands back 1/0, and `personal` feeds a boolean-typed helper — a truthy
+  // 1 leaking through would typecheck at the call site and read wrong here.
+  it("coerces D1's 1/0 to a real boolean", () => {
+    const [personal, team] = buildPublishTargets([PERSONAL, TEAM]);
+    expect(personal.personal).toBe(true);
+    expect(team.personal).toBe(false);
   });
 
   it("returns nothing for a signed-out visitor", () => {
     expect(buildPublishTargets([])).toEqual([]);
+  });
+});
+
+describe("defaultVisibilityFor", () => {
+  it("publishes personal documents publicly", () => {
+    expect(defaultVisibilityFor(true)).toBe("public");
+  });
+
+  // The whole point: team content must not default to the open web.
+  it("keeps shared-teamspace documents unlisted", () => {
+    expect(defaultVisibilityFor(false)).toBe("unlisted");
+  });
+});
+
+describe("shouldShowTeamspacePicker", () => {
+  const [personal, team] = buildPublishTargets([PERSONAL, TEAM]);
+
+  it("stays hidden for a signed-out visitor", () => {
+    expect(shouldShowTeamspacePicker([])).toBe(false);
+  });
+
+  // A solo user never meets the concept: one personal teamspace means no
+  // choice, and the default it implies is the one already on screen.
+  it("stays hidden for a lone personal teamspace", () => {
+    expect(shouldShowTeamspacePicker([personal])).toBe(false);
+  });
+
+  it("shows as soon as there is a real choice", () => {
+    expect(shouldShowTeamspacePicker([personal, team])).toBe(true);
+  });
+
+  // Degenerate but reachable: if the personal teamspace is not `active`,
+  // listTeamspacesForUser drops it and the only target is shared — which
+  // silently changes the default, so the destination has to be visible.
+  it("shows for a lone shared teamspace, because it changes the default", () => {
+    expect(shouldShowTeamspacePicker([team])).toBe(true);
   });
 });
 

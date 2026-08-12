@@ -1,20 +1,53 @@
+// GET  /api/teamspaces — which teamspaces may this browser publish into?
 // POST /api/teamspaces — create a shared teamspace. The creator becomes owner.
 //
-// Distinct from the personal teamspace, which is auto-created at sign-in and
-// never surfaced as a thing you make.
+// The personal teamspace is distinct: auto-created at sign-in, never surfaced
+// as a thing you make, and always first in the GET (see listTeamspacesForUser's
+// ORDER BY is_personal DESC — the composer's visibility default leans on it).
 
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { execute, queryFirst } from "@/lib/db/client";
 import { currentUser } from "@/lib/auth/current-user";
-import { getMembership } from "@/lib/teamspace/store";
+import { getMembership, listTeamspacesForUser } from "@/lib/teamspace/store";
+import { buildPublishTargets } from "@/lib/teamspace/publish-target";
 import { bootstrapTeamspace } from "@/lib/teamspace/bootstrap";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
 import { env } from "@/lib/cf";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const MAX_NAME = 60;
+
+// The landing-page composer is a client island on a statically prerendered page
+// (see the hard constraint at the top of app/page.tsx), so it cannot be handed
+// its teamspaces as props — it asks for them here after mount.
+//
+// Deliberately 200-with-signedIn:false rather than 401, mirroring
+// /api/auth/me, which the same page already calls: most visitors to `/` are
+// signed out, and a 401 would put a red console entry on every load of the
+// highest-traffic page on the site.
+//
+// Not folded into /api/auth/me on purpose. That route exists to keep the
+// landing page off D1-heavy work and documents itself as returning the email
+// and "nothing else"; merging this in would make every marketing hit pay a
+// teamspace query just to render a nav pill.
+//
+// No role filter: canPublishInto is atLeast("member"), so every membership row
+// in the list is a valid destination.
+export async function GET(): Promise<NextResponse> {
+  const user = await currentUser();
+  const teamspaces = user
+    ? buildPublishTargets(await listTeamspacesForUser(user.id))
+    : [];
+  return NextResponse.json(
+    { signedIn: !!user, teamspaces },
+    // Must never reach a shared cache: this is per-session, and it is the first
+    // response to carry shared-teamspace *names* to the public landing page.
+    { headers: { "cache-control": "private, no-store" } },
+  );
+}
 
 export async function POST(req: Request): Promise<NextResponse> {
   const user = await currentUser();

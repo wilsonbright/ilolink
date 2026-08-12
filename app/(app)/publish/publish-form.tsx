@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SignInForm } from "@/app/(app)/signin/signin-form";
 import type { SourceType, Visibility } from "@/lib/types";
 import type { PublishTarget } from "@/lib/teamspace/publish-target";
+import {
+  defaultVisibilityFor,
+  shouldShowTeamspacePicker,
+} from "@/lib/teamspace/publish-target";
 import { addToHistory } from "@/lib/history";
 
 // Cloudflare Turnstile, run HIDDEN: the widget verifies silently and only shows
@@ -84,15 +88,23 @@ function detectSource(text: string): SourceType {
   return "md";
 }
 
-// `teamspaces` is empty for a signed-out visitor (the homepage composer renders
-// this with no props at all), in which case there is nothing to pick and
-// /api/publish falls back to the personal teamspace as it always did.
+// `teamspaces` is empty for a signed-out visitor, in which case there is
+// nothing to pick and /api/publish falls back to the personal teamspace as it
+// always did.
+//
+// `discoverTeamspaces` is for the homepage composer. app/page.tsx is statically
+// prerendered and may not read a session, so it cannot pass `teamspaces` as a
+// prop — instead it passes this literal flag and the form fetches the list
+// itself after mount, the same trick app/nav-auth.tsx uses for the nav. Every
+// other caller (/publish) is a server component and passes real props.
 export function PublishForm({
   teamspaces = [],
   initialTeamspaceId,
+  discoverTeamspaces = false,
 }: {
   teamspaces?: PublishTarget[];
   initialTeamspaceId?: string;
+  discoverTeamspaces?: boolean;
 } = {}) {
   const [content, setContent] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -101,7 +113,18 @@ export function PublishForm({
   // Opt-in: publish this HTML raw so its own scripts run (default off = sanitized).
   const [trusted, setTrusted] = useState(false);
 
-  const [visibility, setVisibility] = useState<Visibility>("public");
+  // Seeded from the destination, so arriving at /publish?ts=<a shared team>
+  // opens on Unlisted rather than flashing Public and then correcting itself.
+  const [visibility, setVisibility] = useState<Visibility>(() =>
+    defaultVisibilityFor(
+      teamspaces.find((t) => t.id === initialTeamspaceId)?.personal ?? true,
+    ),
+  );
+  // Once the publisher picks a visibility by hand, switching teamspace must
+  // leave it alone. Not just politeness: they may have chosen Password and
+  // typed one, and an auto-override would silently discard it. A ref, not
+  // state — nothing renders from it, so it must not cause a re-render.
+  const visibilityTouched = useRef(false);
   const [password, setPassword] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
 
@@ -113,6 +136,10 @@ export function PublishForm({
   const [teamspaceId, setTeamspaceId] = useState<string | undefined>(
     initialTeamspaceId,
   );
+  // Filled in by the homepage fetch below; null means "haven't asked / not
+  // asking", which is why props win until it resolves.
+  const [discovered, setDiscovered] = useState<PublishTarget[] | null>(null);
+  const targets = discovered ?? teamspaces;
 
   const [dragging, setDragging] = useState(false);
   // Depth counter so dragging over child nodes doesn't flicker the overlay:
@@ -136,6 +163,46 @@ export function PublishForm({
   useEffect(() => {
     if (!sourceLocked) setSource(detected);
   }, [detected, sourceLocked]);
+
+  // Ask which teamspaces this browser may publish into. Only the homepage does
+  // this; /publish already has the answer server-side.
+  //
+  // Two things it must NOT do. It must not touch `error` on failure — the form
+  // still publishes perfectly well without a picker, since the route falls back
+  // to the personal teamspace. And it must not set `signedIn`, which is the
+  // inline-sign-in confirmation flag: setting it here would print "Signed in —
+  // press Publish to continue." permanently for every returning visitor.
+  const loadTeamspaces = useCallback(() => {
+    let live = true;
+    fetch("/api/teamspaces")
+      .then((r) => r.json() as Promise<{ teamspaces?: PublishTarget[] }>)
+      .then((d) => {
+        if (live) setDiscovered(d?.teamspaces ?? []);
+      })
+      .catch(() => {
+        if (live) setDiscovered([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!discoverTeamspaces) return;
+    return loadTeamspaces();
+  }, [discoverTeamspaces, loadTeamspaces]);
+
+  // Which teamspace the document actually lands in, once the list is known.
+  //
+  // The late arrival of that list is deliberately a no-op for visibility:
+  // listTeamspacesForUser orders is_personal DESC, so targets[0] is always the
+  // personal teamspace and defaultVisibilityFor still says "public" when the
+  // fetch resolves. The homepage composer therefore always *starts* Public and
+  // only a deliberate change of destination can move it — nothing flips under
+  // someone who already read the summary line.
+  const selectedId = teamspaceId ?? targets[0]?.id;
+  const selectedTarget = targets.find((t) => t.id === selectedId);
+  const showTeamspacePicker = shouldShowTeamspacePicker(targets);
 
   const loadFile = useCallback(async (file: File) => {
     const name = file.name.toLowerCase();
@@ -342,7 +409,11 @@ export function PublishForm({
     setContent("");
     setFileName(null);
     setSourceLocked(false);
-    setVisibility("public");
+    // Back to the default for the teamspace still selected, not unconditionally
+    // to public — `reset` is "Publish another", and the second document is
+    // going to the same place as the first.
+    visibilityTouched.current = false;
+    setVisibility(defaultVisibilityFor(selectedTarget?.personal ?? true));
     setPassword("");
     setExpiresAt("");
     setShowSlug(false);
@@ -612,8 +683,15 @@ export function PublishForm({
             sent no teamspace at all and every document silently landed in the
             personal teamspace; hiding the control that fixes that would just
             reproduce the same surprise one click deeper. Shown only when there
-            is a real choice — a solo user still never meets the concept. */}
-        {teamspaces.length > 1 && (
+            is a real choice — a solo user still never meets the concept.
+
+            On the homepage this appears a moment after load, once
+            /api/teamspaces answers. It sits above the Publish button and below
+            the textarea, so the caret never moves; only the button shifts, and
+            only in the first fraction of a second. Reserving space for it
+            instead would leave a permanent gap for the signed-out majority —
+            the same trade app/nav-auth.tsx makes for the nav. */}
+        {showTeamspacePicker && (
           <div>
             <label
               htmlFor="teamspace"
@@ -624,11 +702,23 @@ export function PublishForm({
             <select
               id="teamspace"
               name="teamspace"
-              value={teamspaceId ?? teamspaces[0].id}
-              onChange={(e) => setTeamspaceId(e.target.value)}
+              value={selectedId}
+              onChange={(e) => {
+                const next = e.target.value;
+                setTeamspaceId(next);
+                // A shared teamspace defaults to unlisted, personal to public —
+                // unless the publisher has already said what they want.
+                if (!visibilityTouched.current) {
+                  setVisibility(
+                    defaultVisibilityFor(
+                      targets.find((t) => t.id === next)?.personal ?? true,
+                    ),
+                  );
+                }
+              }}
               className="w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none sm:w-auto"
             >
-              {teamspaces.map((t) => (
+              {targets.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.label}
                 </option>
@@ -651,6 +741,13 @@ export function PublishForm({
               onSignedIn={() => {
                 setNeedsAuth(false);
                 setSignedIn(true);
+                // There was no session when the page loaded, so the picker has
+                // nothing in it. Without this the very first publish after
+                // signing in lands in Personal whatever the user meant — the
+                // exact surprise this control exists to remove. The sign-in
+                // card is unmounting anyway, so the picker arriving is part of
+                // one visual change rather than a second one.
+                if (discoverTeamspaces) loadTeamspaces();
               }}
             />
           </div>
@@ -692,13 +789,10 @@ export function PublishForm({
           </span>
           {/* Name the destination in the summary too, so someone who never
               opens the picker still sees where the document is going. */}
-          {teamspaces.length > 1 && (
+          {showTeamspacePicker && (
             <>
               {" into "}
-              <span className="text-ink-soft">
-                {teamspaces.find((t) => t.id === teamspaceId)?.label ??
-                  teamspaces[0].label}
-              </span>
+              <span className="text-ink-soft">{selectedTarget?.label}</span>
             </>
           )}
           {showSlug && slug.trim() ? ` at /${slug.trim()}` : ""}.
@@ -724,7 +818,12 @@ export function PublishForm({
                 type="button"
                 role="radio"
                 aria-checked={active}
-                onClick={() => setVisibility(opt.value)}
+                onClick={() => {
+                  // Any deliberate pick pins the choice, so a later change of
+                  // teamspace cannot overwrite it (or a password already typed).
+                  visibilityTouched.current = true;
+                  setVisibility(opt.value);
+                }}
                 className={`rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ${
                   active
                     ? "bg-accent-soft text-accent"
