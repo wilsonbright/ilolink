@@ -9,8 +9,22 @@
 // This overlay renders inside ilolink.com, an authenticated origin holding the
 // session cookie. Adding allow-scripts here would run a document author's code
 // in that origin. It must never be added.
+//
+// WHY srcDoc AND NOT src={`/${slug}`}: the first version pointed the iframe at
+// the live document URL and was dead on arrival in production — every published
+// document is served with `frame-ancestors 'none'` and `X-Frame-Options: DENY`,
+// so the browser refuses the frame outright ("ilolink.com refused to connect").
+// That header is correct and stays: it is what stops a third-party site framing
+// someone's document for clickjacking. The supported way in is /api/doc-html,
+// which is gated on canRead by the same guard as the analytics routes, returns
+// the sanitized body with `script-src 'none'`, and exists precisely to be
+// rendered as srcdoc by the owner — which is how the heatmap has always done it.
+//
+// This was invisible locally: single-segment slugs rewrite to the content
+// worker, which does not run under `next dev`, so the local iframe 404'd rather
+// than being refused.
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function PreviewOverlay({
   slug,
@@ -23,6 +37,9 @@ export function PreviewOverlay({
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [doc, setDoc] = useState<
+    { state: "loading" } | { state: "ready"; html: string } | { state: "error" }
+  >({ state: "loading" });
   // Whatever was focused when the overlay opened — the row's preview button —
   // so closing returns the keyboard where it was rather than dumping it at the
   // top of the document.
@@ -39,6 +56,18 @@ export function PreviewOverlay({
       returnTo.current?.focus?.();
     };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    setDoc({ state: "loading" });
+    fetch(`/api/doc-html?slug=${encodeURIComponent(slug)}`)
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
+      .then((html) => alive && setDoc({ state: "ready", html }))
+      .catch(() => alive && setDoc({ state: "error" }));
+    return () => {
+      alive = false;
+    };
+  }, [slug]);
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -106,13 +135,24 @@ export function PreviewOverlay({
             </button>
           </div>
         </div>
-        {/* Not allow-scripts. See the header comment — this is the whole point. */}
-        <iframe
-          src={`/${slug}`}
-          title={`Preview of ${title}`}
-          sandbox="allow-same-origin"
-          className="h-full w-full flex-1 bg-canvas"
-        />
+        {/* srcDoc, not src — and never allow-scripts. See the header comment;
+            both halves of that are the whole point. */}
+        {doc.state === "ready" ? (
+          <iframe
+            title={`Preview of ${title}`}
+            srcDoc={doc.html}
+            sandbox="allow-same-origin"
+            className="h-full w-full flex-1 bg-canvas"
+          />
+        ) : (
+          <div className="flex flex-1 items-center justify-center p-6">
+            <p className="text-sm text-ink-faint">
+              {doc.state === "loading"
+                ? "Loading preview…"
+                : "That preview didn't load. Open the document instead."}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
