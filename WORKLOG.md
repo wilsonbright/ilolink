@@ -5,6 +5,18 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — Pushed and deployed to production
+
+- **Asked:** "get it live and push."
+- Pushed `02eb986`, `bbcc8ea`, `66eff60` to `origin/main` (`25ec8ea..66eff60`).
+- Deployed the **app worker only** (`npm run deploy`, version `92bebeda-5701-4fe0-abf8-cc28bdac2759`). Per `DEPLOY.md` the content worker goes first *because* it defines the `ViewCounter` Durable Object the app binds cross-script — but nothing under `content-worker/` changed and that worker is already live, so redeploying it would have been motion without purpose. No migration either: the newest is still `0015_billing.sql`, already applied remotely, and the `document_count` work added a subquery, not a schema change.
+- **Verified against the real site, not the build log.** Public surfaces: landing and `/guides` nav pills both go transparent → `rgb(237,240,253)` on hover with no layout shift, "Get started" carries `new=1`, `/signin?new=1` renders "Create your ilolink account" while bare `/signin` still renders "Sign in to ilolink".
+- Signed-in surfaces needed a session I do not have, so — following the precedent set on 2026-08-09 — inserted one throwaway `sessions` row scoped to the owner's own account, verified, then **deleted it and confirmed `remaining: 0`**. Confirmed live: the teamspace picker exists in production with Personal + BlockSurvey, and `/publish?ts=t_C9Oa_Xt2MzVAiyV1` preselects BlockSurvey. `/t` renders the new card layout against real data — Personal "just you · 10 documents", BlockSurvey "8 people · 0 documents · 13 skills", matching the designer's own screenshot.
+- Console on the signed-in pages showed only aborted `_rsc` prefetches (an artifact of navigating away fast) and a DNS failure reaching Turnstile's challenge host from the sandboxed browser. No page errors, no application exceptions.
+- **BlockSurvey still reads 0 documents** — the footprint of the bug fixed in `02eb986`. Nothing ever landed there. Existing documents were deliberately left in Personal; moving them is a separate decision.
+
+---
+
 ## 2026-08-12 — Designer's 11 suggestions implemented across five surfaces
 
 - **Asked:** "improve and fix the changes requested in the document" — `Suggestions for ilolink.pdf`, 11 numbered items with annotated screenshots and two full redesign mockups, written by the designer after reviewing the live product.
