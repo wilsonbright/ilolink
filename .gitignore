@@ -50,3 +50,10 @@ cloudflare-env.d.ts
 
 # Public build vars only (NEXT_PUBLIC_*) — never real secrets
 !.env.production
+
+# Linked git worktrees, kept inside the project because this project's rules say
+# work never leaves this folder. A worktree holds a full checkout, so leaving it
+# unignored would commit the tree into itself. (Deploy scratch dirs like
+# .deploy-tmp are the same shape and are covered by the same reasoning.)
+.worktrees/
+.deploy-tmp/
