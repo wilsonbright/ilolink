@@ -5,6 +5,26 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-12 — Deployed the ChatGPT/OAuth work, and two deploys rolled each other back
+
+- **Asked:** "deploy" → "merge and deploy" → "check now".
+
+### Live now
+`ilolink-mcp` version `278d4c61`, `ilolink` version `34fdbc8b`, `main` at the merge commit and equal to what is deployed. Verified against production, not inferred: `/authorize` with a bad request returns **400** (was `error code: 1101`), `client_id_metadata_document_supported: true`, a real signed dashboard link **200** while the same id with its signature stripped **404**, plus the SEO `og:` tags, absolute canonical and `opengraph-image.png` all serving.
+
+### Two rollbacks, same root cause
+Deploying from a feature branch without checking whether `main` had moved **underneath** it.
+1. I checked `git log main..mine`, saw one commit, and concluded "my branch is main + 1". I never checked the reverse. `main` was already two commits ahead, so my app deploy **rolled the SEO metadata work out of production**.
+2. Fixed that by merging and redeploying — then another session deployed `main` (which still lacked the dashboard-token fix) and **reopened the unsigned-dashboard bypass in production**. Caught it because the post-deploy check tests the exploit directly: `curl` the workspace id with the signature stripped and require a 404. It returned 200.
+
+**Rule earned:** before any deploy, check divergence in *both* directions (`git log A..B` **and** `B..A`), and always run the exploit-shaped probe afterwards rather than a health check — `/` returned 200 the whole time the bypass was open.
+
+### Also worth knowing
+- Two deploys failed with `fetch failed` at the `assets-upload-session` step, ~21 min then ~3 min. `main` carries new binary assets (`opengraph-image.png`, `favicon.ico`, `apple-icon.png`), so the upload is far larger than the single-file uploads that had succeeded earlier; it went through once run outside the tool sandbox.
+- A `.deploy-tmp` git worktree held `main` for part of this, which blocks `git checkout main` and `git branch -f main` in the primary tree. It was removed by the session that made it; nothing of theirs was touched.
+
+---
+
 ## 2026-08-12 — HTTPS redirect turned on, and the SERP copy trimmed to fit
 
 - **Asked:** "fix the two things" — the http→https redirect and the copy backlog left over from the audit.
