@@ -1,0 +1,22 @@
+{
+  // Standalone Worker tsconfig — no Next, no "@/" alias, mirrors
+  // content-worker/tsconfig.json. This worker is fully dependency-free (Web
+  // platform APIs only), so nothing outside src/ is imported. Runtime globals
+  // (KVNamespace, D1Database, ExportedHandler, ScheduledController, ...) come
+  // from the generated runtime types in ../cloudflare-env.d.ts.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": [],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src/**/*.ts", "../cloudflare-env.d.ts"]
+}

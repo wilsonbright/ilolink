@@ -496,6 +496,19 @@ export const REFERENCE = {
     priority: 0.8,
     updated: "2026-08-12",
   },
+  // The weekly trend layer. /trending re-renders each Monday from the
+  // hand-approved snapshot the trends-worker publishes to KV; archive weeks
+  // (/trending/{week}) are deliberately NOT registered — they are discovered
+  // through links from this page, and the registry stays evergreen pages only.
+  trending: {
+    path: "/trending",
+    title: "Trending in agent work",
+    blurb:
+      "The skills, MCP servers, agents and frameworks that broke out this week — ranked by star velocity, corroborated by curated lists.",
+    group: "reference",
+    priority: 0.8,
+    updated: "2026-08-13",
+  },
   glossary: {
     path: "/glossary",
     title: "Glossary: AI output, artifacts, static hosting & GEO",

@@ -1,0 +1,52 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Trends pipeline (trending spec §4, phase 1): a SEPARATE Worker that ingests
+  // public GitHub / awesome-list signals on a cron, scores weekly trending items
+  // in its OWN D1 database, and — only on explicit hand-approval — publishes a
+  // frozen snapshot into the shared KV namespace under trending:* keys. The app
+  // never touches this worker's D1; the one-way KV hand-off is the whole
+  // integration surface, so a bug here can at worst publish a bad list, never
+  // reach product data.
+  "name": "ilolink-trends",
+  "main": "src/index.ts",
+  // global_fetch_strictly_public matters here: this worker fetches GitHub and
+  // raw.githubusercontent.com from URLs partly derived from README content, and
+  // the flag confines fetch() to public addresses (no SSRF into the account's
+  // own services or private ranges).
+  "compatibility_date": "2026-07-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "account_id": "a8ec57aa9f4b6a49e48e60b1aa2a306e",
+  // No custom domain for phase 1 — the only HTTP surface is the token-gated
+  // admin API, and workers.dev is fine for that.
+  "workers_dev": true,
+  // Sunday 22:00 UTC: ingest (GitHub search + awesome-list diff) stamps the
+  // week that is about to end. Monday 06:00 UTC: score that finished week.
+  // Publishing to KV stays manual (POST /admin/approve) by design.
+  "triggers": {
+    "crons": ["0 22 * * sun", "0 6 * * mon"]
+  },
+  // OWN database, on purpose — this is ilolink-trends, NOT the product DB
+  // ("ilolink"). It has its own migration chain in trends-worker/migrations/
+  // starting at 0001_init.sql; the repo-root migrations/ chain belongs to the
+  // product DB and must never run against this one.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ilolink-trends",
+      "database_id": "82b6936f-21ea-418e-9828-f9df83e748a3",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // SHARED namespace with the app. This worker writes ONLY trending:* keys
+  // (weekly snapshots + week index + tunable scoring config); the app reads
+  // them and writes nothing back.
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "b3b0ebce3b0842afa429cfa3372483e8"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

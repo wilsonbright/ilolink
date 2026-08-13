@@ -30,6 +30,9 @@ export default function MarketingLayout({
             <Link href="/guides" className={NAV_LINK}>
               Guides
             </Link>
+            <Link href="/trending" className={NAV_LINK}>
+              Trending
+            </Link>
             <Link href="/" className={NAV_LINK}>
               Publish
             </Link>
@@ -89,6 +92,14 @@ export default function MarketingLayout({
                     className="text-ink-soft transition-colors duration-150 hover:text-accent"
                   >
                     Connect to Claude, ChatGPT &amp; more
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/trending"
+                    className="text-ink-soft transition-colors duration-150 hover:text-accent"
+                  >
+                    Trending this week
                   </Link>
                 </li>
                 <li>
