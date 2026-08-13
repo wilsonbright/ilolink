@@ -17,6 +17,13 @@ date, what was asked, what was done, files touched.
 - **Not done:** content-worker reading pages (view.ilolink.com) keep their own deliberately neutral document styling — restyling the reader surface is a separate decision; `lib/email/templates.ts` still carries the old blue (emails are fixed-light; rebrand them when touched next); `opengraph-image.png` (the static site-wide card) not regenerated — the dynamic `/api/og` card is rebranded.
 - **Branch `redesign/modernist`, commit `9b2a090`. Not merged, not deployed** — full visual change; the user should eyeball it first.
 
+### Merged and deployed (same day, on the user's "merge and deploy")
+
+- Fast-forward merge to `main` (`07b4c84`), pushed; divergence checked both directions first — local == origin, branch was main+2, reverse empty. Diff confirmed **app-only** (no mcp-worker/content-worker files), so only the app worker shipped.
+- Built from the clean primary tree at `07b4c84` — `git status` empty before and after the build, and the artefact grepped for the redesign's own markers before upload (new accent + Archivo in the emitted CSS, the new hero copy in the server bundle). Deployed `ilolink` version **`49df61e1`**.
+- **Verified live:** new hero copy serving on `/`; the emitted CSS carries `ec3013` + Archivo and zero hits for the old blue `3b5bdb`; `/api/og` returns 200 image/png (the Archivo fontsource URLs resolve in production, not just locally); production screenshots in both schemes — the poster banner stays saturated red in dark mode.
+- **Regression checks all held:** unsigned-dashboard exploit probe 404; apex + content-worker robots 200; `/signin` `/publish` `/connect` still noindex; sitemap 63; home canonical absolute; a published document 200 through the proxy; `GET /api/teamspaces` still `{"signedIn":false,…}` with no-store.
+
 ---
 
 ## 2026-08-12 — Teamspace publishing from the landing page, invite copy-links, and a public /mcp page
