@@ -75,6 +75,12 @@ export async function GET(req: Request): Promise<NextResponse> {
       // Whether the doc belongs to a teamspace at all — the detail page shows
       // the /private/<slug> members link only when there are members to use it.
       teamspace: doc.teamspace_id != null,
+      // Which teamspace, so "← All documents" returns to the tab the reader
+      // came from instead of dumping them in Personal. Members only: a
+      // document-share grantee can read this doc without belonging to the
+      // teamspace, and handing them an id for a dashboard tab they cannot open
+      // would be an id they had no other way to learn.
+      teamspaceId: membership ? (doc.teamspace_id ?? null) : null,
     },
     { headers: { "cache-control": "private, no-store" } },
   );

@@ -437,7 +437,7 @@ function TeamReaders({ stats }: { stats: Load<StatsData> }) {
           </ul>
           {/* Honesty caption: receipts exist only where identity does. */}
           <p className="text-[13px] text-ink-faint">
-            Opens through the public or unlisted link stay anonymous by design.
+            Opens through the public or unlisted link are anonymous by design.
           </p>
         </div>
       )}

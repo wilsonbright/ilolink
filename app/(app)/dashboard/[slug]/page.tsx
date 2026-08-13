@@ -27,6 +27,8 @@ interface DocMeta {
   // Whether the doc belongs to a teamspace — what decides if the members link
   // line below the public URL renders at all.
   teamspace: boolean;
+  // Which teamspace, when the viewer is a member of it. Drives the back link.
+  teamspaceId: string | null;
 }
 
 export default function DocumentDetailPage() {
@@ -71,8 +73,13 @@ export default function DocumentDetailPage() {
 
   return (
     <section className="mx-auto w-full max-w-[1160px]">
+      {/* Back to the tab this document actually lives in. A teamspace doc used
+          to send you to Personal, which reads as the document having moved.
+          The id arrives with the metadata fetch, so a click in the first
+          moments still falls back to a bare /dashboard — correct, just less
+          specific, and the dashboard resolves an unknown ?ts= the same way. */}
       <Link
-        href="/dashboard"
+        href={meta?.teamspaceId ? `/dashboard?ts=${meta.teamspaceId}` : "/dashboard"}
         className="text-sm text-ink-faint transition-colors duration-150 hover:text-ink"
       >
         ← All documents

@@ -31,6 +31,7 @@ import {
 } from "react";
 import type { Heatmap } from "@/lib/analytics/heatmap";
 import { TAG_CHIP_ACTIVE, TAG_CHIP_INACTIVE } from "@/lib/ui/tags";
+import { themedSrcDoc } from "./preview-theme";
 
 type Bucket = "sm" | "md" | "lg";
 type Layer = "click" | "scroll";
@@ -129,6 +130,29 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // The underlay is themed like the rest of the app (see ./preview-theme): an
+  // unstyled markdown rendering is otherwise black serif on white, which in a
+  // dark app is a white rectangle under a red heat overlay.
+  //
+  // It also brings the underlay CLOSER to what readers actually saw. The
+  // published page renders in the reading shell's sans stack, not the browser's
+  // default serif, so the untouched payload was the layout least like the one
+  // these clicks were recorded against. Alignment stays approximate either way
+  // — the heat is drawn from fractions of the document box, and this preview
+  // only ever approximates the reader's — but sans-on-canvas is the closer
+  // approximation.
+  //
+  // Re-keyed on a scheme flip because the injected style bakes the resolved
+  // token values at render time; without it a light→dark switch would leave a
+  // stale light underlay until remount.
+  const [schemeFlips, setSchemeFlips] = useState(0);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onFlip = () => setSchemeFlips((n) => n + 1);
+    mq.addEventListener("change", onFlip);
+    return () => mq.removeEventListener("change", onFlip);
+  }, []);
 
   const width = BUCKET_WIDTH[bucket];
 
@@ -270,8 +294,9 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
               {doc.state === "ready" ? (
                 <iframe
                   ref={iframeRef}
+                  key={schemeFlips}
                   title="Document preview"
-                  srcDoc={doc.data}
+                  srcDoc={themedSrcDoc(doc.data)}
                   onLoad={measure}
                   sandbox="allow-same-origin"
                   scrolling="no"

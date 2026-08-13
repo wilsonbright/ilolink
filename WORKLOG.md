@@ -5,6 +5,14 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — Two fixes: heatmap underlay theming, and the back link losing the teamspace
+
+- **Asked:** (1) the document shown under the heatmap renders light/serif inside the dark app — give it the same treatment the Preview overlay got; (2) opening a teamspace document and clicking "← All documents" always lands on Personal.
+- **(1)** The overlay's theming helpers moved to `app/(app)/dashboard/preview-theme.ts` (`isThemeable` / `appThemeStyle` / new `themedSrcDoc`) and the heatmap underlay now uses them, plus the `matchMedia` re-key the overlay already had so a scheme flip repaints instead of leaving a stale light underlay. Worth recording *why this is not a regression for alignment*: the untouched payload rendered in the browser's default serif, which is the layout LEAST like the published page (whose reading shell is a sans stack), so sans-on-canvas is the closer approximation of what readers actually clicked on. The heat is drawn from fractions of the document box either way, so this preview only ever approximates.
+- **(2)** `/api/documents/meta` now returns `teamspaceId`, but **only when the requester is a member** — a document-share grantee can read the doc without belonging to the teamspace, and handing them an id for a tab they cannot open would leak an id they had no other way to learn. The back link becomes `/dashboard?ts=<id>`. The id arrives with the metadata fetch, so a click in the first moments still falls back to a bare `/dashboard` — correct, just less specific.
+- Fixed a grammar bug spotted in the screenshot while verifying: "Opens … stay anonymous" → "are anonymous".
+- **Verified:** tsc clean, 385/385. In the browser: back link resolves to `/dashboard?ts=t_localteam`, clicking it lands on the BlockSurvey tab with `aria-current` on that chip and the team's documents listed; heatmap iframe body computes canvas/ink + Archivo in **both** schemes (dark `rgb(27,26,25)`, light `rgb(243,242,242)`), screenshotted.
+
 ## 2026-08-14 — `artifacts_contribute`: connected agents contribute what they learn, as proposals
 
 - **Asked:** a skill exposed through MCP so connected agents, on detecting something valuable, contribute it to the ilolink teamspace they are part of — auto-contribute. Planned in plan mode; three decisions confirmed by the user: contribute **without asking** then report; **always a proposal** even for owners; **notify** admins/owners.
