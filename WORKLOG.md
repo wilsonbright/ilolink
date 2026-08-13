@@ -5,6 +5,12 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — The "connect an assistant" hint stops nagging people who already did
+
+- **Asked:** don't show the connector hint in the library once skills and agents exist.
+- The condition was per-TAB (`kindTabs.every(count === 0)`), so someone whose team registry is full still got the pitch every time they opened their empty Personal tab — a nag aimed at the wrong person. Now keyed on whether the user has an artifact in **any** teamspace they belong to (`hasAnyArtifacts` over the `countsByTeamspace` map the page already builds for the chips — no new query).
+- **Verified both branches, not just the one asked for:** with one runbook in BlockSurvey the hint is gone from Personal *and* BlockSurvey; archiving that artifact brings it back on a genuinely empty account, and restoring it hides it again. The first-run nudge still does its job — ten zeros on a fresh account would otherwise read as a broken page.
+
 ## 2026-08-14 — Library list: logo alignment, inline visibility, row right padding
 
 - **Asked:** (1) align the logo; (2) allow changing public/private/unlisted directly on the list; (3) add right padding — "Move" sits on the edge.

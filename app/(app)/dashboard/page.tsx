@@ -262,8 +262,12 @@ export default async function DashboardPage({
             ))}
           </div>
           {/* Ten zeros on a fresh account reads as a broken page rather than a
-              capable one. Say where these come from. */}
-          {kindTabs.every((k) => k.id === DOCUMENTS_KIND || k.count === 0) && (
+              capable one. Say where these come from — ONCE. The test is whether
+              this user has artifacts ANYWHERE, not whether this tab does:
+              someone whose team registry is full already knows how they get
+              there, and repeating the pitch on their empty personal tab is a
+              nag pointed at the wrong person. */}
+          {!hasAnyArtifacts(countsByTeamspace) && (
             <p className="pb-3.5 text-sm leading-[22px] text-ink-faint">
               Skills, agents, specs and plans arrive when a connected assistant
               pushes them.{" "}
@@ -352,6 +356,17 @@ function sumKindCounts(counts: Map<string, number> | undefined): number {
   let total = 0;
   for (const n of counts.values()) total += n;
   return total;
+}
+
+// Does this user have a single artifact in any teamspace they belong to? It is
+// what decides whether the "connect an assistant" line is still news to them.
+function hasAnyArtifacts(
+  countsByTeamspace: Map<string, Map<string, number>>,
+): boolean {
+  for (const counts of countsByTeamspace.values()) {
+    if (sumKindCounts(counts) > 0) return true;
+  }
+  return false;
 }
 
 function DocList({
