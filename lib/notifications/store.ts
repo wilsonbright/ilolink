@@ -12,6 +12,12 @@
 // nothing the recipient could not already see on the members list — the same
 // argument that lets /api/mentions/candidates return labels to members only.
 // Keep both facts true if you add kinds or readers.
+//
+// 'artifact_proposal' (migration 0018) is the second kind, and this paragraph
+// demands the argument be restated rather than assumed: a recipient is by
+// definition an owner or admin of that teamspace, so the proposal, who filed
+// it, and the artifact's name and kind are all already on /t/<id>/proposals
+// for them. Nothing this file joins in at read time is news to a recipient.
 
 import { nanoid } from "nanoid";
 
@@ -102,6 +108,81 @@ export async function insertMentionNotifications(
   );
 }
 
+// Hard cap on the fan-out of one contribution, mirroring the mentions cap: a
+// teamspace with a long bench of admins must not turn a single proposal into
+// an unbounded batch.
+export const MAX_PROPOSAL_NOTIFY = 50;
+
+// Pure: who gets told a proposal is waiting. Owners and admins only, because
+// they are the roles that can act on it, and never the actor — nobody needs
+// telling what they themselves just filed. The role test is repeated here even
+// though the query below already filters on role: same belt-and-braces as
+// filterValidMentions, so the rule holds wherever the rows came from.
+export function proposalRecipients(
+  reviewers: readonly { user_id: string; role: string }[],
+  actorUserId: string,
+): string[] {
+  const out: string[] = [];
+  for (const r of reviewers) {
+    if (r.role !== "owner" && r.role !== "admin") continue;
+    if (r.user_id === actorUserId) continue;
+    out.push(r.user_id);
+    if (out.length >= MAX_PROPOSAL_NOTIFY) break;
+  }
+  return out;
+}
+
+export interface ArtifactProposalInsert {
+  teamspaceId: string;
+  actorUserId: string;
+  artifactVersionId: string;
+}
+
+// One row per reviewer, in a single batch like the mention path. Returns how
+// many were written so the caller can tell the contributing assistant whether
+// a human will actually see the proposal.
+//
+// Zero recipients is a normal outcome, not a failure: in a personal teamspace
+// the contributor IS the sole owner, so there is nobody left to notify and the
+// proposal simply waits for them on their own review queue.
+export async function insertArtifactProposalNotifications(
+  db: D1Database,
+  input: ArtifactProposalInsert,
+): Promise<number> {
+  const reviewers = await db
+    .prepare(
+      `SELECT user_id, role FROM teamspace_members
+        WHERE teamspace_id = ? AND role IN ('owner','admin') AND user_id != ?
+        LIMIT ?`,
+    )
+    .bind(input.teamspaceId, input.actorUserId, MAX_PROPOSAL_NOTIFY)
+    .all<{ user_id: string; role: string }>();
+
+  const recipients = proposalRecipients(reviewers.results, input.actorUserId);
+  if (recipients.length === 0) return 0;
+
+  const now = Date.now();
+  const stmt = db.prepare(
+    `INSERT INTO notifications
+       (id, user_id, kind, actor_user_id, teamspace_id, artifact_version_id,
+        created_at)
+     VALUES (?, ?, 'artifact_proposal', ?, ?, ?, ?)`,
+  );
+  await db.batch(
+    recipients.map((userId) =>
+      stmt.bind(
+        `n_${nanoid(16)}`,
+        userId,
+        input.actorUserId,
+        input.teamspaceId,
+        input.artifactVersionId,
+        now,
+      ),
+    ),
+  );
+  return recipients.length;
+}
+
 // The wire shape of GET /api/notifications. Reference columns are resolved by
 // JOIN at read time on purpose: documents/comments rows are deleted on
 // unpublish (see the migration header), so everything joined is nullable and
@@ -113,11 +194,19 @@ export interface NotificationItem {
   docSlug: string | null;
   docTitle: string | null;
   commentExcerpt: string | null;
+  artifactName: string | null;
+  artifactKind: string | null;
+  teamspaceName: string | null;
+  teamspaceId: string | null;
   createdAt: number;
   readAt: number | null;
 }
 
 // Newest first; rides idx_notifications_user (user_id, created_at DESC).
+//
+// artifact_versions.skill_id really is the artifacts FK: 0014 renamed both
+// tables and left the column its pre-rename name. It is not a typo — renaming
+// it now would be a migration, not a cleanup.
 export async function listNotifications(
   db: D1Database,
   userId: string,
@@ -130,12 +219,19 @@ export async function listNotifications(
               d.slug                             AS docSlug,
               d.title                            AS docTitle,
               substr(c.body, 1, 140)             AS commentExcerpt,
+              a.name                             AS artifactName,
+              a.kind                             AS artifactKind,
+              t.name                             AS teamspaceName,
+              n.teamspace_id                     AS teamspaceId,
               n.created_at                       AS createdAt,
               n.read_at                          AS readAt
          FROM notifications n
          LEFT JOIN users u     ON u.id = n.actor_user_id
          LEFT JOIN documents d ON d.id = n.document_id
          LEFT JOIN comments c  ON c.id = n.comment_id
+         LEFT JOIN artifact_versions av ON av.id = n.artifact_version_id
+         LEFT JOIN artifacts a          ON a.id  = av.skill_id
+         LEFT JOIN teamspaces t         ON t.id  = n.teamspace_id
         WHERE n.user_id = ?
         ORDER BY n.created_at DESC
         LIMIT ?`,
@@ -146,7 +242,9 @@ export async function listNotifications(
 }
 
 // Rides the partial unread index. The nav island calls this on every page, so
-// it must stay this one indexed count and nothing more.
+// it must stay this one indexed count and nothing more. Kind-agnostic on
+// purpose — every kind counts toward the same badge, so a new kind needs no
+// change here and adding a `kind IN (...)` filter would drop the index.
 export async function unreadCount(
   db: D1Database,
   userId: string,

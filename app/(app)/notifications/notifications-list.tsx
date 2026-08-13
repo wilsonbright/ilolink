@@ -6,16 +6,23 @@
 // stale until the next navigation.
 
 import { useCallback, useEffect, useState } from "react";
+import { isArtifactKind, KINDS } from "@/lib/artifacts/kinds";
 
 type Notification = {
   id: string;
   kind: string;
-  // Both come off LEFT JOINs server-side (lib/notifications/store.ts): a
-  // deleted actor or an unpublished doc arrives as null, not a string.
+  // All of these come off LEFT JOINs server-side (lib/notifications/store.ts):
+  // a deleted actor, an unpublished doc or a deleted artifact arrives as null,
+  // not a string. Which ones are populated depends on `kind`, so every body
+  // below has to carry its own fallbacks rather than assume its columns.
   actorLabel: string | null;
   docSlug: string | null;
   docTitle: string | null;
   commentExcerpt: string | null;
+  artifactName: string | null;
+  artifactKind: string | null;
+  teamspaceName: string | null;
+  teamspaceId: string | null;
   createdAt: number | string;
   readAt: number | string | null;
 };
@@ -34,6 +41,99 @@ function timeAgo(v: number | string): string {
   const d = Math.floor(h / 24);
   if (d < 30) return `${d}d ago`;
   return new Date(t).toLocaleDateString();
+}
+
+// One component per kind, selected in the row below. The <li>, its unread
+// treatment and the timeAgo line are shared; only the sentence differs. Before
+// this split the row body was unconditional mention markup, which meant every
+// kind added afterwards would have rendered as "X mentioned you in…".
+function MentionBody({ n }: { n: Notification }) {
+  return (
+    <>
+      <p className="text-[15px] leading-6 text-ink">
+        {/* A deleted actor LEFT JOINs to null — say "Someone". */}
+        <span className="font-extrabold">{n.actorLabel ?? "Someone"}</span>{" "}
+        mentioned you in{" "}
+        {/* /private/<slug>, NOT /dashboard/<slug>: a mention points at
+            the DOCUMENT, and the dashboard page is its analytics. The
+            app's /private route redirects a signed-in member to the
+            published page correctly for every visibility, so it is
+            the one link that works without knowing visibility here.
+            A plain <a>, not next/link: prefetching a redirect route
+            would mint view-gate tokens for every row on the page.
+            An unpublished doc LEFT JOINs to a null slug — there is
+            nothing to link, so it renders as plain text. */}
+        {n.docSlug ? (
+          <a
+            href={`/private/${n.docSlug}`}
+            className="font-extrabold text-accent-strong hover:underline"
+          >
+            {n.docTitle ?? n.docSlug}
+          </a>
+        ) : (
+          <span className="font-extrabold">a removed document</span>
+        )}
+      </p>
+      <p className="mt-1 max-w-[72ch] text-sm leading-6 text-ink-soft">
+        {n.commentExcerpt ?? "comment removed"}
+      </p>
+    </>
+  );
+}
+
+// An assistant filed a registry artifact on its own initiative. It is a
+// PROPOSAL for every role (lib/artifacts/store-core.ts contributeArtifact), so
+// the row says so outright: a reviewer who assumes this is already team policy
+// is exactly the misreading the always-a-proposal rule exists to prevent.
+function ProposalBody({ n }: { n: Notification }) {
+  // Falls back to the generic word when the kind is unknown, which is what an
+  // older row or a newer client's kind looks like from here.
+  const kindLabel =
+    n.artifactKind && isArtifactKind(n.artifactKind)
+      ? KINDS[n.artifactKind].label.toLowerCase()
+      : "artifact";
+  // "a agent" and "a eval" are two of the ten labels, so the article is worth
+  // deriving rather than hardcoding.
+  const article = /^[aeiou]/i.test(kindLabel) ? "an" : "a";
+
+  return (
+    <>
+      <p className="text-[15px] leading-6 text-ink">
+        <span className="font-extrabold">{n.actorLabel ?? "Someone"}</span>{" "}
+        proposed {article} {kindLabel}{" "}
+        {/* A deleted artifact LEFT JOINs to a null name; drop the naming
+            clause entirely rather than print an empty dash pair, which
+            leaves "proposed an artifact to <teamspace>". */}
+        {n.artifactName && (
+          <>
+            — <span className="font-extrabold">{n.artifactName}</span> —{" "}
+          </>
+        )}
+        to{" "}
+        <span className="font-extrabold">
+          {n.teamspaceName ?? "your teamspace"}
+        </span>
+        , awaiting your review
+      </p>
+      <p className="mt-1 max-w-[72ch] text-sm leading-6 text-ink-soft">
+        Nothing is live until you approve it.
+      </p>
+      {/* A plain <a> like the mention link above, for the same reason it is
+          not next/link: a feed row should not prefetch a queue, and a page of
+          rows would prefetch one per row. A null teamspace leaves nothing to
+          link to, so the line is simply absent. */}
+      {n.teamspaceId && (
+        <p className="mt-1 text-sm leading-6">
+          <a
+            href={`/t/${n.teamspaceId}/proposals`}
+            className="font-extrabold text-accent-strong hover:underline"
+          >
+            Review proposals
+          </a>
+        </p>
+      )}
+    </>
+  );
 }
 
 export function NotificationsList() {
@@ -107,8 +207,9 @@ export function NotificationsList() {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-ink-faint">
-        Nothing here yet — when a teammate mentions you in a comment, it lands
-        on this page.
+        Nothing here yet — when a teammate mentions you in a comment, or an
+        assistant proposes an artifact for you to review, it lands on this
+        page.
       </p>
     );
   }
@@ -144,35 +245,15 @@ export function NotificationsList() {
                   : "border-l-transparent"
               }`}
             >
-              <p className="text-[15px] leading-6 text-ink">
-                {/* A deleted actor LEFT JOINs to null — say "Someone". */}
-                <span className="font-extrabold">
-                  {n.actorLabel ?? "Someone"}
-                </span>{" "}
-                mentioned you in{" "}
-                {/* /private/<slug>, NOT /dashboard/<slug>: a mention points at
-                    the DOCUMENT, and the dashboard page is its analytics. The
-                    app's /private route redirects a signed-in member to the
-                    published page correctly for every visibility, so it is
-                    the one link that works without knowing visibility here.
-                    A plain <a>, not next/link: prefetching a redirect route
-                    would mint view-gate tokens for every row on the page.
-                    An unpublished doc LEFT JOINs to a null slug — there is
-                    nothing to link, so it renders as plain text. */}
-                {n.docSlug ? (
-                  <a
-                    href={`/private/${n.docSlug}`}
-                    className="font-extrabold text-accent-strong hover:underline"
-                  >
-                    {n.docTitle ?? n.docSlug}
-                  </a>
-                ) : (
-                  <span className="font-extrabold">a removed document</span>
-                )}
-              </p>
-              <p className="mt-1 max-w-[72ch] text-sm leading-6 text-ink-soft">
-                {n.commentExcerpt ?? "comment removed"}
-              </p>
+              {/* Mention is the FALLBACK, not a case: it is the kind that
+                  predates the discriminator, and every row already in the
+                  table is one. A kind this build does not know still renders
+                  as something rather than an empty row. */}
+              {n.kind === "artifact_proposal" ? (
+                <ProposalBody n={n} />
+              ) : (
+                <MentionBody n={n} />
+              )}
               <p className="mt-1 text-[13px] tabular-nums text-ink-faint">
                 {timeAgo(n.createdAt)}
               </p>

@@ -1,0 +1,37 @@
+-- 0018_agent_contributions.sql — provenance for agent-initiated registry writes,
+-- and a notification that points at the review queue.
+--
+-- ADDITIVE AND NULLABLE ONLY, per the standing rule since 0007: a migration
+-- ships one full release AHEAD of the code that reads it, because three workers
+-- deploy at different moments.
+--
+-- WHY origin IS A COLUMN AND NOT A PREFIX IN `changelog`:
+-- artifacts_contribute lets an assistant file a proposal on its own initiative,
+-- with no human in the loop until review. The reviewer's first question is
+-- "did a person write this?", so the answer has to be unforgeable. Free text in
+-- changelog is not: any human, and any artifacts_put caller, can type the same
+-- sentence, and a badge anyone can forge is worse than no badge because
+-- reviewers learn to trust it. A column is also the difference between
+-- "what fraction of agent contributions get approved" being an index scan and
+-- being a LIKE over prose.
+--
+-- Only lib/artifacts/store-core.ts's contributeArtifact() ever writes a value
+-- here. artifacts_put and artifacts_push do not pass it, so their versions stay
+-- NULL = written by a person (or by a tool acting on an explicit request).
+ALTER TABLE artifact_versions ADD COLUMN origin TEXT;
+
+-- Which proposal a notification is about.
+--
+-- WHY NOT REUSE notifications.document_id (0016's header says its nullable
+-- reference columns cover "proposal awaiting review" without another
+-- migration): lib/notifications/store.ts joins `LEFT JOIN documents d ON
+-- d.id = n.document_id`. An artifact version id parked in that column would
+-- resolve to a null document while still LOOKING like a document reference to
+-- everyone who reads the schema afterwards. That comment in 0016 is amended in
+-- this migration's commit — the columns are per-entity, not a generic slot.
+--
+-- The id is stored so the feed can NAME what was proposed. The link still
+-- points at /t/<teamspace_id>/proposals, the queue, because a notification
+-- outlives its proposal: once reviewed, a version-specific page would
+-- contradict the notification's own text, while the queue is always accurate.
+ALTER TABLE notifications ADD COLUMN artifact_version_id TEXT;

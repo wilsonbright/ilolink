@@ -54,8 +54,9 @@ export function listSkills(
   teamspaceId: string,
   query?: string,
   limit = 50,
+  publishedOnly = false,
 ): Promise<ArtifactRow[]> {
-  return listArtifacts(b, teamspaceId, { kind: "skill", query, limit });
+  return listArtifacts(b, teamspaceId, { kind: "skill", query, limit, publishedOnly });
 }
 
 export function getSkill(

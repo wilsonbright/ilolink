@@ -10,6 +10,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { ArtifactKind } from "@/lib/artifacts/kinds";
+import { AGENT_CONTRIBUTION } from "@/lib/artifacts/store-core";
+import { TAG_ACCENT } from "@/lib/ui/tags";
 
 export interface ProposalView {
   versionId: string;
@@ -24,6 +26,9 @@ export interface ProposalView {
   // Null when this proposal would create the artifact rather than revise one.
   replacesVersion: number | null;
   proposedOn: string;
+  // 'agent_contribution' when an assistant filed this unprompted; null
+  // otherwise. Carried this far because it changes what reviewing means.
+  origin: string | null;
 }
 
 export function ProposalInbox({
@@ -126,7 +131,24 @@ export function ProposalInbox({
                     ? `new — would become v${p.version}`
                     : `v${p.replacesVersion} → v${p.version}`}
                 </span>
-                {p.authorEmail && <span>{p.authorEmail}</span>}
+                {/* Words, not an icon: a reviewer scanning the queue has to be
+                    able to read what this is without learning a glyph. And it
+                    is driven by the origin column rather than a prefix in the
+                    changelog because a marker any member — or any artifacts_put
+                    caller — could type would be forgeable, and a badge
+                    reviewers learn to trust is worse than none. */}
+                {p.origin === AGENT_CONTRIBUTION && (
+                  <span className={TAG_ACCENT}>
+                    Proposed by an AI assistant, unprompted
+                  </span>
+                )}
+                {p.authorEmail && (
+                  <span>
+                    {p.origin === AGENT_CONTRIBUTION
+                      ? `on behalf of ${p.authorEmail}`
+                      : p.authorEmail}
+                  </span>
+                )}
                 {p.sourcePath && <span className="font-mono">{p.sourcePath}</span>}
               </div>
 

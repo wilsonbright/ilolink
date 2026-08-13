@@ -88,7 +88,10 @@ export default async function ProposalsPage({
       <p className="mb-8 leading-relaxed text-ink-soft">
         Changes written by a member and held back for review. Until one is
         approved it is not what assistants connected to this teamspace read —
-        the live version stays exactly as it was.
+        the live version stays exactly as it was. Some were written by an
+        assistant on its own initiative rather than typed by a person, so
+        approving one publishes text no human wrote: read the body, not just the
+        reason given for it.
       </p>
 
       {proposals.length === 0 ? (
@@ -119,6 +122,7 @@ export default async function ProposalsPage({
               sourcePath: p.source_path,
               authorEmail: p.author_email,
               replacesVersion: p.replaces_version,
+              origin: p.origin,
               // Formatted on the server: toLocaleDateString in a client
               // component renders differently before and after hydration.
               proposedOn: when(p.created_at),

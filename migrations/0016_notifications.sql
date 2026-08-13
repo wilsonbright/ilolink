@@ -6,9 +6,16 @@
 -- deploying any worker that writes it.
 --
 -- WHY A GENERIC TABLE AND NOT comment_mentions:
--- The page this feeds is "notifications", not "mentions". kind discriminates;
--- the nullable reference columns cover future kinds (invite accepted, proposal
--- awaiting review) without another migration.
+-- The page this feeds is "notifications", not "mentions". kind discriminates
+-- and the table is meant to grow more kinds.
+--
+-- AMENDED BY 0018: this header used to claim the nullable reference columns
+-- cover future kinds "without another migration". That is wrong, and 0018 added
+-- artifact_version_id rather than follow it. The columns are per-ENTITY, not a
+-- generic slot: lib/notifications/store.ts joins document_id to `documents`, so
+-- parking some other entity's id there resolves to a null document while still
+-- reading as a document reference to everyone who comes after. A new kind that
+-- points at a new entity gets its own nullable column.
 --
 -- WHY NO FK CONSTRAINTS:
 -- documents/comments rows are deleted on unpublish (see the FK-ordering note in

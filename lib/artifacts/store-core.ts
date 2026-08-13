@@ -15,6 +15,7 @@
 import { nanoid } from "nanoid";
 import { getBodyWith, putBodyWith } from "@/lib/publish/store-core";
 import { coerceKind, KINDS, type ArtifactKind } from "./kinds";
+import { scanForSecrets } from "./secret-scan";
 
 export const MAX_ARTIFACT_BYTES = 256 * 1024;
 export const MAX_NAME_LENGTH = 64;
@@ -84,6 +85,22 @@ export interface ListOptions {
   // pull without fetching every body.
   since?: number | null;
   limit?: number;
+  // Hide artifacts that have nothing published yet — an artifact whose only
+  // version is a proposal.
+  //
+  // MUST be true for every AGENT-facing read. getArtifact already refuses an
+  // unapproved artifact, but the listing is a separate exposure: it carries
+  // `description`, which is the line agents match on and is exactly where an
+  // assistant filing an unprompted contribution puts text no human has read
+  // yet. Leaving it visible would let a proposal reach every teammate's agent
+  // through the artifacts_list call the server instructions ask them to make
+  // at the start of every task — which is the laundering path the
+  // proposal-only rule exists to close.
+  //
+  // Human surfaces (the registry page, the dashboard) deliberately pass false:
+  // showing a pending row marked "awaiting review" to the person who can
+  // approve it is the point.
+  publishedOnly?: boolean;
 }
 
 export interface ListedArtifact extends ArtifactRow {
@@ -116,6 +133,9 @@ export async function listArtifacts(
     const like = `%${opts.query.replace(/[%_]/g, (m) => `\\${m}`)}%`;
     where.push("(a.name LIKE ? ESCAPE '\\' OR a.description LIKE ? ESCAPE '\\')");
     params.push(like, like);
+  }
+  if (opts.publishedOnly) {
+    where.push("a.current_version_id IS NOT NULL");
   }
   params.push(Math.max(1, Math.min(opts.limit ?? 100, 500)));
 
@@ -214,6 +234,11 @@ export interface PutArtifactInput {
   // false → the new version lands as `proposed` and does NOT become what
   // agents read. Decided by canPublishArtifact, never by the caller's wish.
   publish: boolean;
+  // Who authored this version, in the sense a reviewer cares about. Only
+  // contributeArtifact() below sets it ('agent_contribution'); artifacts_put
+  // and artifacts_push leave it NULL, which is what makes the reviewer's
+  // "no human wrote this" badge unforgeable. See migration 0018.
+  origin?: string | null;
 }
 
 export interface PutArtifactResult {
@@ -223,6 +248,16 @@ export interface PutArtifactResult {
   version: number;
   status: VersionStatus;
   created: boolean;
+  // The version row just written, or undefined on the deduped paths where none
+  // was. A notification about a proposal has to name WHICH version, and the
+  // artifact id cannot: an artifact can have several proposals pending.
+  versionId?: string;
+  // True when nothing was written because the content was already here — the
+  // three early returns below. Callers need this because two of those returns
+  // report status 'published' while having stored nothing, so status alone
+  // cannot answer "did I just file something?". It is also what stops a
+  // repeated contribution from notifying reviewers a second time.
+  deduped?: boolean;
 }
 
 export async function putArtifact(
@@ -309,6 +344,7 @@ export async function putArtifact(
         version: livePublished.version,
         status: "published",
         created: false,
+        deduped: true,
       };
     }
 
@@ -330,6 +366,7 @@ export async function putArtifact(
           version: dupe.version,
           status: "proposed",
           created: false,
+          deduped: true,
         };
       }
     }
@@ -347,6 +384,7 @@ export async function putArtifact(
         version: livePublished.version,
         status: "published",
         created: false,
+        deduped: true,
       };
     }
 
@@ -384,8 +422,8 @@ export async function putArtifact(
   await b.DB.prepare(
     `INSERT INTO artifact_versions
        (id, skill_id, version, body_r2_key, body_sha256, description, changelog,
-        status, source_path, created_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        status, source_path, origin, created_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       versionId,
@@ -397,6 +435,7 @@ export async function putArtifact(
       input.changelog ?? null,
       status,
       input.sourcePath ?? null,
+      input.origin ?? null,
       userId,
       now,
     )
@@ -427,8 +466,64 @@ export async function putArtifact(
       .run();
   }
 
-  return { id: artifactId, kind, name, version: nextVersion, status, created };
+  return { id: artifactId, kind, name, version: nextVersion, status, created, versionId };
 }
+
+// ── Agent contributions ─────────────────────────────────────────────────────
+
+// What an assistant may supply when contributing unprompted. Note what is NOT
+// here: `publish`, `origin`, `sourcePath`, `folderId`, `tags`. Omitting them
+// from the TYPE, not just from the call, is the point — a future edit cannot
+// pass a publish flag through this door because the door has no slot for one.
+export type ContributeInput = Omit<
+  PutArtifactInput,
+  "publish" | "origin" | "sourcePath" | "folderId" | "tags"
+>;
+
+// ALWAYS A PROPOSAL. Not "a proposal when review is on", not "a proposal unless
+// the caller is an owner" — always, for every role, including in a teamspace
+// with review_member_writes = 0. canPublishArtifact is deliberately NOT
+// consulted here, and that absence is the feature.
+//
+// WHY: artifacts_contribute exists so an assistant can file what it learned
+// WITHOUT being asked. An unattended write that could go live would mean an
+// assistant tricked by a malicious page or README could publish guidance that
+// every teammate's agent then reads as team policy — laundering an injection
+// into durable, trusted instructions. Held to proposals, the worst case is an
+// entry in a review queue that a human reads first.
+//
+// The `publish: false` literal is spread AFTER ...input so even a caller that
+// casts its way past ContributeInput cannot override it. test/artifact-
+// contribute.test.ts pins both halves.
+//
+// sourcePath is forced null on purpose: a contribution is knowledge synthesised
+// in a session, not a file sync, and letting a model name a plausible origin
+// file would be exactly the invented provenance the origin column exists to
+// prevent.
+export async function contributeArtifact(
+  b: ArtifactBindings,
+  teamspaceId: string,
+  userId: string,
+  input: ContributeInput,
+): Promise<PutArtifactResult> {
+  const secret = scanForSecrets(input.body);
+  if (secret) {
+    throw new ArtifactError(
+      `That body looks like it contains ${secret.label}. Nothing was filed. Remove the credential and contribute the procedure without it.`,
+    );
+  }
+  return putArtifact(b, teamspaceId, userId, {
+    ...input,
+    sourcePath: null,
+    folderId: null,
+    tags: null,
+    publish: false,
+    origin: AGENT_CONTRIBUTION,
+  });
+}
+
+// The only literal in the codebase. Everything else compares against it.
+export const AGENT_CONTRIBUTION = "agent_contribution";
 
 // ── Review ──────────────────────────────────────────────────────────────────
 
@@ -445,6 +540,10 @@ export interface PendingProposal {
   created_at: number;
   // The published version this would replace, or null for a new artifact.
   replaces_version: number | null;
+  // 'agent_contribution' when an assistant filed this on its own initiative
+  // rather than a person writing it; NULL otherwise. The reviewer's first
+  // question — see migration 0018.
+  origin: string | null;
 }
 
 export async function listProposals(
@@ -454,7 +553,7 @@ export async function listProposals(
 ): Promise<PendingProposal[]> {
   const res = await b.DB.prepare(
     `SELECT v.id AS version_id, a.id AS artifact_id, a.kind, a.name,
-            v.version, v.description, v.changelog, v.source_path,
+            v.version, v.description, v.changelog, v.source_path, v.origin,
             u.email AS author_email, v.created_at,
             (SELECT MAX(p.version) FROM artifact_versions p
               WHERE p.skill_id = a.id AND p.status = 'published') AS replaces_version
