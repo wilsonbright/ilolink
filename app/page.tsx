@@ -176,7 +176,7 @@ export default function Home() {
             href="/"
             className={`inline-flex items-center gap-2 ${NAV_WORDMARK}`}
           >
-            <IloMark size={18} className="self-center text-accent" />
+            <IloMark size={13} className="self-center text-accent" />
             ilolink
           </Link>
           <nav className={NAV_ROW}>
@@ -617,7 +617,7 @@ export default function Home() {
           <div className="grid gap-7 text-sm leading-[26px] sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="mb-2.5 flex items-center gap-2 font-extrabold text-ink">
-                <IloMark size={16} className="text-accent" />
+                <IloMark size={12} className="text-accent" />
                 ilolink
               </p>
               <p className="max-w-[32ch] text-ink-soft">

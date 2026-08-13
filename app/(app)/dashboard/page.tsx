@@ -37,6 +37,7 @@ import { buildMoveTargets } from "@/lib/teamspace/move-targets";
 import type { TeamRole } from "@/lib/teamspace/permissions";
 import { ClaimBanner } from "./claim-banner";
 import { DocumentRowActions } from "./document-row-actions";
+import { VisibilityControl } from "./visibility-control";
 import { DocumentTitle } from "./document-title";
 import {
   TAG_CHIP_ACTIVE,
@@ -367,7 +368,11 @@ function DocList({
       {docs.map((d) => (
         <li
           key={d.id}
-          className="group/row grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-5 gap-y-2 border-t-2 border-divider py-5 transition-colors duration-150 hover:bg-ink/5"
+          // pr-4 only: the title stays flush left with the heading above it,
+          // while the right-hand column (the date, and the actions ending in
+          // Move) stops butting against the row's own edge — which with the
+          // hover fill read as clipped.
+          className="group/row grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-5 gap-y-2 border-t-2 border-divider py-5 pr-4 transition-colors duration-150 hover:bg-ink/5"
         >
           <DocumentTitle docId={d.id} slug={d.slug} title={d.title} />
           <span className="text-[13px] tabular-nums text-ink-faint">
@@ -378,7 +383,15 @@ function DocList({
               .join(" · ")}
           </span>
           <div className="col-span-2 flex flex-wrap items-center gap-x-2 gap-y-2">
-            <span className={TAG_OUTLINE}>{d.visibility}</span>
+            {/* Changeable in place. A doc shared with you is not yours to
+                re-scope; everything else on this list sits in a teamspace you
+                belong to, which is exactly what the PATCH requires — and the
+                server re-checks that regardless of what this renders. */}
+            <VisibilityControl
+              slug={d.slug}
+              visibility={d.visibility}
+              canChange={d.via !== "shared"}
+            />
             <span className={TAG_NEUTRAL}>{d.source_type}</span>
             {showTeamspace && d.teamspace_name && (
               <span className={TAG_NEUTRAL}>{d.teamspace_name}</span>

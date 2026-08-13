@@ -23,7 +23,7 @@ export default function MarketingLayout({
             href="/"
             className={`inline-flex items-center gap-2 ${NAV_WORDMARK}`}
           >
-            <IloMark size={18} className="self-center text-accent" />
+            <IloMark size={13} className="self-center text-accent" />
             ilolink
           </Link>
           <nav className={NAV_ROW}>

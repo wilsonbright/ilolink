@@ -13,6 +13,20 @@
 // same six-rect path is restated literally in app/icon.svg (a standalone
 // favicon file) and app/api/og/route.tsx (Satori renders from literals) —
 // change the geometry in all three or none.
+//
+// The viewBox is CROPPED to the artwork (3 3 26 26) rather than the full 32×32
+// grid the path is drawn on, so `size` means the size of the mark itself. With
+// the padded box, an 18px request rendered a 14.6px mark floating in 3.4px of
+// air — next to a 17px wordmark whose ink is 12.5px tall, that put the mark's
+// bottom ~1.6px BELOW the baseline the text sits on, which is what read as
+// misalignment. Cropped, `size` matches the mark to the wordmark's ink height
+// (13 against 12.5) and plain items-center then lands it within 0.6px of the
+// text's optical centre — measured, not guessed. Baseline alignment was the
+// obvious-looking fix and is wrong: a flex item's baseline is its bottom
+// margin edge, which hoisted the mark 5px clear of the text.
+//
+// app/icon.svg keeps the padded box on purpose: a favicon wants breathing
+// room inside its own square.
 export function IloMark({
   size = 18,
   className,
@@ -24,7 +38,7 @@ export function IloMark({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 32 32"
+      viewBox="3 3 26 26"
       className={className}
       aria-hidden="true"
       focusable="false"

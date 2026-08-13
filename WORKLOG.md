@@ -5,6 +5,14 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — Library list: logo alignment, inline visibility, row right padding
+
+- **Asked:** (1) align the logo; (2) allow changing public/private/unlisted directly on the list; (3) add right padding — "Move" sits on the edge.
+- **(1) Measured before touching it.** The mark was geometrically centred (both mid-points at 33.08px), so the drift was optical: the artwork rendered 14.6px tall against a 12.5px wordmark ink and hung ~1.6px BELOW the baseline the text sits on. Cause: `IloMark` drew a 32×32 viewBox whose artwork only spans 3–29, so `size={18}` meant "18px box, 14.6px mark floating in air". Cropped the viewBox to the artwork (`3 3 26 26`) so `size` means the mark, then `size={13}` to match the ink height. **Baseline alignment was tried and is wrong** — a flex item's baseline is its bottom margin edge, which hoisted the mark 5.25px clear of the text; plain `items-center` with the cropped box lands within 0.56px. `app/icon.svg` keeps the padded box (a favicon wants inner margin) — noted in the comment, since the geometry is duplicated in three files.
+- **(2)** Extracted the detail page's `VisibilityControl` into `app/(app)/dashboard/visibility-control.tsx` (one implementation, `useId` so each row's label is unique) and put it on every list row. Optimistic with revert + `aria-live`, PATCHing the existing `/api/documents/meta`. `canChange` is false for docs merely shared with you; everything else on the list sits in a teamspace you belong to, which is what the PATCH requires — and the server re-derives that regardless. password/expiring still render as a read-only tag with the "changes when you republish" title.
+- **(3)** `pr-4` on the row only, so the title stays flush-left under the heading while the date and actions stop butting the row edge. Measured: Move's right edge moved 960 → 944 inside a 960 row.
+- **Verified:** tsc clean, 385/385, build `○ /` intact. In the browser: mark/ink offset 0.56px with the mark 1px past the baseline (was 1.6px), screenshotted at crop; changing a row's select announced "Visibility changed to unlisted" and **D1 confirmed `a4b97q` → unlisted**, then set back; 16px clearance on the row; light and dark both shot.
+
 ## 2026-08-14 — Two fixes: heatmap underlay theming, and the back link losing the teamspace
 
 - **Asked:** (1) the document shown under the heatmap renders light/serif inside the dark app — give it the same treatment the Preview overlay got; (2) opening a teamspace document and clicking "← All documents" always lands on Personal.
