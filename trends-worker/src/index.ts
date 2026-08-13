@@ -205,16 +205,46 @@ export default {
     try {
       const now = new Date();
 
-      // The ingest sleeps for minutes between GitHub requests — far past the
-      // ~100s the proxy gives an inline response before the client is timed
-      // out and the invocation cancelled with it. Answer 202 immediately and
-      // run in waitUntil; the outcome lands in source_runs (GET /admin/status).
+      // The ingest sleeps for minutes between GitHub requests. Two dead ends,
+      // both OBSERVED in production before this shape:
+      //   - inline JSON response: the proxy 524s at ~100s time-to-first-byte
+      //     and cancels the invocation with the client;
+      //   - 202 + ctx.waitUntil: the runtime grants only ~30s after the
+      //     response ends, then logs "waitUntil() tasks did not complete
+      //     within the allowed time" and cancels — source_runs never written.
+      // A STREAMING response threads the needle: first byte goes out
+      // immediately (no 524), a heartbeat line every 10s keeps the connection
+      // warm, and the invocation stays alive because the client is still
+      // reading. The final line is the run summary; source_runs records the
+      // outcome either way (GET /admin/status).
       if (pathname === "/admin/ingest" && request.method === "POST") {
-        ctx.waitUntil(runIngest(env, now));
-        return jsonResponse(
-          { ok: true, started: true, week: snapshotWeek(now), see: "/admin/status" },
-          202,
-        );
+        const { readable, writable } = new TransformStream();
+        const writer = writable.getWriter();
+        const enc = new TextEncoder();
+        // Client-gone writes reject; swallow them — the run itself continues
+        // and its outcome still lands in source_runs.
+        const line = (s: string) => writer.write(enc.encode(s + "\n")).catch(() => {});
+        const run = (async () => {
+          await line(`ingest started for week ${snapshotWeek(now)} — keyless GitHub pacing takes minutes; keep this connection open`);
+          const tick = setInterval(() => void line("…ingesting"), 10_000);
+          try {
+            const summary = await runIngest(env, now);
+            await line(JSON.stringify(summary));
+          } catch (e) {
+            await line(JSON.stringify({ error: String(e) }));
+          } finally {
+            clearInterval(tick);
+            await writer.close().catch(() => {});
+          }
+        })();
+        // Belt over braces: if the client hangs up mid-run, waitUntil buys the
+        // last ~30s of grace — enough to finish a recordRun in flight, not the
+        // whole ingest. The stream is the real lifeline.
+        ctx.waitUntil(run);
+        return new Response(readable, {
+          status: 200,
+          headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+        });
       }
 
       if (pathname === "/admin/compute" && request.method === "POST") {
