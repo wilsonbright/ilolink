@@ -218,6 +218,9 @@ export interface DashboardDoc {
   teamspace_name: string;
   is_personal: number;
   created_by: string | null;
+  /** Who published it, for the row meta line: users.name, else email. Null on
+   *  legacy docs that predate created_by. */
+  creator_label: string | null;
   folder_id: string | null;
   folder_name: string | null;
   via: "member" | "shared";
@@ -232,19 +235,25 @@ export async function listDashboardDocs(
   return queryAll<DashboardDoc>(
     `SELECT d.id, d.slug, d.title, d.visibility, d.source_type, d.published_at,
             d.unpublished_at, d.teamspace_id, t.name AS teamspace_name,
-            t.is_personal, d.created_by, d.folder_id, f.name AS folder_name,
+            t.is_personal, d.created_by,
+            COALESCE(u.name, u.email) AS creator_label,
+            d.folder_id, f.name AS folder_name,
             'member' AS via
        FROM documents d
        JOIN teamspaces t        ON t.id = d.teamspace_id
        JOIN teamspace_members m ON m.teamspace_id = t.id AND m.user_id = ?
+       LEFT JOIN users u        ON u.id = d.created_by
        LEFT JOIN folders f      ON f.id = d.folder_id AND f.archived_at IS NULL
      UNION
      SELECT d.id, d.slug, d.title, d.visibility, d.source_type, d.published_at,
             d.unpublished_at, d.teamspace_id, COALESCE(t.name, 'Shared with me'),
-            0, d.created_by, NULL, NULL, 'shared' AS via
+            0, d.created_by,
+            COALESCE(u.name, u.email),
+            NULL, NULL, 'shared' AS via
        FROM documents d
        JOIN document_shares s ON s.document_id = d.id
                              AND s.user_id = ? AND s.revoked_at IS NULL
+       LEFT JOIN users u      ON u.id = d.created_by
        LEFT JOIN teamspaces t ON t.id = d.teamspace_id
       WHERE NOT EXISTS (
         SELECT 1 FROM teamspace_members m2

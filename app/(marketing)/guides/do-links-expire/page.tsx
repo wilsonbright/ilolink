@@ -70,7 +70,7 @@ export default function Page() {
         <h2>When would a link expire?</h2>
         <p>
           Only if you choose it. Expiring is one of ilolink&apos;s visibility
-          modes, alongside public, unlisted, and password:
+          modes, alongside public, unlisted, private (teamspace members only), and password:
         </p>
         <ul>
           <li>
@@ -136,7 +136,7 @@ export default function Page() {
           },
           {
             q: "When would a link actually expire?",
-            a: "Only if you turn on the expiring visibility mode for that doc. It's opt-in and set per doc, alongside public, unlisted, and password — a deliberate choice, not a default.",
+            a: "Only if you turn on the expiring visibility mode for that doc. It's opt-in and set per doc, alongside public, unlisted, private (teamspace members only), and password — a deliberate choice, not a default.",
           },
           {
             q: "Is permanence a paid feature like on some hosts?",

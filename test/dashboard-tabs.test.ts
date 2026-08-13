@@ -20,6 +20,7 @@ function doc(overrides: Partial<DashboardDoc>): DashboardDoc {
     teamspace_name: "Personal",
     is_personal: 1,
     created_by: "u_1",
+    creator_label: "Wilson",
     folder_id: null,
     folder_name: null,
     via: "member",

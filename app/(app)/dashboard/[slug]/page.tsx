@@ -7,10 +7,24 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { getEntry, removeFromHistory, type HistoryEntry } from "@/lib/history";
+import {
+  addToHistory,
+  getEntry,
+  removeFromHistory,
+  type HistoryEntry,
+} from "@/lib/history";
 import { StatsView } from "@/app/(app)/dashboard/stats-view";
 import { HeatmapView } from "@/app/(app)/dashboard/heatmap-view";
 import { TAG_OUTLINE } from "@/lib/ui/tags";
+
+// Server-fresh document metadata (/api/documents/meta). The history entry's
+// visibility is a snapshot from publish time, so once this loads it wins; it
+// also carries who published the doc, which localStorage never knew.
+interface DocMeta {
+  visibility: string;
+  creatorLabel: string | null;
+  canChangeVisibility: boolean;
+}
 
 export default function DocumentDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -19,10 +33,38 @@ export default function DocumentDetailPage() {
   // localStorage is client-only; resolve after mount. `undefined` = still
   // loading, `null` = looked and found nothing.
   const [entry, setEntry] = useState<HistoryEntry | null | undefined>(undefined);
+  // null = not loaded (failed, still in flight, or not authorized) — the page
+  // then renders exactly what it always did from the history entry alone.
+  const [meta, setMeta] = useState<DocMeta | null>(null);
 
   useEffect(() => {
     setEntry(getEntry(slug));
   }, [slug]);
+
+  // The layout's static title ("Document — ilolink") covers loading and the
+  // no-entry state; once the history entry resolves, name the tab after the
+  // document itself.
+  useEffect(() => {
+    if (entry) document.title = `${entry.title || "Untitled"} — ilolink`;
+  }, [entry]);
+
+  useEffect(() => {
+    if (!entry) return;
+    let alive = true;
+    const q = new URLSearchParams({
+      slug: entry.slug,
+      token: entry.manageToken,
+    }).toString();
+    fetch(`/api/documents/meta?${q}`)
+      .then((r) => (r.ok ? (r.json() as Promise<DocMeta>) : Promise.reject()))
+      .then((m) => alive && setMeta(m))
+      // Degrade to the history snapshot; the stats section reports its own
+      // errors, so a second banner here would just be noise.
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [entry]);
 
   return (
     <section className="mx-auto w-full max-w-[1160px]">
@@ -64,9 +106,18 @@ export default function DocumentDetailPage() {
             <h1 className="ml-[-0.058em] text-[clamp(30px,3.4vw,42px)] leading-none text-ink">
               {entry.title || "Untitled"}
             </h1>
-            <span className={TAG_OUTLINE}>{entry.visibility}</span>
+            <VisibilityControl
+              slug={entry.slug}
+              meta={meta}
+              fallback={entry.visibility}
+            />
           </div>
           <PublicUrl url={entry.url} />
+          {meta?.creatorLabel ? (
+            <p className="mt-1.5 text-sm text-ink-faint">
+              Published by {meta.creatorLabel}
+            </p>
+          ) : null}
 
           <div className="mt-9">
             <StatsView slug={entry.slug} token={entry.manageToken} />
@@ -80,6 +131,107 @@ export default function DocumentDetailPage() {
         </>
       )}
     </section>
+  );
+}
+
+// What the select may set. Password and expiring need inputs (a password, a
+// deadline) that only the composer collects, so both stay republish-only and
+// this list stays three plain words.
+const CHANGEABLE_VISIBILITIES = ["public", "unlisted", "private"] as const;
+
+// The visibility tag beside the h1 — upgraded to a select once the server has
+// confirmed this signed-in member may change it. Until the meta loads (or when
+// it never does: signed-out, legacy-token-only, or a mere share) it is the same
+// read-only tag this page always drew, from the same localStorage snapshot.
+function VisibilityControl({
+  slug,
+  meta,
+  fallback,
+}: {
+  slug: string;
+  meta: DocMeta | null;
+  fallback: string;
+}) {
+  // Local override after an optimistic change; meta itself stays untouched.
+  const [override, setOverride] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [announce, setAnnounce] = useState("");
+
+  const visibility = override ?? meta?.visibility ?? fallback;
+  const locked =
+    meta?.visibility === "password" || meta?.visibility === "expiring";
+
+  const change = useCallback(
+    async (next: string) => {
+      const prev = override ?? meta?.visibility ?? fallback;
+      if (next === prev) return;
+      // Optimistic: show the new value immediately, revert on failure — and say
+      // which happened, because the select's own value change is silent for a
+      // screen reader (same announcement pattern as connect/copy-field.tsx).
+      setOverride(next);
+      setSaving(true);
+      setAnnounce("");
+      try {
+        const res = await fetch("/api/documents/meta", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ slug, visibility: next }),
+        });
+        if (!res.ok) throw new Error();
+        setAnnounce(`Visibility changed to ${next}`);
+        // Keep the localStorage snapshot honest too, so a reload before the
+        // meta fetch lands doesn't flash the old value.
+        const e = getEntry(slug);
+        if (e) addToHistory({ ...e, visibility: next });
+      } catch {
+        setOverride(prev);
+        setAnnounce("Couldn’t change visibility — still " + prev);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [fallback, meta, override, slug],
+  );
+
+  if (!meta || !meta.canChangeVisibility || locked) {
+    return (
+      <span
+        className={TAG_OUTLINE}
+        // Password/expiring have extra inputs this page doesn't collect, so
+        // the tag says where the change actually happens.
+        title={
+          locked
+            ? "Password and expiry settings change when you republish the document."
+            : undefined
+        }
+      >
+        {visibility}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center">
+      <label htmlFor="doc-visibility" className="sr-only">
+        Visibility
+      </label>
+      <select
+        id="doc-visibility"
+        value={visibility}
+        disabled={saving}
+        onChange={(e) => void change(e.target.value)}
+        className={`${TAG_OUTLINE} cursor-pointer bg-canvas transition-colors duration-150 hover:bg-accent-wash disabled:opacity-45`}
+      >
+        {CHANGEABLE_VISIBILITIES.map((v) => (
+          <option key={v} value={v}>
+            {v}
+          </option>
+        ))}
+      </select>
+      <span role="status" aria-live="polite" className="sr-only">
+        {announce}
+      </span>
+    </span>
   );
 }
 

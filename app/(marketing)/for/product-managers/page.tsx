@@ -168,7 +168,7 @@ export default function Page() {
           },
           {
             q: "Can I password-protect an internal spec?",
-            a: "Yes. Visibility can be public, unlisted, password-protected, or expiring. Use a password for internal PRDs you don't want circulating, and keep expiry off unless you want the link to lapse.",
+            a: "Yes. Visibility can be public, unlisted, private (teamspace members only), password-protected, or expiring. Use a password for internal PRDs you don't want circulating, and keep expiry off unless you want the link to lapse.",
           },
           {
             q: "Do stakeholders need an account to read it?",

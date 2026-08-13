@@ -32,6 +32,7 @@ const VISIBILITIES: ReadonlySet<Visibility> = new Set<Visibility>([
   "unlisted",
   "password",
   "expiring",
+  "private",
 ]);
 
 export function isVisibility(v: unknown): v is Visibility {

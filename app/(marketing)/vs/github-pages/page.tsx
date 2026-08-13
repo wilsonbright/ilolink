@@ -162,7 +162,7 @@ export default function Page() {
             [
               "Access control",
               "Public page (repo visibility varies by plan)",
-              "Public, unlisted, password, or expiring",
+              "Public, unlisted, private (teamspace members only), password, or expiring",
             ],
           ]}
           caption="GitHub figures quoted from its Pages limits page, read 2026-08-12; the bandwidth and build ceilings are soft limits, and plan details change."

@@ -45,7 +45,7 @@ export default function Page() {
               },
               {
                 name: "Pick a visibility mode",
-                text: "Choose public, unlisted, password-protected, or expiring. Expiry is opt-in, not a default.",
+                text: "Choose public, unlisted, private (teamspace members only), password-protected, or expiring. Expiry is opt-in, not a default.",
               },
               {
                 name: "Copy your link",
@@ -95,6 +95,7 @@ export default function Page() {
           </li>
           <li>
             <strong>Pick a visibility mode</strong> — public, unlisted,
+            private (teamspace members only),
             password-protected, or expiring. Expiry is opt-in.
           </li>
           <li>
@@ -179,7 +180,7 @@ export default function Page() {
           },
           {
             q: "Can I password-protect it?",
-            a: "Yes. Visibility can be public, unlisted, password-protected, or expiring. Expiry is opt-in, not a default.",
+            a: "Yes. Visibility can be public, unlisted, private (teamspace members only), password-protected, or expiring. Expiry is opt-in, not a default.",
           },
           {
             q: "Does an interactive app stay interactive?",

@@ -41,7 +41,7 @@ export default function Page() {
               },
               {
                 name: "Pick a visibility mode",
-                text: "Choose public, unlisted, password-protected, or expiring. Expiry is opt-in.",
+                text: "Choose public, unlisted, private (teamspace members only), password-protected, or expiring. Expiry is opt-in.",
               },
               {
                 name: "Send the link",
@@ -78,7 +78,7 @@ export default function Page() {
             Publishing needs a free account. The cap is <strong>15 MB</strong>
             per PDF.
           </li>
-          <li>Pick a visibility mode — public, unlisted, password, or expiring.</li>
+          <li>Pick a visibility mode — public, unlisted, private (teamspace members only), password, or expiring.</li>
           <li>
             Get <code>ilolink.com/&lt;slug&gt;</code> and send it.
           </li>
@@ -180,7 +180,7 @@ export default function Page() {
           },
           {
             q: "Can I password-protect a PDF?",
-            a: "Yes. Visibility can be public, unlisted, password-protected, or expiring. Expiry is opt-in, not a default.",
+            a: "Yes. Visibility can be public, unlisted, private (teamspace members only), password-protected, or expiring. Expiry is opt-in, not a default.",
           },
           {
             q: "Does the reader have to download the PDF?",

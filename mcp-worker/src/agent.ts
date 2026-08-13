@@ -149,7 +149,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
         "",
         "This connection is bound to ONE teamspace for its entire life, and the user may have several. whoami reports which teamspace you are in and as whom — call it before writing or publishing if the user has not been told.",
         "",
-        "When the user wants to share something you produced, publish_document returns a public URL plus a private analytics link. Default visibility is unlisted.",
+        "When the user wants to share something you produced, publish_document returns a public URL plus a private analytics link. Default visibility is private (teamspace members only) for a connection bound to a shared teamspace, and unlisted for a personal one.",
         "Never publish secrets, .env contents, credentials, or private source code.",
       ].join("\n"),
     },
@@ -343,9 +343,11 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
             .describe("Force text interpretation. Default auto-detects."),
           title: z.string().optional(),
           visibility: z
-            .enum(["public", "unlisted", "password", "expiring"])
+            .enum(["public", "unlisted", "password", "expiring", "private"])
             .optional()
-            .describe("Default 'unlisted'."),
+            .describe(
+              "Default: 'private' (teamspace members only) in a shared teamspace, 'unlisted' in a personal one.",
+            ),
           password: z.string().optional().describe("Required when visibility is 'password'."),
           expires_at: z.string().optional().describe("ISO date; required when visibility is 'expiring'."),
           slug: z.string().optional().describe("Optional custom link (3-32 chars: a-z, 0-9, -)."),

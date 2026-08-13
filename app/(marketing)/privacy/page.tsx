@@ -109,6 +109,7 @@ export default function Page() {
           </li>
           <li>
             <strong>Visibility settings you choose.</strong> Public, unlisted,
+            private (teamspace members only),
             password, or an opt-in expiry.
           </li>
           <li>

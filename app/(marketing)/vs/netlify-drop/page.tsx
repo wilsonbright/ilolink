@@ -113,6 +113,7 @@ export default function Page() {
           </li>
           <li>
             <strong>Access tiers per document</strong> — public, unlisted,
+            private (teamspace members only),
             password, or expiring. Links are permanent unless you choose expiry.
           </li>
         </ul>

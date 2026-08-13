@@ -3,6 +3,7 @@
 // Lists open abuse reports (grouped by doc), suspended workspaces, and flagged
 // workspaces, with one-click actions. See lib/admin/gate.ts + /api/admin/action.
 
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { env } from "@/lib/cf";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin/gate";
@@ -11,6 +12,13 @@ import { AdminLogin } from "./login";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// /admin isn't in robots.txt's Disallow list, so the meta tag is the only
+// thing keeping this URL out of an index — same belt as every app page.
+export const metadata: Metadata = {
+  title: "Moderation — ilolink",
+  robots: { index: false, follow: false },
+};
 
 interface ReportGroup {
   document_id: string;

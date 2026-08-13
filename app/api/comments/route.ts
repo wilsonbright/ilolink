@@ -17,11 +17,17 @@
 // exclusively the identified path.
 
 import { NextResponse } from "next/server";
-import { execute, queryFirst } from "@/lib/db/client";
+import { db, execute, queryFirst } from "@/lib/db/client";
 import { currentUser } from "@/lib/auth/current-user";
-import { docAccessFor } from "@/lib/teamspace/store";
+import { docAccessFor, getMembership } from "@/lib/teamspace/store";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
 import { displayNameFromEmail } from "@/lib/email/display";
+import {
+  filterValidMentions,
+  insertMentionNotifications,
+  memberIdsAmong,
+  mentionCandidateIds,
+} from "@/lib/notifications/store";
 
 export const runtime = "nodejs";
 
@@ -38,6 +44,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     body?: unknown;
     parentId?: unknown;
     anchor?: unknown;
+    mentions?: unknown;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -68,15 +75,31 @@ export async function POST(req: Request): Promise<NextResponse> {
     teamspace_id: string | null;
     created_by: string | null;
     comments_mode: string;
+    visibility: string;
     unpublished_at: number | null;
     trusted: number;
   }>(
-    `SELECT id, teamspace_id, created_by, comments_mode, unpublished_at, trusted
+    `SELECT id, teamspace_id, created_by, comments_mode, visibility,
+            unpublished_at, trusted
        FROM documents WHERE id = ?`,
     docId,
   );
   if (!doc || doc.unpublished_at) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  // Private (teamspace-only) docs: only members may write, matching the read
+  // path (the content worker answers non-members with an empty thread). The
+  // refusal is the SAME 404 an unknown id gets — a distinct error would hand
+  // any signed-in prober an existence oracle for private ids. A private doc
+  // with no teamspace fails closed the same way.
+  if (doc.visibility === "private") {
+    const membership = doc.teamspace_id
+      ? await getMembership(doc.teamspace_id, user.id)
+      : null;
+    if (!membership) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
   }
   if (doc.comments_mode === "off") {
     return NextResponse.json(
@@ -114,12 +137,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
   }
 
+  const commentId = crypto.randomUUID();
   await execute(
     `INSERT INTO comments
        (id, document_id, parent_id, author_name, author_user_id, author_kind,
         anchor, body, status, created_at)
      VALUES (?, ?, ?, ?, ?, 'user', ?, ?, 'visible', ?)`,
-    crypto.randomUUID(),
+    commentId,
     docId,
     parentId,
     // Snapshot the display name so the thread still reads correctly if the
@@ -133,6 +157,37 @@ export async function POST(req: Request): Promise<NextResponse> {
     text,
     Date.now(),
   );
+
+  // @mentions ride along on the comment, best-effort: the comment is already
+  // committed above, and a notification is a courtesy, not part of the write —
+  // so any failure here is logged and swallowed rather than turned into a 500
+  // for a comment the reader can already see.
+  //
+  // Mentions only take effect when the commenter is themselves a member of the
+  // doc's teamspace (anonymous commenters go through the content worker and
+  // never reach this route; signed-in non-members are dropped here). Every
+  // candidate id is validated against that same teamspace's member list and
+  // invalid or self ids are dropped silently — a malformed mentions field must
+  // never fail the comment.
+  try {
+    const candidates = mentionCandidateIds(body.mentions);
+    if (candidates.length > 0 && doc.teamspace_id) {
+      const membership = await getMembership(doc.teamspace_id, user.id);
+      if (membership) {
+        const memberIds = await memberIdsAmong(db(), doc.teamspace_id, candidates);
+        const recipients = filterValidMentions(candidates, memberIds, user.id);
+        await insertMentionNotifications(db(), {
+          recipients,
+          actorUserId: user.id,
+          teamspaceId: doc.teamspace_id,
+          documentId: docId,
+          commentId,
+        });
+      }
+    }
+  } catch (e) {
+    console.error("mention notifications failed:", e);
+  }
 
   return NextResponse.json({ ok: true, canModerate: caps.canModerate });
 }

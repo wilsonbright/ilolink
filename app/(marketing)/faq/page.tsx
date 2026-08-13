@@ -95,7 +95,7 @@ export default function Page() {
           },
           {
             q: "Can I password-protect a doc?",
-            a: "Yes. Visibility options are public, unlisted, password-protected, and expiring.",
+            a: "Yes. Visibility options are public, unlisted, private (teamspace members only), password-protected, and expiring.",
           },
           {
             q: "Can I edit a doc after publishing?",

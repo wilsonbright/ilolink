@@ -119,7 +119,7 @@ export default function Page() {
             Google account, no sign-in wall, nothing to join.
           </li>
           <li>
-            <strong>Access tiers</strong> — public, unlisted, password, or
+            <strong>Access tiers</strong> — public, unlisted, private (teamspace members only), password, or
             expiring, chosen per document.
           </li>
         </ul>
@@ -170,7 +170,7 @@ export default function Page() {
               "Docs, Sheets, Slides (formulas hidden)",
               "Markdown, HTML, PDF, .docx, CSV rendered as a page",
             ],
-            ["Access control", "Published or not", "Public, unlisted, password, or expiring"],
+            ["Access control", "Published or not", "Public, unlisted, private (teamspace members only), password, or expiring"],
             ["Editing", "Full collaborative editor", "None — publish what you wrote elsewhere"],
           ]}
           caption="Google rows quoted from its publish-to-the-web help page, read 2026-08-12. Verify current behaviour before relying on any detail."

@@ -57,6 +57,15 @@ interface PublishResult {
 const VISIBILITY: { value: Visibility; label: string; hint: string }[] = [
   { value: "public", label: "Public", hint: "Anyone with the link. May be listed." },
   { value: "unlisted", label: "Unlisted", hint: "Only people you send the link to." },
+  {
+    value: "private",
+    label: "Private",
+    // The share link is not enough on its own: members prove who they are at
+    // ilolink.com/private/<slug>, which forwards them to the page. This copy
+    // is for a SHARED teamspace; a personal destination has no "members" to
+    // speak of, so the hint render below swaps in a personal variant.
+    hint: "Teamspace members only. The share link signs members in through ilolink.com.",
+  },
   { value: "password", label: "Password", hint: "Opens only with a password you set." },
   { value: "expiring", label: "Expiring", hint: "Stops working after a date you choose." },
 ];
@@ -114,7 +123,7 @@ export function PublishForm({
   const [trusted, setTrusted] = useState(false);
 
   // Seeded from the destination, so arriving at /publish?ts=<a shared team>
-  // opens on Unlisted rather than flashing Public and then correcting itself.
+  // opens on Private rather than flashing Public and then correcting itself.
   const [visibility, setVisibility] = useState<Visibility>(() =>
     defaultVisibilityFor(
       teamspaces.find((t) => t.id === initialTeamspaceId)?.personal ?? true,
@@ -720,7 +729,7 @@ export function PublishForm({
               onChange={(e) => {
                 const next = e.target.value;
                 setTeamspaceId(next);
-                // A shared teamspace defaults to unlisted, personal to public —
+                // A shared teamspace defaults to private, personal to public —
                 // unless the publisher has already said what they want.
                 if (!visibilityTouched.current) {
                   setVisibility(
@@ -821,7 +830,7 @@ export function PublishForm({
         <div
           role="radiogroup"
           aria-label="Visibility"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3"
         >
           {VISIBILITY.map((opt) => {
             const active = visibility === opt.value;
@@ -849,7 +858,13 @@ export function PublishForm({
           })}
         </div>
         <p className="text-sm text-ink-faint">
-          {VISIBILITY.find((v) => v.value === visibility)?.hint}
+          {/* Private into a personal teamspace has no teammates — claiming
+              "Teamspace members only" there would promise an audience that
+              doesn't exist. Same personal-default fallback as /api/publish:
+              no picked target means the personal teamspace. */}
+          {visibility === "private" && (selectedTarget?.personal ?? true)
+            ? "Only you. Opening the link requires signing in."
+            : VISIBILITY.find((v) => v.value === visibility)?.hint}
         </p>
 
         {/* Progressive disclosure: only the field this mode needs. */}

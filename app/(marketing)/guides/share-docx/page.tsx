@@ -45,7 +45,7 @@ export default function Page() {
               },
               {
                 name: "Pick a visibility mode",
-                text: "Choose public, unlisted, password-protected, or expiring. Expiry is opt-in.",
+                text: "Choose public, unlisted, private (teamspace members only), password-protected, or expiring. Expiry is opt-in.",
               },
               {
                 name: "Get the link",
@@ -87,7 +87,7 @@ export default function Page() {
             a normal web page — text, headings, lists, tables, and basic
             formatting.
           </li>
-          <li>Pick a visibility mode — public, unlisted, password, or expiring.</li>
+          <li>Pick a visibility mode — public, unlisted, private (teamspace members only), password, or expiring.</li>
           <li>
             Get <code>ilolink.com/&lt;slug&gt;</code> and send it.
           </li>

@@ -61,7 +61,7 @@ export default function Page() {
           tell you what the room did, not which named person did what.
         </p>
 
-        <h3>PRD or product spec</h3>
+        <h2>PRD or product spec</h2>
         <p>
           Product managers send a spec to engineering, design, and a couple of
           stakeholders and want to know: did they read it, or did it die in the
@@ -71,7 +71,7 @@ export default function Page() {
           you roughly how many of the group opened it at all.
         </p>
 
-        <h3>Launch notes or status update</h3>
+        <h2>Launch notes or status update</h2>
         <p>
           You post the weekly update and wonder how far the team actually got
           before tabbing away. <strong>Average time on page</strong> plus the
@@ -80,7 +80,7 @@ export default function Page() {
           signal to lead with the part that matters.
         </p>
 
-        <h3>Design prototype or mockup</h3>
+        <h2>Design prototype or mockup</h2>
         <p>
           Designers share a clickable mockup or a static comp and want to know
           where attention went. The <strong>click heatmap</strong> shows what
@@ -90,7 +90,7 @@ export default function Page() {
           button, not in a separate thread.
         </p>
 
-        <h3>Client proposal or report</h3>
+        <h2>Client proposal or report</h2>
         <p>
           The question every consultant has after sending a proposal: did the
           client read it, and did anything raise a question? <strong>Scroll
@@ -101,7 +101,7 @@ export default function Page() {
           client.
         </p>
 
-        <h3>AI landing-page mockup</h3>
+        <h2>AI landing-page mockup</h2>
         <p>
           You had an AI generate a landing page and want to know which sections
           held attention before you build the real thing. The{" "}
@@ -111,7 +111,7 @@ export default function Page() {
           layout note, not a guess.
         </p>
 
-        <h3>Research summary or findings</h3>
+        <h2>Research summary or findings</h2>
         <p>
           Share a synthesis of user interviews or a lit review and the question
           is whether people engaged or skimmed. <strong>Average time on page</strong>{" "}
@@ -120,7 +120,7 @@ export default function Page() {
           recommendations at the end got seen or the conclusion got skipped.
         </p>
 
-        <h3>One-pager or pitch</h3>
+        <h2>One-pager or pitch</h2>
         <p>
           A one-pager lives or dies on whether it gets opened and read all the
           way through. <strong>Approximate uniques</strong> tell you reach;{" "}
@@ -128,7 +128,7 @@ export default function Page() {
           and stop at 40%, the ask below that line never landed — move it up.
         </p>
 
-        <h3>Data table or CSV as a page</h3>
+        <h2>Data table or CSV as a page</h2>
         <p>
           You turn a table or exported CSV into a readable page and mostly want
           to confirm it was opened at all. <strong>Total views and approximate
@@ -137,7 +137,7 @@ export default function Page() {
           low-ceremony way to know a number reached the people who needed it.
         </p>
 
-        <h3>Reading the numbers honestly</h3>
+        <h2>Reading the numbers honestly</h2>
         <p>
           Across all of these, the metrics are <strong>aggregate and
           approximate</strong>. Uniques come from a rotating visitor hash — no

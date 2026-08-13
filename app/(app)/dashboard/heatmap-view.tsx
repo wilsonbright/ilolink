@@ -30,7 +30,7 @@ import {
   useState,
 } from "react";
 import type { Heatmap } from "@/lib/analytics/heatmap";
-import { TAG_BASE } from "@/lib/ui/tags";
+import { TAG_CHIP_ACTIVE, TAG_CHIP_INACTIVE } from "@/lib/ui/tags";
 
 type Bucket = "sm" | "md" | "lg";
 type Layer = "click" | "scroll";
@@ -413,9 +413,9 @@ function Toggle<T extends string>({
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
 }) {
-  // Adjoining DS tags as a segmented control: the active option is a filled
-  // tag-accent, the rest are tag-outlines. A transparent border on the active
-  // one keeps both states the same height.
+  // Adjoining DS chips as a segmented control: the active option is the shared
+  // TAG_CHIP_ACTIVE (colored and bordered), the rest are quiet TAG_CHIP_INACTIVE.
+  // The pair carries matching borders, so both states are the same height.
   return (
     <div className="inline-flex">
       {options.map((o) => (
@@ -424,10 +424,10 @@ function Toggle<T extends string>({
           type="button"
           onClick={() => onChange(o.value)}
           aria-pressed={value === o.value}
-          className={`${TAG_BASE} tabular-nums transition-colors duration-150 ${
+          className={`tabular-nums transition-colors duration-150 ${
             value === o.value
-              ? "border border-transparent bg-accent-wash text-accent-strong"
-              : "cursor-pointer border border-accent text-accent-strong hover:bg-accent-wash"
+              ? TAG_CHIP_ACTIVE
+              : `cursor-pointer ${TAG_CHIP_INACTIVE}`
           }`}
         >
           {o.label}

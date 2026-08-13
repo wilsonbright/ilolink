@@ -50,7 +50,7 @@ export default function Page() {
               },
               {
                 name: "Set visibility and publish",
-                text: "Choose public, unlisted, password, or an opt-in expiry, then publish to get an ilolink.com/<slug> link that redirects to the isolated view.ilolink.com render origin.",
+                text: "Choose public, unlisted, private (teamspace members only), password, or an opt-in expiry, then publish to get an ilolink.com/<slug> link that redirects to the isolated view.ilolink.com render origin.",
               },
               {
                 name: "Share the link and watch analytics",
@@ -124,7 +124,7 @@ export default function Page() {
             file. Publishing takes a free account.
           </li>
           <li>
-            Pick visibility — public, unlisted, password, or an opt-in expiry —
+            Pick visibility — public, unlisted, private (teamspace members only), password, or an opt-in expiry —
             and publish. You get an <code>ilolink.com/&lt;slug&gt;</code> link
             that 302-redirects to the isolated <code>view.ilolink.com</code>{" "}
             render origin under a strict CSP.

@@ -226,7 +226,9 @@ async function readInput(req: Request): Promise<PublishInput | NextResponse> {
   }
 
   if (visibilityRaw !== undefined && !isVisibility(visibilityRaw)) {
-    return bad("Field 'visibility' must be public, unlisted, password, or expiring.");
+    return bad(
+      "Field 'visibility' must be public, unlisted, password, expiring, or private.",
+    );
   }
 
   const expiresAt = parseExpiresAt(expiresAtRaw);
@@ -309,10 +311,10 @@ export async function POST(req: Request): Promise<NextResponse> {
   // The visibility default is applied HERE, not in readInput, because it
   // depends on where the document lands and the teamspace is not known until
   // now: personal is one person sharing a link, so public; a shared teamspace
-  // is team content, so unlisted. The web composer always sends an explicit
-  // value, so this only decides for API callers — and for exactly those, the
-  // old unconditional "public" meant a script that omitted the field published
-  // a team's document to the open web.
+  // is team content, so private (members only). The web composer always sends
+  // an explicit value, so this only decides for API callers — and for exactly
+  // those, the old unconditional "public" meant a script that omitted the
+  // field published a team's document to the open web.
   const visibility =
     input.visibility ?? defaultVisibilityFor(!!teamspace.is_personal);
 

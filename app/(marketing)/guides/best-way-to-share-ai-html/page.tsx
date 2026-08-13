@@ -174,7 +174,7 @@ export default function Page() {
         items={[
           {
             q: "Do ilolink links expire?",
-            a: "No — links are permanent by default. Expiry is an opt-in visibility mode you can turn on per doc, alongside public, unlisted, and password. It's a choice, not a free-tier penalty.",
+            a: "No — links are permanent by default. Expiry is an opt-in visibility mode you can turn on per doc, alongside public, unlisted, private (teamspace members only), and password. It's a choice, not a free-tier penalty.",
           },
           {
             q: "Is there a free tier?",

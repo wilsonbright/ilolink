@@ -45,15 +45,17 @@ export function buildPublishTargets(
 // Where a document lands decides how open it starts.
 //
 // Personal is one person publishing something they mean to send, so the link is
-// public. A shared teamspace is team content, and defaulting that to the open
-// web is a leak nobody asked for — unlisted keeps the link working, keeps the
-// page out of search (content-worker sets noindex), and stops the title and
-// body being quoted in previews (lib/seo/doc-preview.ts).
+// public. A shared teamspace is team content, and defaulting that to anything a
+// stranger with the link can read is a leak nobody asked for — private means
+// only teamspace members can view, with the share link routing them through
+// ilolink.com/private/<slug> for the membership check. (This used to default to
+// unlisted, which kept the page out of search but still opened it to anyone
+// holding the URL.)
 //
-// This is a default, not a policy: the publisher can still pick any of the four
+// This is a default, not a policy: the publisher can still pick any of the
 // modes, and doing so makes the choice sticky (see publish-form.tsx).
 export function defaultVisibilityFor(isPersonal: boolean): Visibility {
-  return isPersonal ? "public" : "unlisted";
+  return isPersonal ? "public" : "private";
 }
 
 // Whether the "Publish into" picker is worth showing.
@@ -63,7 +65,7 @@ export function defaultVisibilityFor(isPersonal: boolean): Visibility {
 // personal teamspace, so one-and-personal means there is no choice to make and
 // the default (public) is already what the form says. One-and-shared can happen
 // if a personal teamspace is ever not `active` — listTeamspacesForUser filters
-// on status — and there the visibility would quietly default to unlisted with
+// on status — and there the visibility would quietly default to private with
 // nothing on screen explaining why.
 export function shouldShowTeamspacePicker(targets: PublishTarget[]): boolean {
   if (targets.length > 1) return true;

@@ -44,9 +44,10 @@ describe("defaultVisibilityFor", () => {
     expect(defaultVisibilityFor(true)).toBe("public");
   });
 
-  // The whole point: team content must not default to the open web.
-  it("keeps shared-teamspace documents unlisted", () => {
-    expect(defaultVisibilityFor(false)).toBe("unlisted");
+  // The whole point: team content must not default to the open web — or even
+  // to link-holders. Members only, checked at ilolink.com/private/<slug>.
+  it("keeps shared-teamspace documents private to their members", () => {
+    expect(defaultVisibilityFor(false)).toBe("private");
   });
 });
 

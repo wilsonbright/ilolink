@@ -34,6 +34,11 @@ import {
 import { TRACKER_JS } from "./tracker-script";
 import { WIDGET_JS } from "./widget-script";
 import { ViewCounter } from "./view-counter";
+import {
+  verifyViewGateToken,
+  VIEW_GATE_COOKIE,
+  VIEW_GATE_TTL_SECONDS,
+} from "./view-gate";
 
 // Re-export the Durable Object class so wrangler can bind it from this Worker.
 export { ViewCounter };
@@ -88,6 +93,45 @@ async function rateLimitKV(
 // SALT_SECRET is a Worker secret, read via env cast (as in lib/turnstile.ts).
 function saltSecret(env: Env): string {
   return (env as Env & { SALT_SECRET?: string }).SALT_SECRET ?? "";
+}
+
+// VIEW_GATE_SECRET is a Worker secret too (shared with the app worker, which
+// mints the tokens this Worker verifies). Missing secret => "" => every token
+// verifies false (view-gate.ts fails closed), so a misconfigured deploy shows
+// the gate page rather than a 500 — and never an open door.
+function viewGateSecret(env: Env): string {
+  return (env as Env & { VIEW_GATE_SECRET?: string }).VIEW_GATE_SECRET ?? "";
+}
+
+// "private" postdates the Visibility union in lib/types.ts; the KV record can
+// carry it today (TEXT column, no CHECK). Widened to string so this Worker
+// gates correctly whether or not the shared type has caught up.
+function isPrivateVisibility(v: string): boolean {
+  return v === "private";
+}
+
+// Did the request present a valid view-gate credential for this slug? Either
+// the freshly minted ?vt= from the app's redirect, or the doc-scoped "vg"
+// cookie this Worker set on a previous valid vt (refresh within 5 minutes).
+// Returns the token that verified (the caller re-uses it for the cookie and
+// the pdf viewer URL), or null. Never throws.
+async function presentedGateToken(
+  env: Env,
+  slug: string,
+  request: Request,
+): Promise<{ token: string; fresh: boolean } | null> {
+  const secret = viewGateSecret(env);
+  const vt = new URL(request.url).searchParams.get("vt");
+  if (vt && (await verifyViewGateToken(secret, slug, vt))) {
+    return { token: vt, fresh: true };
+  }
+  const cookieToken = parseCookies(request.headers.get("cookie"))[
+    VIEW_GATE_COOKIE
+  ];
+  if (cookieToken && (await verifyViewGateToken(secret, slug, cookieToken))) {
+    return { token: cookieToken, fresh: false };
+  }
+  return null;
 }
 
 // Do-Not-Track: honour the DNT / Sec-GPC request headers and an optional body
@@ -272,10 +316,15 @@ img { max-width: 100%; }`;
 
 // pdf documents render as a full-bleed <iframe> pointing at the same-origin
 // /raw/<slug> byte stream — the browser's native PDF viewer. Slug is already
-// validated upstream; re-filtered here as defence in depth.
-function pdfIframe(slug: string): string {
+// validated upstream; re-filtered here as defence in depth. Private docs
+// thread their validated gate token into the viewer URL, because the "vg"
+// cookie is Path=/<slug> and so is never sent to /raw/<slug>. The token is
+// short-lived, same-origin, and the embedding page is no-store, so it does
+// not outlive the view that carried it.
+function pdfIframe(slug: string, gateToken?: string | null): string {
   const s = slug.replace(/[^a-z0-9-]/g, "");
-  return `<iframe src="/raw/${s}" title="PDF document" style="border:0;width:100%;height:100vh;display:block"></iframe>`;
+  const q = gateToken ? `?vt=${encodeURIComponent(gateToken)}` : "";
+  return `<iframe src="/raw/${s}${q}" title="PDF document" style="border:0;width:100%;height:100vh;display:block"></iframe>`;
 }
 
 // Trusted (raw, unsanitized) docs run their own scripts, but must NOT do so with
@@ -314,6 +363,18 @@ async function gateDoc(
     const expected = await unlockToken(slug, rec.password_hash);
     if (!presented || !constantTimeEqual(presented, expected)) {
       return new Response("Unauthorized", { status: 401 });
+    }
+  }
+  // Private (teamspace-only) docs: the byte stream needs the same proof as the
+  // page. The "vg" cookie is Path=/<slug> so it never travels to /raw/<slug>;
+  // the doc page instead threads its validated token into the viewer URL
+  // (see pdfIframe), which the vt branch of presentedGateToken accepts. No
+  // credential -> the same 404 an unknown slug gets, upholding the
+  // notFoundPage invariant on this path too — a 401 here would confirm a
+  // private pdf exists.
+  if (isPrivateVisibility(rec.visibility)) {
+    if (!(await presentedGateToken(env, slug, request))) {
+      return notFoundPage(slug);
     }
   }
   return null;
@@ -423,6 +484,9 @@ ${robots}
   --ink: #201e1d; --ink-soft: #4e4d4c; --ink-faint: #6a6868;
   --hairline: #d7d3d3; --divider: #9f9d9d;
   --accent: #ec3013; --accent-soft: #ffe0d9; --accent-strong: #ae1800;
+  /* Button/CTA ground: canvas-on-accent is only 3.76:1 in light at the
+     button's 15.2px bold, so light uses accent-strong (6.41:1). */
+  --cta: var(--accent-strong);
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -431,6 +495,8 @@ ${robots}
     --ink: #f3f2f2; --ink-soft: #c3c2c1; --ink-faint: #989796;
     --hairline: #3b3836; --divider: #717070;
     --accent: #ff9783; --accent-soft: #4d170e; --accent-strong: #ffc4b8;
+    /* Dark accent already reads 8.28:1 on canvas — unchanged. */
+    --cta: var(--accent);
   }
 }
 * { box-sizing: border-box; }
@@ -455,11 +521,17 @@ input {
 input:focus { outline: none; border-color: var(--accent); }
 button {
   padding: 0.7rem 0.9rem; font-size: 0.95rem; font-weight: 800;
-  color: var(--canvas); background: var(--accent); border: none;
+  color: var(--canvas); background: var(--cta); border: none;
   cursor: pointer; transition: background 150ms ease;
   text-align: left;
 }
 button:hover { background: var(--accent-strong); }
+a.cta {
+  display: inline-block; padding: 0.7rem 0.9rem; font-size: 0.95rem; font-weight: 800;
+  color: var(--canvas); background: var(--cta); text-decoration: none;
+  transition: background 150ms ease;
+}
+a.cta:hover { background: var(--accent-strong); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .err { color: var(--accent-strong); font-size: 0.85rem; margin: 0.25rem 0 0; }
 </style>
@@ -502,8 +574,19 @@ function gonePage(): Response {
   });
 }
 
-function notFoundPage(): Response {
-  const inner = `<h1>Nothing here</h1><p>This link is wrong, or the document was removed.</p>`;
+// The one 404 for this origin — INVARIANT: does-not-exist and exists-but-
+// private are indistinguishable here, as they are on the app's
+// /private/<slug> route. A private doc with no valid gate credential serves
+// THIS response — same status, same byte-identical body an unknown slug gets
+// — so probing can never confirm a private document exists. The quiet
+// ilolink.com line renders for EVERY slug, both cases, for the same reason:
+// it is the member's real way in, and on an unknown slug it says exactly the
+// same thing, so its presence distinguishes nothing.
+function notFoundPage(slug?: string): Response {
+  const via = slug
+    ? `\n<p style="font-size:0.85rem;color:var(--ink-faint);margin:0;">If this is your team’s document, <a href="https://ilolink.com/private/${encodeURIComponent(slug)}" style="color:var(--accent-strong);">open it via ilolink.com</a>.</p>`
+    : "";
+  const inner = `<h1>Nothing here</h1><p>This link is wrong, or the document was removed.</p>${via}`;
   return new Response(noticeShell({ title: "Not found — ilolink", inner }), {
     status: 404,
     headers: chromeHeaders(),
@@ -529,6 +612,22 @@ async function docExists(env: Env, docId: string): Promise<boolean> {
     .bind(docId)
     .first<{ x: number }>();
   return row !== null;
+}
+
+// Is this doc id private (teamspace-only)? The interaction GETs are keyed by
+// doc id, which every gated viewer can read off the served page — so without
+// this check, anyone who ever saw a private page (or was pasted its id) could
+// keep reading its comment thread and reaction counts from outside the gate.
+// The "vg" cookie is Path=/<slug> and never reaches /_comments or /_feedback,
+// so there is no credential to accept here: private docs answer these GETs
+// with the same empty 200 an untouched doc produces — no thread, no oracle.
+async function isPrivateDocId(env: Env, docId: string): Promise<boolean> {
+  const row = await env.DB.prepare(
+    "SELECT visibility FROM documents WHERE id = ?",
+  )
+    .bind(docId)
+    .first<{ visibility: string }>();
+  return row !== null && isPrivateVisibility(row.visibility);
 }
 
 const REACTION_KEYS = ["👍", "🤔", "👀"] as const;
@@ -992,6 +1091,10 @@ export default {
       if (request.method === "GET") {
         const docId = url.searchParams.get("doc") ?? "";
         if (!docId) return jsonResponse({ reactions: {}, notes: [] });
+        // Private docs: zero counts, indistinguishable from an unreacted doc.
+        if (await isPrivateDocId(env, docId)) {
+          return jsonResponse({ reactions: { "👍": 0, "🤔": 0, "👀": 0 } });
+        }
         return feedbackSummary(env, docId);
       }
       if (request.method === "POST") return postFeedback(request, env);
@@ -1003,6 +1106,11 @@ export default {
       if (request.method === "GET") {
         const docId = url.searchParams.get("doc") ?? "";
         if (!docId) return jsonResponse({ comments: [] });
+        // Private docs: same empty 200 a commentless doc returns — the thread
+        // never leaves the gate (see isPrivateDocId for why no cookie helps).
+        if (await isPrivateDocId(env, docId)) {
+          return jsonResponse({ comments: [] });
+        }
         return commentsList(env, docId);
       }
       if (request.method === "POST") return postComment(request, env);
@@ -1022,7 +1130,7 @@ export default {
       if (!slug) return notFoundPage();
 
       const rec = await loadSlugRecord(env, slug);
-      if (!rec) return notFoundPage();
+      if (!rec) return notFoundPage(slug);
       // Nothing to unlock — bounce to the doc.
       if (rec.visibility !== "password" || !rec.password_hash) {
         return Response.redirect(`${url.origin}/${slug}`, 303);
@@ -1064,13 +1172,13 @@ export default {
       if (!rawSlug) return notFoundPage();
       const rec = await loadSlugRecord(env, rawSlug);
       if (!rec || rec.source_type !== "pdf" || !rec.raw_r2_key) {
-        return notFoundPage();
+        return notFoundPage(rawSlug);
       }
       const blocked = await gateDoc(env, rec, rawSlug, request);
       if (blocked) return blocked;
 
       const object = await env.DOCS.get(rec.raw_r2_key);
-      if (!object) return notFoundPage();
+      if (!object) return notFoundPage(rawSlug);
 
       const headers = new Headers();
       headers.set("content-type", "application/pdf");
@@ -1098,7 +1206,7 @@ export default {
     if (!slug) return notFoundPage();
 
     const rec = await loadSlugRecord(env, slug);
-    if (!rec) return notFoundPage();
+    if (!rec) return notFoundPage(slug);
 
     // Expiring links: past the deadline -> 410 Gone.
     if (
@@ -1122,6 +1230,20 @@ export default {
       }
     }
 
+    // Private gate: teamspace-only docs need the app-minted ?vt= token or the
+    // doc-scoped "vg" cookie a previous valid token earned (view-gate.ts). No
+    // credential -> the SAME 404 an unknown slug serves (see notFoundPage):
+    // does-not-exist and exists-but-private must stay indistinguishable on
+    // this origin, matching the app's /private/<slug> route. The 404's own
+    // ilolink.com line is the member's way in. A missing VIEW_GATE_SECRET
+    // fails closed to the same page — never a 500.
+    const isPrivate = isPrivateVisibility(rec.visibility);
+    let gate: { token: string; fresh: boolean } | null = null;
+    if (isPrivate) {
+      gate = await presentedGateToken(env, slug, request);
+      if (!gate) return notFoundPage(slug);
+    }
+
     // pdf documents skip the R2 rendered body: their bytes live at raw_r2_key and
     // are shown via a same-origin <iframe> (needs frame-src 'self'). Everything
     // else fetches its sanitized rendered HTML.
@@ -1132,10 +1254,10 @@ export default {
     let body: string;
     let textForMeta = ""; // real doc text (for title + OG description), even when trusted/wrapped
     if (isPdf) {
-      body = pdfIframe(slug);
+      body = pdfIframe(slug, gate?.token);
     } else {
       const object = await env.DOCS.get(rec.rendered_r2_key);
-      if (!object) return notFoundPage();
+      if (!object) return notFoundPage(slug);
       const raw = await object.text();
       textForMeta = raw;
       body = trusted ? trustedFrame(raw) : raw;
@@ -1164,7 +1286,7 @@ export default {
       title: isPdf ? "PDF document — ilolink" : titleFromBody(textForMeta),
       body,
       nonce: csp.nonce,
-      noindex: rec.visibility === "unlisted",
+      noindex: rec.visibility === "unlisted" || isPrivate,
       docId: rec.doc_id,
       slug,
       format: rec.source_type,
@@ -1184,6 +1306,24 @@ export default {
     headers.set("content-type", "text/html; charset=utf-8");
     // Private content must not be cached by shared proxies.
     headers.set("cache-control", "private, no-store");
+
+    // A fresh ?vt= earns the doc-scoped gate cookie, so a refresh inside the
+    // 5-minute window works without another round-trip through the app. Scoped
+    // to this one doc's path; this Worker's only self-set cookies are this and
+    // the password-unlock cookie, and it reads both strictly by name.
+    if (isPrivate && gate?.fresh) {
+      headers.append(
+        "set-cookie",
+        [
+          `${VIEW_GATE_COOKIE}=${gate.token}`,
+          `Path=/${slug}`,
+          `Max-Age=${VIEW_GATE_TTL_SECONDS}`,
+          "HttpOnly",
+          "Secure",
+          "SameSite=Lax",
+        ].join("; "),
+      );
+    }
 
     return new Response(request.method === "HEAD" ? null : html, {
       status: 200,

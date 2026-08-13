@@ -38,7 +38,12 @@ import type { TeamRole } from "@/lib/teamspace/permissions";
 import { ClaimBanner } from "./claim-banner";
 import { DocumentRowActions } from "./document-row-actions";
 import { DocumentTitle } from "./document-title";
-import { TAG_ACCENT, TAG_NEUTRAL, TAG_OUTLINE } from "@/lib/ui/tags";
+import {
+  TAG_CHIP_ACTIVE,
+  TAG_CHIP_INACTIVE,
+  TAG_NEUTRAL,
+  TAG_OUTLINE,
+} from "@/lib/ui/tags";
 
 // What buildMoveTargets needs from a teamspace row — listTeamspacesForUser
 // returns a superset.
@@ -212,8 +217,8 @@ export default async function DashboardPage({
               aria-current={tab.id === activeTab ? "page" : undefined}
               className={
                 tab.id === activeTab
-                  ? TAG_ACCENT
-                  : `${TAG_OUTLINE} transition-colors duration-150 hover:bg-accent-wash`
+                  ? TAG_CHIP_ACTIVE
+                  : `${TAG_CHIP_INACTIVE} transition-colors duration-150`
               }
             >
               {tab.label}
@@ -366,7 +371,11 @@ function DocList({
         >
           <DocumentTitle docId={d.id} slug={d.slug} title={d.title} />
           <span className="text-[13px] tabular-nums text-ink-faint">
-            {when(d.published_at)}
+            {/* Date, then who published it. creator_label is null on legacy
+                docs that predate created_by — those show the date alone. */}
+            {[when(d.published_at), d.creator_label]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
           <div className="col-span-2 flex flex-wrap items-center gap-x-2 gap-y-2">
             <span className={TAG_OUTLINE}>{d.visibility}</span>

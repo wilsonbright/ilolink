@@ -96,7 +96,7 @@ export default function Page() {
           <li>
             <strong>Opt-in expiry only</strong> — links are permanent by
             default. Expiry is a visibility mode you turn on per doc, alongside
-            public, unlisted, and password. It&apos;s never a free-tier penalty.
+            public, unlisted, private (teamspace members only), and password. It&apos;s never a free-tier penalty.
           </li>
         </ul>
 

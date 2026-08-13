@@ -101,7 +101,7 @@ export default function Page() {
           <li>
             <strong>Permanent by default.</strong> Links don&apos;t expire on a
             timer. Expiry is an opt-in visibility mode you set per doc, alongside
-            public, unlisted, and password.
+            public, unlisted, private (teamspace members only), and password.
           </li>
           <li>
             <strong>Analytics included.</strong> Cookieless, aggregate metrics —

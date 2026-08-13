@@ -170,7 +170,7 @@ export default function Page() {
               "Notion pages",
               "Markdown, HTML, PDF, .docx, CSV rendered as a page",
             ],
-            ["Access control", "Published or not; workspace permissions", "Public, unlisted, password, or expiring"],
+            ["Access control", "Published or not; workspace permissions", "Public, unlisted, private (teamspace members only), password, or expiring"],
           ]}
           caption="Notion rows reflect its own analytics guide, read 2026-08-12. 'Not documented' means exactly that — verify current features rather than taking this as a permanent absence."
         />

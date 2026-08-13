@@ -15,3 +15,11 @@ export const TAG_BASE = "inline-flex items-center px-2.5 text-[13px] leading-6";
 export const TAG_OUTLINE = `${TAG_BASE} border border-accent text-accent-strong`;
 export const TAG_ACCENT = `${TAG_BASE} bg-accent-wash text-accent-strong`;
 export const TAG_NEUTRAL = `${TAG_BASE} bg-surface text-ink-soft`;
+
+// Selected/unselected chip pair for filter chips and toggles. Exists because
+// reusing TAG_ACCENT (quiet wash) for the active chip against TAG_OUTLINE
+// (strong red border) for the rest made the INACTIVE chips read as selected —
+// users reported the tabs as "reversed". Active is colored AND bordered;
+// inactive is quiet gray. The transparent border keeps both the same height.
+export const TAG_CHIP_ACTIVE = `${TAG_BASE} border border-accent bg-accent-wash text-accent-strong`;
+export const TAG_CHIP_INACTIVE = `${TAG_BASE} border border-transparent bg-surface text-ink-soft hover:text-ink`;

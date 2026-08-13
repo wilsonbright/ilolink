@@ -93,7 +93,13 @@ function toDataUrl(fileBase64: string, filename?: string): string {
 }
 
 function isVisibility(v: unknown): v is Visibility {
-  return v === "public" || v === "unlisted" || v === "password" || v === "expiring";
+  return (
+    v === "public" ||
+    v === "unlisted" ||
+    v === "password" ||
+    v === "expiring" ||
+    v === "private"
+  );
 }
 
 // Throwable input error — the tool turns these into a friendly message.
@@ -200,17 +206,28 @@ export async function publishForWorkspace(
     throw new PublishError("Provide `content` (text) or `file_base64` (a file).");
   }
 
-  // Unconditionally unlisted, and deliberately NOT the web route's rule
-  // (personal → public, shared teamspace → unlisted; see defaultVisibilityFor).
-  // Three reasons this stays as it is: the server instructions in agent.ts state
-  // "Default visibility is unlisted" as a contract agents are already written
-  // against; agent-generated content is the last thing that should default to
-  // the open web; and an MCP connection is bound to one teamspace for its whole
-  // life, so the user never sees the choice being made. Matching the web here
-  // would silently start publishing existing agent workflows publicly.
-  const visibility: Visibility = isVisibility(input.visibility)
-    ? input.visibility
-    : "unlisted"; // spec default
+  // Default by destination, but NEVER the web route's "personal → public"
+  // (see defaultVisibilityFor): agent-generated content is the last thing that
+  // should default to the open web, and an MCP connection is bound to one
+  // teamspace for its whole life, so the user never sees the choice being
+  // made. A personal teamspace — and a legacy pre-accounts connection with no
+  // teamspace at all — keeps the unlisted default the server instructions in
+  // agent.ts have always promised. A SHARED teamspace defaults to private
+  // (members only, gated through ilolink.com/private/<slug>): team content
+  // must not silently open to anyone holding the link.
+  let visibility: Visibility;
+  if (isVisibility(input.visibility)) {
+    visibility = input.visibility;
+  } else if (owner?.teamspaceId) {
+    const ts = await b.DB.prepare(
+      "SELECT is_personal FROM teamspaces WHERE id = ?",
+    )
+      .bind(owner.teamspaceId)
+      .first<{ is_personal: number }>();
+    visibility = ts && !ts.is_personal ? "private" : "unlisted";
+  } else {
+    visibility = "unlisted"; // spec default
+  }
 
   // Visibility-dependent fields.
   let passwordHash: string | null = null;

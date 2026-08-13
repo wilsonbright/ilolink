@@ -3,7 +3,11 @@
 
 export type SourceType = "md" | "html" | "pdf";
 
-export type Visibility = "public" | "unlisted" | "password" | "expiring";
+// "private" = only members of the document's teamspace may view. The docs
+// table stores visibility as plain TEXT (no CHECK), so no migration backs this;
+// enforcement lives in app/private/[slug]/route.ts (membership → view-gate
+// token) and the content-worker (token required to serve).
+export type Visibility = "public" | "unlisted" | "password" | "expiring" | "private";
 
 // Ownership is `teamspace_id` (migration 0009). `manage_token_hash` is the
 // pre-accounts proof — the raw token lives only in the publisher's browser —

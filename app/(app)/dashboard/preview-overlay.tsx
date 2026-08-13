@@ -23,8 +23,69 @@
 // This was invisible locally: single-segment slugs rewrite to the content
 // worker, which does not run under `next dev`, so the local iframe 404'd rather
 // than being refused.
+//
+// THEMING: markdown/JSON/CSV renderings carry no styling of their own, so in a
+// dark app the preview used to flash a light rectangle. For those payloads a
+// <style> restating the app tokens is prepended into the srcdoc — the values
+// are read from the live custom properties at render time, so dark app means
+// dark preview with nothing hardcoded here. Author-styled HTML (its own
+// <style>/inline styles or a full document shell — trusted docs, exported
+// pages) is left exactly as authored. The API sends no source_type, so which
+// is which is sniffed from the payload; see isThemeable.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
+// Should this payload get the app theme? True only for the pipeline's own
+// unstyled renderings; anything the author styled stays untouched.
+//   - A full document shell means trusted/exported HTML: hands off.
+//   - The pipeline's JSON/CSV tables (lib/publish/formats.ts renderJson /
+//     renderCsv) DO carry inline styles, but only ours — recognized by their
+//     generated prefixes. Their var(--surface,…)/var(--hairline,…) fallbacks
+//     are what the injected :root block feeds.
+//   - Any other <style> tag or style= attribute is authored styling: hands off.
+//   - What remains is a bare fragment — markdown-it output — which themes.
+function isThemeable(html: string): boolean {
+  const head = html.trimStart().slice(0, 200).toLowerCase();
+  if (head.startsWith("<!doctype") || head.startsWith("<html")) return false;
+  if (head.startsWith('<pre style="white-space:pre-wrap')) return true;
+  if (head.startsWith('<div style="overflow-x:auto;"><table')) return true;
+  // Sniff a COPY with code-block contents emptied out first: a markdown doc
+  // whose fenced code merely QUOTES a <style> tag or a style= attribute is
+  // still the pipeline's own unstyled rendering, and matching on the raw
+  // payload misclassified it as author-styled. The tags themselves stay, so
+  // a real style= on a <pre>/<code> element still reads as authored.
+  const stripped = html
+    .replace(/(<pre\b[^>]*>)[\s\S]*?(<\/pre>)/gi, "$1$2")
+    .replace(/(<code\b[^>]*>)[\s\S]*?(<\/code>)/gi, "$1$2");
+  if (/<style[\s>]/i.test(stripped)) return false;
+  if (/\sstyle\s*=/i.test(stripped)) return false;
+  return true;
+}
+
+// The app tokens, restated for the srcdoc document. Resolved from the live
+// custom properties at call time — a dark scheme hands over its dark values —
+// so no color literal ever appears here. The :root block feeds the fallback
+// vars the pipeline's JSON/CSV markup already references.
+function appThemeStyle(): string {
+  if (typeof document === "undefined") return "";
+  const cs = getComputedStyle(document.documentElement);
+  const v = (name: string) => cs.getPropertyValue(name).trim();
+  const canvas = v("--color-canvas");
+  const ink = v("--color-ink");
+  const inkSoft = v("--color-ink-soft");
+  const hairline = v("--color-hairline");
+  const accentStrong = v("--color-accent-strong");
+  if (!canvas || !ink) return "";
+  return `<style>
+  :root { --surface: ${canvas}; --hairline: ${hairline}; }
+  body { background: ${canvas}; color: ${ink}; }
+  a { color: ${accentStrong}; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid ${hairline}; padding: 0.3rem 0.6rem; text-align: left; }
+  blockquote { color: ${inkSoft}; border-left: 2px solid ${hairline}; margin-left: 0; padding-left: 1rem; }
+  hr { border: 0; border-top: 1px solid ${hairline}; }
+</style>`;
+}
 
 export function PreviewOverlay({
   slug,
@@ -44,6 +105,18 @@ export function PreviewOverlay({
   // so closing returns the keyboard where it was rather than dumping it at the
   // top of the document.
   const returnTo = useRef<HTMLElement | null>(null);
+  // srcDoc bakes the RESOLVED token hexes at render time (appThemeStyle), so
+  // an OS scheme flip while the overlay is open would leave the preview in the
+  // stale scheme. Count flips; the counter keys the iframe below, so a flip
+  // recomputes the srcdoc with the freshly resolved values.
+  const [schemeFlips, setSchemeFlips] = useState(0);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => setSchemeFlips((n) => n + 1);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     returnTo.current = document.activeElement as HTMLElement | null;
@@ -139,8 +212,13 @@ export function PreviewOverlay({
             both halves of that are the whole point. */}
         {doc.state === "ready" ? (
           <iframe
+            key={schemeFlips}
             title={`Preview of ${title}`}
-            srcDoc={doc.html}
+            srcDoc={
+              isThemeable(doc.html)
+                ? appThemeStyle() + doc.html
+                : doc.html
+            }
             sandbox="allow-same-origin"
             className="h-full w-full flex-1 bg-canvas"
           />

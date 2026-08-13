@@ -177,7 +177,7 @@ export default function Page() {
         approximate uniques, avg time, a 0 / 25 / 50 / 75 / 100% scroll funnel,
         referrers, countries, devices, 30-day daily views, click and scroll
         heatmaps, reactions with notes, and threaded anchored comments. Public,
-        unlisted, password, or expiring — expiry opt-in.
+        unlisted, private (teamspace members only), password, or expiring — expiry opt-in.
       </Callout>
 
       <Faq

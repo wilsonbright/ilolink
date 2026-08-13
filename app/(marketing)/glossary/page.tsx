@@ -58,48 +58,48 @@ export default function Page() {
           happens on an isolated origin under a strict policy.
         </p>
 
-        <h3>AI output</h3>
+        <h2>AI output</h2>
         <p>
           Anything a chatbot produces for you to keep or send — Markdown, HTML,
           a code block, a file, or an image — as opposed to the throwaway chat
           around it.
         </p>
 
-        <h3>Artifact (Claude)</h3>
+        <h2>Artifact (Claude)</h2>
         <p>
           Claude&apos;s name for a self-contained piece of work it renders
           beside the chat — a document, an app, or an HTML mockup — that you
           often want to share as its own page.
         </p>
 
-        <h3>Canvas (ChatGPT)</h3>
+        <h2>Canvas (ChatGPT)</h2>
         <p>
           ChatGPT&apos;s side-panel workspace for editing a document or code in
           place, producing output you can copy out and publish elsewhere.
         </p>
 
-        <h3>Static hosting</h3>
+        <h2>Static hosting</h2>
         <p>
           Serving a fixed page whose files don&apos;t change per request and run
           no server-side logic, which is exactly what a shared piece of AI
           output needs.
         </p>
 
-        <h3>Self-contained HTML file</h3>
+        <h2>Self-contained HTML file</h2>
         <p>
           A single HTML document that carries its own CSS and assets inline, so
           it renders on its own without pulling in external scripts or
           stylesheets.
         </p>
 
-        <h3>Sanitization</h3>
+        <h2>Sanitization</h2>
         <p>
           Cleaning untrusted markup before it&apos;s served — ilolink drops
           scripts and JavaScript, freezes interactive behavior to a static
           snapshot, and keeps the CSS so the page still looks right.
         </p>
 
-        <h3>Content Security Policy (CSP)</h3>
+        <h2>Content Security Policy (CSP)</h2>
         <p>
           An HTTP header that tells the browser what a page is allowed to load
           and run; ilolink serves shared pages under a strict{" "}
@@ -107,53 +107,53 @@ export default function Page() {
           origin.
         </p>
 
-        <h3>Cookieless analytics</h3>
+        <h2>Cookieless analytics</h2>
         <p>
           Measuring readership without setting a cookie or building a
           fingerprint — ilolink uses a short-lived rotating visitor hash, so
           there is no cross-site profile.
         </p>
 
-        <h3>Scroll depth</h3>
+        <h2>Scroll depth</h2>
         <p>
           How far down the page a reader got, bucketed at 0/25/50/75/100%, read
           like a funnel to see where attention drops off.
         </p>
 
-        <h3>Heatmap</h3>
+        <h2>Heatmap</h2>
         <p>
           A visual overlay of where readers clicked or how far they scrolled,
           with hot zones showing attention and cold zones showing what got
           ignored.
         </p>
 
-        <h3>Unique views (approximate)</h3>
+        <h2>Unique views (approximate)</h2>
         <p>
           An estimate of how many separate people opened a page — approximate by
           design, because the privacy-preserving visitor hash rotates rather
           than pinning anyone down.
         </p>
 
-        <h3>Visibility mode</h3>
+        <h2>Visibility mode</h2>
         <p>
-          The access setting on a shared page — public, unlisted, password, or
+          The access setting on a shared page — public, unlisted, private (teamspace members only), password, or
           expiring — that controls who can open it and for how long.
         </p>
 
-        <h3>Edge hosting</h3>
+        <h2>Edge hosting</h2>
         <p>
           Serving a page from data centers close to each reader instead of one
           central server, so it loads fast worldwide; ilolink runs on
           Cloudflare&apos;s edge.
         </p>
 
-        <h3>GEO (generative engine optimization)</h3>
+        <h2>GEO (generative engine optimization)</h2>
         <p>
           Shaping content so AI answer engines can find, quote, and cite it
           accurately — the generative-search counterpart to traditional SEO.
         </p>
 
-        <h3>Anchored comment</h3>
+        <h2>Anchored comment</h2>
         <p>
           A reader&apos;s note attached to a specific spot in the shared
           document and threaded there, so a reply sits next to what it responds
