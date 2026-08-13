@@ -113,6 +113,26 @@
     }
   }
 
+  /* Pins a subtree to the light tokens whatever the OS scheme says. Exists for
+     app-origin frames embedded in the always-light widget chrome (the /embed
+     /comment composer inside a published doc's popover): the chrome hardcodes
+     light values, so the frame must too or dark-mode readers get a dark form
+     on a light ground. Placed after the dark block so it wins inside it. */
+  .scheme-light {
+    color-scheme: light;
+    --color-canvas: #f3f2f2;
+    --color-surface: #eae9e9;
+    --color-ink: #201e1d;
+    --color-ink-soft: color-mix(in srgb, #201e1d 78%, transparent);
+    --color-ink-faint: color-mix(in srgb, #201e1d 65%, transparent);
+    --color-hairline: #d7d3d3;
+    --color-divider: color-mix(in srgb, #201e1d 40%, transparent);
+    --color-accent: #ec3013;
+    --color-accent-soft: #ffe0d9;
+    --color-accent-strong: #ae1800;
+    --color-accent-wash: #fff2ef;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;

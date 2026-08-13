@@ -1,6 +1,7 @@
 // /api/documents/meta — document metadata for the detail page.
 //
-// GET  ?slug=[&token=]        → { visibility, creatorLabel, canChangeVisibility }
+// GET  ?slug=[&token=]        → { visibility, creatorLabel, canChangeVisibility,
+//                                 teamspace }
 // PATCH { slug, visibility }  → flip a live document between public / unlisted /
 //                               private.
 //
@@ -71,6 +72,9 @@ export async function GET(req: Request): Promise<NextResponse> {
       visibility: doc.visibility,
       creatorLabel: creator?.label ?? null,
       canChangeVisibility: canPublishInto(membership),
+      // Whether the doc belongs to a teamspace at all — the detail page shows
+      // the /private/<slug> members link only when there are members to use it.
+      teamspace: doc.teamspace_id != null,
     },
     { headers: { "cache-control": "private, no-store" } },
   );

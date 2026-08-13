@@ -13,6 +13,7 @@ import { queryFirst } from "@/lib/db/client";
 import { countProposals } from "@/lib/artifacts/store-core";
 import { env } from "@/lib/cf";
 import { MembersAdmin } from "./members-admin";
+import { OrgAnalytics } from "./org-analytics";
 import { Upgrade } from "./upgrade";
 import { planFor, isPlanId, type PlanId } from "@/lib/billing/plans";
 import { countDocuments } from "@/lib/billing/entitlements";
@@ -176,6 +177,10 @@ export default async function TeamspacePage({
           </Link>
         </p>
       </section>
+
+      {/* Members-only by placement: everything above this line already ran the
+          membership gate, and OrgAnalytics keys every query on this id. */}
+      <OrgAnalytics teamspaceId={id} />
 
       {/* Owner only. Anyone can SEE the plan they are on, but /api/billing/
           checkout refuses a non-owner, so showing buttons to a member would

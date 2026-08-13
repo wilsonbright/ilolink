@@ -91,11 +91,15 @@ export default {
       }
       ctx.waitUntil(touchApiToken(env.DB, resolved.tokenId));
       // Identity only — membership and status are re-read from D1 on every tool
-      // call (see ./authz.ts), so revoking access takes effect immediately.
+      // call (see ./authz.ts), so revoking access takes effect immediately. The
+      // token's display name rides along as the audit client label (mcp_audit,
+      // 0017); it came back with the token row, and is never an authorization
+      // input.
       (ctx as unknown as { props: unknown }).props = {
         userId: resolved.userId,
         teamspaceId: resolved.teamspaceId,
         origin: "pat",
+        client: resolved.name ?? "pat",
       };
       return mcpHandler.fetch(request, env, ctx);
     }

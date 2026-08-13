@@ -30,6 +30,7 @@ import {
   documentLimitMessage,
 } from "@/lib/billing/entitlements";
 import { scanContent } from "@/lib/abuse/scan";
+import { extractExcerpt, recordOrgMemory } from "@/lib/org/store";
 import {
   MAX_BODY_BYTES,
   MAX_BINARY_BYTES,
@@ -357,6 +358,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   let store: (docId: string) => Promise<DocumentVersion>;
 
   let scanHtml = ""; // rendered HTML fed to the abuse scan (empty for pdf bytes)
+  // Body text the org-memory excerpt is extracted from — empty for pdf bytes,
+  // which record their kind with no excerpt (migration 0017).
+  let memorySource = "";
   // What the sanitizer dropped, so the response can say so. Removal used to be
   // invisible: a page published with its icons and scripts quietly gone and
   // nothing in the response mentioned it.
@@ -383,6 +387,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       const { html, title: t } = renderAndSanitize(converted, "html");
       title = input.title ?? t ?? "Document";
       scanHtml = html;
+      memorySource = converted;
       store = (docId) => storeVersion(docId, converted, html, "html");
     }
   } else {
@@ -395,6 +400,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     title = input.title ?? t ?? "Untitled";
     scanHtml = html;
     removed = r;
+    memorySource = input.content;
     store = (docId) => storeVersion(docId, input.content, html, input.sourceType);
   }
 
@@ -442,6 +448,22 @@ export async function POST(req: Request): Promise<NextResponse> {
     trusted: input.trusted,
     comments_mode: input.commentsMode,
   });
+
+  // Org memory (migration 0017): one plain-extraction entry per publish, so
+  // the teamspace page can show what has landed there. Best-effort by design —
+  // a memory row must never fail the publish that just succeeded.
+  try {
+    await recordOrgMemory(env().DB, {
+      teamspaceId: teamspace.id,
+      documentId: doc.id,
+      title,
+      excerpt: extractExcerpt(memorySource, sourceType),
+      kind: sourceType,
+      createdBy: user.id,
+    });
+  } catch {
+    // swallowed: see above
+  }
 
   return NextResponse.json(
     { slug, url: viewUrl(slug), manageToken, ...(removed ? { removed } : {}) },

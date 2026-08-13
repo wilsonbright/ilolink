@@ -28,7 +28,10 @@
 // dark app the preview used to flash a light rectangle. For those payloads a
 // <style> restating the app tokens is prepended into the srcdoc — the values
 // are read from the live custom properties at render time, so dark app means
-// dark preview with nothing hardcoded here. Author-styled HTML (its own
+// dark preview with nothing hardcoded here. The same <style> re-declares the
+// app's @font-face rules and heading weight (see appFontCss) — the srcdoc is a
+// separate document, so next/font's Archivo never reaches it on its own and
+// the preview rendered in system fonts. Author-styled HTML (its own
 // <style>/inline styles or a full document shell — trusted docs, exported
 // pages) is left exactly as authored. The API sends no source_type, so which
 // is which is sniffed from the payload; see isThemeable.
@@ -62,6 +65,45 @@ function isThemeable(html: string): boolean {
   return true;
 }
 
+// The app's font, restated for the srcdoc document. @font-face rules never
+// cross a document boundary, so without this the iframe fell back to system
+// fonts. The primary family name is read from the body's computed stack (a
+// next/font hashed name, never spelled here), then every matching
+// CSSFontFaceRule is copied out of the app's stylesheets verbatim — they are
+// same-origin, so cssRules is readable, and the try/catch only skips a sheet
+// an extension injected cross-origin. The font URLs those rules carry are
+// same-origin /_next/static/media/ paths, and a srcdoc document under
+// sandbox="allow-same-origin" resolves them against this page's base URL, so
+// they load. Zero matching rules still sets the family stack — the system
+// fallback renders, exactly as before. The h1–h4 rule mirrors globals.css
+// (Archivo 800, tight) so markdown headings preview true.
+function appFontCss(): string {
+  if (typeof document === "undefined") return "";
+  const stack = getComputedStyle(document.body).fontFamily;
+  if (!stack) return "";
+  const unquote = (s: string) => s.trim().replace(/^["']|["']$/g, "");
+  const primary = unquote(stack.split(",")[0]);
+  const faces: string[] = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+    for (const rule of Array.from(rules)) {
+      if (!(rule instanceof CSSFontFaceRule)) continue;
+      if (unquote(rule.style.getPropertyValue("font-family")) !== primary) {
+        continue;
+      }
+      faces.push(rule.cssText);
+    }
+  }
+  return `${faces.join("\n  ")}
+  body { font-family: ${stack}; }
+  h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.015em; }`;
+}
+
 // The app tokens, restated for the srcdoc document. Resolved from the live
 // custom properties at call time — a dark scheme hands over its dark values —
 // so no color literal ever appears here. The :root block feeds the fallback
@@ -75,8 +117,10 @@ function appThemeStyle(): string {
   const inkSoft = v("--color-ink-soft");
   const hairline = v("--color-hairline");
   const accentStrong = v("--color-accent-strong");
-  if (!canvas || !ink) return "";
+  const fontCss = appFontCss();
+  if (!canvas || !ink) return fontCss ? `<style>\n  ${fontCss}\n</style>` : "";
   return `<style>
+  ${fontCss}
   :root { --surface: ${canvas}; --hairline: ${hairline}; }
   body { background: ${canvas}; color: ${ink}; }
   a { color: ${accentStrong}; }

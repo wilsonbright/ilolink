@@ -27,6 +27,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublishForm } from "@/app/(app)/publish/publish-form";
 import { PILLARS, LEGAL } from "@/lib/seo/site";
+import { IloMark } from "@/lib/ui/logo";
 import { NAV_LINK, NAV_ROW, NAV_WORDMARK } from "@/lib/ui/nav";
 import { NavAuth } from "@/app/nav-auth";
 import { ARTIFACT_KINDS, KINDS } from "@/lib/artifacts/kinds";
@@ -171,7 +172,11 @@ export default function Home() {
         <div
           className={`${WRAP} flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3`}
         >
-          <Link href="/" className={NAV_WORDMARK}>
+          <Link
+            href="/"
+            className={`inline-flex items-center gap-2 ${NAV_WORDMARK}`}
+          >
+            <IloMark size={18} className="self-center text-accent" />
             ilolink
           </Link>
           <nav className={NAV_ROW}>
@@ -611,7 +616,10 @@ export default function Home() {
         <footer className={`${WRAP} py-14`}>
           <div className="grid gap-7 text-sm leading-[26px] sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="mb-2.5 font-extrabold text-ink">ilolink</p>
+              <p className="mb-2.5 flex items-center gap-2 font-extrabold text-ink">
+                <IloMark size={16} className="text-accent" />
+                ilolink
+              </p>
               <p className="max-w-[32ch] text-ink-soft">
                 A link for anything you publish, and a shared registry your
                 team&rsquo;s agents read from.

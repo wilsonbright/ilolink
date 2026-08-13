@@ -68,14 +68,16 @@ export async function GET(req: Request): Promise<Response> {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          {/* Square on purpose — the DS does not round a corner. */}
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              background: ACCENT,
-            }}
-          />
+          {/* The mark: two interlocking square links, the same six-rect
+              evenodd geometry as lib/ui/logo.tsx — restated inline because
+              Satori renders from literals, like every token in this file. */}
+          <svg width="44" height="44" viewBox="0 0 32 32">
+            <path
+              fill={ACCENT}
+              fillRule="evenodd"
+              d="M3 3H22V22H3ZM8 8H17V17H8ZM8 17H17V22H8ZM10 10H29V29H10ZM15 15H24V24H15ZM15 10H24V15H15Z"
+            />
+          </svg>
           <div style={{ fontSize: "30px", fontWeight: 800, color: INK }}>ilolink</div>
         </div>
 

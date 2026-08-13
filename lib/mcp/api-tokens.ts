@@ -26,6 +26,7 @@ export interface ResolvedToken {
   userId: string;
   teamspaceId: string;
   tokenId: string;
+  name: string | null;
   scopes: string[];
 }
 
@@ -69,8 +70,8 @@ export async function resolveApiToken(
   if (!presented.startsWith(PAT_PREFIX)) return null;
 
   const row = await DB.prepare(
-    `SELECT t.id, t.user_id, t.teamspace_id, t.scopes, t.expires_at, t.revoked_at,
-            u.status AS user_status
+    `SELECT t.id, t.user_id, t.teamspace_id, t.name, t.scopes, t.expires_at,
+            t.revoked_at, u.status AS user_status
        FROM api_tokens t
        JOIN users u ON u.id = t.user_id
       WHERE t.token_hash = ?`,
@@ -80,6 +81,7 @@ export async function resolveApiToken(
       id: string;
       user_id: string;
       teamspace_id: string;
+      name: string | null;
       scopes: string;
       expires_at: number | null;
       revoked_at: number | null;
@@ -95,6 +97,7 @@ export async function resolveApiToken(
     userId: row.user_id,
     teamspaceId: row.teamspace_id,
     tokenId: row.id,
+    name: row.name,
     scopes: row.scopes.split(",").filter(Boolean),
   };
 }

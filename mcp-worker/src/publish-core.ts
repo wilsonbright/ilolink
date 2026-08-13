@@ -24,6 +24,7 @@ import { scanContent } from "@/lib/abuse/scan";
 import type { SourceType, Visibility } from "@/lib/types";
 import { checkDocumentAllowance } from "@/lib/billing/entitlements";
 import { PLANS } from "@/lib/billing/plans";
+import { extractExcerpt, recordOrgMemory } from "@/lib/org/store";
 
 export const MAX_TEXT_BYTES = 15 * 1024 * 1024; // 15 MB, matches the web path
 
@@ -249,6 +250,9 @@ export async function publishForWorkspace(
   let title: string;
   let store: (docId: string) => Promise<{ id: string; rendered_r2_key: string; raw_r2_key: string }>;
   let scanHtml = ""; // rendered HTML fed to the abuse scan (empty for pdf bytes)
+  // Body text the org-memory excerpt is extracted from — empty for pdf bytes,
+  // which record their kind with no excerpt (0017).
+  let memorySource = "";
 
   if (upload) {
     const bytes = decodeDataUrl(content);
@@ -268,6 +272,7 @@ export async function publishForWorkspace(
       const r = renderContent(html, "html");
       title = input.title ?? r.title ?? input.filename?.replace(/\.[^.]+$/, "") ?? "Document";
       scanHtml = r.html;
+      memorySource = html;
       store = (docId) => storeVersionWith(b, docId, html, r.html, "html");
     }
   } else {
@@ -281,6 +286,7 @@ export async function publishForWorkspace(
     sourceType = st;
     title = input.title ?? r.title ?? "Untitled";
     scanHtml = r.html;
+    memorySource = content;
     store = (docId) => storeVersionWith(b, docId, content, r.html, st);
   }
 
@@ -320,6 +326,25 @@ export async function publishForWorkspace(
     source_type: sourceType,
     comments_mode: "anon",
   });
+
+  // Org memory (0017): one plain-extraction entry per publish into a
+  // teamspace, so its page can show what has landed there. Best-effort by
+  // design — a memory row must never fail the publish that just succeeded —
+  // and skipped for pre-accounts connections, which have no teamspace.
+  if (owner?.teamspaceId) {
+    try {
+      await recordOrgMemory(b.DB, {
+        teamspaceId: owner.teamspaceId,
+        documentId: doc.id,
+        title,
+        excerpt: extractExcerpt(memorySource, sourceType),
+        kind: sourceType,
+        createdBy: owner.userId ?? null,
+      });
+    } catch {
+      // swallowed: see above
+    }
+  }
 
   // Softer signal: allowed, but counted. Auto-suspend the workspace on repeat.
   if (scan.verdict === "flag") {

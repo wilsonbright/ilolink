@@ -24,6 +24,9 @@ interface DocMeta {
   visibility: string;
   creatorLabel: string | null;
   canChangeVisibility: boolean;
+  // Whether the doc belongs to a teamspace — what decides if the members link
+  // line below the public URL renders at all.
+  teamspace: boolean;
 }
 
 export default function DocumentDetailPage() {
@@ -113,6 +116,16 @@ export default function DocumentDetailPage() {
             />
           </div>
           <PublicUrl url={entry.url} />
+          {/* The members link: opening the doc through it signed in is what
+              produces the Team readers receipts on the stats below. It works
+              for every visibility (it just redirects members), so no
+              conditional wording is needed. */}
+          {meta?.teamspace ? (
+            <PublicUrl
+              url={`https://ilolink.com/private/${entry.slug}`}
+              label="Members link"
+            />
+          ) : null}
           {meta?.creatorLabel ? (
             <p className="mt-1.5 text-sm text-ink-faint">
               Published by {meta.creatorLabel}
@@ -235,11 +248,12 @@ function VisibilityControl({
   );
 }
 
-// The public URL with an inline copy action. Copy mirrors the dashboard
-// row-action mechanism: clipboard API when the context is secure, hidden
-// textarea + execCommand otherwise. On failure we say so rather than staying
-// silent — the URL itself is right there to copy by hand.
-function PublicUrl({ url }: { url: string }) {
+// A URL line with an inline copy action — the public URL, and (labelled) the
+// members link on teamspace docs. Copy mirrors the dashboard row-action
+// mechanism: clipboard API when the context is secure, hidden textarea +
+// execCommand otherwise. On failure we say so rather than staying silent — the
+// URL itself is right there to copy by hand.
+function PublicUrl({ url, label }: { url: string; label?: string }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
 
   const copy = useCallback(async () => {
@@ -267,6 +281,7 @@ function PublicUrl({ url }: { url: string }) {
 
   return (
     <p className="mt-2.5 text-sm tabular-nums">
+      {label ? <span className="text-ink-faint">{label} · </span> : null}
       <a
         href={url}
         target="_blank"

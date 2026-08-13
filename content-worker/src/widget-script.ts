@@ -17,7 +17,14 @@
 //   Feedback: POST /_feedback {doc,kind:"reaction"|"note",value,hp:""}
 //             GET  /_feedback?doc=  -> {reactions:{...},notes:[...]}
 //   Comments: GET  /_comments?doc=  -> {comments:[{id,parent_id,author_name,body,anchor,created_at}]}
-//             POST /_comments {doc,parentId?,name?,body,anchor?,hp:""}
+//
+//   Composing ALWAYS happens in the app-origin /embed/comment iframe
+//   (signedComposer) — never in a form built on this origin. Only that frame
+//   can see the session, so a signed-in reader posts under their identity with
+//   no Name field, and a signed-out reader gets the Name-optional anonymous
+//   form there instead. This script no longer POSTs comments to /_comments
+//   itself; the endpoint stays live for the embed's anonymous path and for
+//   cached pages still running an older copy of this script.
 //
 //   anchor (text)  = {type:"text",quote,prefix,suffix,start,end}  (char offsets in .doc)
 //   anchor (point) = {type:"point",x,y,label}                     (fractions of the document)
@@ -40,19 +47,30 @@ var APP_ORIGIN="https://ilolink.com";
 // Swap the local composer for an app-origin iframe. The frame holds the session
 // cookie; this page never can. Height comes back over postMessage.
 function signedComposer(parentId,anchor,onDone){
+// scheme=light: the widget chrome is always light (TOK above hardcodes light
+// values), but the app origin follows the OS scheme — without this a dark-mode
+// reader gets a dark form inside a light popover.
 var url=APP_ORIGIN+"/embed/comment?doc="+encodeURIComponent(doc)
   +(parentId?"&parent="+encodeURIComponent(parentId):"")
-  +(anchor?"&anchor="+encodeURIComponent(JSON.stringify(anchor)):"");
+  +(anchor?"&anchor="+encodeURIComponent(JSON.stringify(anchor)):"")
+  +"&scheme=light";
 var fr=document.createElement("iframe");
 fr.src=url;fr.title="Add a comment";
 fr.setAttribute("scrolling","no");
 fr.style.cssText="width:100%;border:0;height:96px;display:block;background:transparent;";
 function onMsg(ev){
-  // Only our own frame may resize or notify us.
+  // Listeners would otherwise accumulate one per composer ever built (popovers,
+  // reply slots): once our frame has left the document, or once its comment has
+  // posted, this listener is done — unhook it.
+  if(!fr.isConnected){window.removeEventListener("message",onMsg);return;}
+  // Only our own frame may resize or notify us. Several composer frames can
+  // coexist (the panel form plus a popup), so the source check keeps each
+  // frame's messages from resizing or closing its siblings.
   if(ev.origin!==APP_ORIGIN)return;
+  if(ev.source!==fr.contentWindow)return;
   var d=ev.data||{};
   if(d.type==="ilo:comment:height"&&typeof d.height==="number")fr.style.height=Math.min(400,Math.max(80,d.height))+"px";
-  if(d.type==="ilo:comment:posted"&&onDone)onDone();
+  if(d.type==="ilo:comment:posted"){if(onDone)onDone();window.removeEventListener("message",onMsg);}
 }
 window.addEventListener("message",onMsg);
 return fr;
@@ -78,7 +96,7 @@ function clamp01(n){return n<0?0:n>1?1:n;}
 var layer=mk("div","position:absolute;top:0;left:0;width:0;height:0;z-index:2147483000;pointer-events:none;");
 
 // ─── text-anchor geometry (highlight + margin pin) ─────────────────────────
-var markEls=[],anchorMap={},pendingAnchor=null,mainBody=null,mainChip=null,mainChipQuote=null;
+var markEls=[],anchorMap={};
 function pointOffset(node,off){
 if(!docEl)return -1;
 var w=document.createTreeWalker(docEl,NodeFilter.SHOW_TEXT,null),t,total=0;
@@ -155,15 +173,11 @@ m.appendChild(mk("span",null,fmt(c.created_at)));box.appendChild(m);
 box.appendChild(mk("div","white-space:pre-wrap;line-height:1.5;font-size:.9rem;",String(c.body==null?"":c.body)));
 parent.appendChild(box);
 }
+// Reply composer: the app-origin iframe, whatever the reader's sign-in state.
+// The frame itself renders the identified or anonymous form as appropriate.
 function replyForm(parentId,onDone){
 if(COMMENTS_MODE==="off")return mk("div",null,"");
-if(COMMENTS_MODE==="signed")return signedComposer(parentId,null,onDone);
-var f=mk("form","display:flex;flex-direction:column;gap:.4rem;margin-top:.65rem;");
-var body=mk("textarea",IN+"min-height:2.4rem;resize:vertical;");body.placeholder="Reply";body.required=true;body.maxLength=4000;
-var hp=hpf(),send=mk("button",BTN+"align-self:flex-start;font-size:.82rem;","Reply");
-f.appendChild(body);f.appendChild(hp);f.appendChild(send);
-f.addEventListener("submit",function(e){e.preventDefault();var v=body.value.trim();if(!v)return;send.disabled=true;post("/_comments",{doc:doc,body:v,hp:hp.value,parentId:parentId}).then(function(){if(onDone)onDone();}).catch(function(){send.disabled=false;});});
-return f;
+return signedComposer(parentId,null,onDone);
 }
 // Document-absolute position to anchor a popover for a given anchor.
 function anchorPos(a){
@@ -183,27 +197,21 @@ pv.appendChild(replyForm(c.id,function(){closePop();load();}));
 // set AFTER the build. Pinned = click (stays open); hover = auto-closes on leave.
 function openThreadPinned(c){cancelHoverTimers();openThread(c);pinnedOpen=true;hoverC=c;}
 function openThreadHover(c){cancelHoverTimers();openThread(c);pinnedOpen=false;hoverC=c;}
-// Composer for a new anchored comment. anchor is the full anchor object; dl/dt
-// override the popover position (used for text selection, where the anchor has
-// no x/y). All three anchor kinds submit through here.
+// Composer popover for a new anchored comment. anchor is the full anchor
+// object; dl/dt override the popover position (used for text selection, where
+// the anchor has no x/y). All three anchor kinds ride to the app-origin iframe
+// as a query param — the popup itself builds no form, so it can never show a
+// Name field to a signed-in reader.
 function openComposer(anchor,dl,dt){
+if(COMMENTS_MODE==="off")return;
 if(dl==null){var pp=anchorPos(anchor);dl=pp.left;dt=pp.top;}
 var pv=popAtDoc(dl,dt);
 var ll=labelLine(anchor);if(ll)pv.appendChild(ll);
-var name=mk("input",IN);name.type="text";name.placeholder="Name (optional)";name.maxLength=80;
-var body=mk("textarea",IN+"min-height:3.5rem;resize:vertical;margin-top:.4rem;");body.placeholder="Add a comment";body.required=true;body.maxLength=4000;
-var hp=hpf(),row=mk("div","display:flex;gap:.5rem;margin-top:.55rem;");
-var send=mk("button",BTN,"Comment"),cancel=mk("button",GHOST,"Cancel");
-row.appendChild(send);row.appendChild(cancel);
-pv.appendChild(name);pv.appendChild(body);pv.appendChild(hp);pv.appendChild(row);
-setTimeout(function(){body.focus();},30);
+pv.appendChild(signedComposer(null,anchor,function(){closePop();load();}));
+var cancel=mk("button",GHOST+"margin-top:.55rem;","Cancel");
+cancel.type="button";
 cancel.addEventListener("click",function(e){e.preventDefault();closePop();});
-pv.addEventListener("submit",function(e){e.preventDefault();});
-send.addEventListener("click",function(e){
-e.preventDefault();var v=body.value.trim();if(!v)return;send.disabled=true;
-var p={doc:doc,body:v,hp:hp.value,anchor:anchor};var nm=name.value.trim();if(nm)p.name=nm;
-post("/_comments",p).then(function(){closePop();load();}).catch(function(){send.disabled=false;});
-});
+pv.appendChild(cancel);
 }
 
 // ─── point pins ────────────────────────────────────────────────────────────
@@ -310,34 +318,12 @@ root.appendChild(mk("p","font-size:.8rem;color:var(--ink-faint);margin:0 0 1rem;
 var list=mk("div","display:flex;flex-direction:column;gap:1.1rem;");
 root.appendChild(list);
 
-// top-level comment form (kept for a general, unanchored comment + text selection)
-function form(parentId,onDone){
-if(COMMENTS_MODE==="off")return mk("div",null,"");
-if(COMMENTS_MODE==="signed")return signedComposer(parentId,null,onDone);
-var f=mk("form","display:flex;flex-direction:column;gap:.5rem;margin-top:.6rem;max-width:34rem;");
-var name=mk("input",IN);name.type="text";name.placeholder="Name (optional)";name.maxLength=80;
-var body=mk("textarea",IN+"min-height:3.5rem;resize:vertical;");body.placeholder="Write a reply";body.required=true;body.maxLength=4000;
-var hp=hpf(),send=mk("button",BTN,"Reply");f.appendChild(name);f.appendChild(body);f.appendChild(hp);f.appendChild(send);
-f.addEventListener("submit",function(ev){ev.preventDefault();var v=body.value.trim();if(!v)return;send.disabled=true;var p={doc:doc,body:v,hp:hp.value,parentId:parentId},nm=name.value.trim();if(nm)p.name=nm;post("/_comments",p).then(function(){if(onDone)onDone();load();}).catch(function(){send.disabled=false;});});
-return f;
-}
+// Top-level composer in the bottom panel: the same app-origin iframe. General,
+// unanchored comments only — anchored ones open their own popover composer.
 function buildMainForm(){
 if(COMMENTS_MODE==="off")return mk("div",null,"");
-if(COMMENTS_MODE==="signed")return signedComposer(null,pendingAnchor,function(){pendingAnchor=null;load();});
-var f=mk("form","display:flex;flex-direction:column;gap:.5rem;margin-top:1.25rem;max-width:34rem;");
-var chip=mk("div","display:none;align-items:center;gap:.5rem;padding:.4rem .6rem;background:var(--accent-soft);border:1px solid var(--hairline);font-size:.8rem;color:var(--ink-soft);");
-chip.appendChild(mk("span","color:var(--accent);font-weight:600;white-space:nowrap;","On selection:"));
-var qlabel=mk("span","overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:22rem;");chip.appendChild(qlabel);
-var clr=mk("button","margin-left:auto;padding:.05rem .35rem;font:inherit;font-size:.85rem;color:var(--ink-soft);background:transparent;border:none;cursor:pointer;","✕");clr.type="button";clr.addEventListener("click",function(){pendingAnchor=null;chip.style.display="none";});chip.appendChild(clr);
-var name=mk("input",IN);name.type="text";name.placeholder="Name (optional)";name.maxLength=80;
-var body=mk("textarea",IN+"min-height:3.5rem;resize:vertical;");body.placeholder="Add a comment";body.required=true;body.maxLength=4000;
-var hp=hpf(),send=mk("button",BTN,"Post comment");
-f.appendChild(chip);f.appendChild(name);f.appendChild(body);f.appendChild(hp);f.appendChild(send);
-mainBody=body;mainChip=chip;mainChipQuote=qlabel;
-f.addEventListener("submit",function(ev){ev.preventDefault();var v=body.value.trim();if(!v)return;send.disabled=true;var p={doc:doc,body:v,hp:hp.value},nm=name.value.trim();if(nm)p.name=nm;if(pendingAnchor)p.anchor=pendingAnchor;post("/_comments",p).then(function(){body.value="";pendingAnchor=null;chip.style.display="none";send.disabled=false;load();}).catch(function(){send.disabled=false;});});
-return f;
+return signedComposer(null,null,function(){load();});
 }
-function setAnchorTarget(a){pendingAnchor=a;if(mainChip){mainChipQuote.textContent='“'+a.quote+'”';mainChip.style.display="flex";}if(mainBody){mainBody.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){mainBody.focus();},280);}}
 
 function renderRow(c,isReply){
 var box=mk("div",isReply?"margin-left:1.25rem;padding-left:1rem;border-left:2px solid var(--hairline);":"");
@@ -353,7 +339,7 @@ p.type="button";p.addEventListener("click",function(){openThread(c);});box.appen
 box.appendChild(mk("div","font-size:.8rem;color:var(--ink-soft);border-left:2px solid var(--accent);padding-left:.6rem;margin:0 0 .35rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;",String(c.anchor.quote)));
 }}
 box.appendChild(mk("div","white-space:pre-wrap;line-height:1.55;",String(c.body==null?"":c.body)));
-if(!isReply){var rbtn=mk("button",GHOST+"margin-top:.4rem;","Reply"),slot=mk("div");rbtn.addEventListener("click",function(){if(slot.firstChild){slot.textContent="";return;}slot.appendChild(form(c.id,function(){slot.textContent="";}));});box.appendChild(rbtn);box.appendChild(slot);}
+if(!isReply){var rbtn=mk("button",GHOST+"margin-top:.4rem;","Reply"),slot=mk("div");rbtn.addEventListener("click",function(){if(slot.firstChild){slot.textContent="";return;}slot.appendChild(replyForm(c.id,function(){slot.textContent="";load();}));});box.appendChild(rbtn);box.appendChild(slot);}
 return box;
 }
 function draw(items){

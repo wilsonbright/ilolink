@@ -18,6 +18,7 @@
 // the per-render teamspace query the old nav needed.
 import Link from "next/link";
 import { currentUser } from "@/lib/auth/current-user";
+import { IloMark } from "@/lib/ui/logo";
 import { NAV_ITEM, NAV_LINK, NAV_ROW, NAV_WORDMARK } from "@/lib/ui/nav";
 import { NavLinks } from "./nav-links";
 import { SignOutButton } from "./sign-out";
@@ -33,7 +34,11 @@ export default async function AppLayout({
     <div className="min-h-dvh bg-canvas">
       <header className="border-b-2 border-divider">
         <div className="mx-auto flex max-w-[1160px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-[clamp(20px,4vw,56px)] py-4">
-          <Link href={user ? "/dashboard" : "/"} className={NAV_WORDMARK}>
+          <Link
+            href={user ? "/dashboard" : "/"}
+            className={`inline-flex items-center gap-2 ${NAV_WORDMARK}`}
+          >
+            <IloMark size={18} className="self-center text-accent" />
             ilolink
           </Link>
           <nav className={NAV_ROW}>

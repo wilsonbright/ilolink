@@ -951,8 +951,29 @@ async function postComment(request: Request, env: Env): Promise<Response> {
   if (!(await rateLimitKV(env, `cm:${ip}`, 15, 60))) {
     return jsonResponse({ error: "rate limited" }, 429);
   }
-  if (!(await docExists(env, docId))) {
-    return jsonResponse({ error: "not found" }, 404);
+
+  // Per-doc policy, enforced HERE. The embed UI gates this too, but the worker
+  // is the enforcement point — this endpoint is reachable with nothing but a
+  // doc id, so it must apply the same rules the composer renders from: the doc
+  // exists, takes anonymous comments, is not private, and is still published.
+  // Every rejection is the honeypot's silent ok, so a prober can't distinguish
+  // "no such doc" from "exists but locked" — the POST just quietly does nothing.
+  const docRow = await env.DB.prepare(
+    "SELECT comments_mode, visibility, unpublished_at FROM documents WHERE id = ?",
+  )
+    .bind(docId)
+    .first<{
+      comments_mode: string;
+      visibility: string;
+      unpublished_at: number | null;
+    }>();
+  if (
+    !docRow ||
+    docRow.comments_mode !== "anon" ||
+    docRow.visibility === "private" ||
+    docRow.unpublished_at !== null
+  ) {
+    return jsonResponse({ ok: true });
   }
 
   if (parentId) {

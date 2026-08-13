@@ -6,6 +6,8 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { nanoid } from "nanoid";
+import { auditTargetOf } from "../../lib/org/store";
 import { publishForWorkspace, PublishError } from "./publish-core";
 import { enforceMcpRate } from "./ratelimit";
 import {
@@ -96,6 +98,10 @@ export interface Props extends Record<string, unknown> {
   // was authorized before the pivot keeps working until it is reconnected.
   workspaceId?: string;
   origin?: string;
+  // Display label for the audit trail (the PAT's name, set by index.ts) —
+  // never an authorization input. Absent on OAuth grants, which fall back to
+  // 'oauth' at write time.
+  client?: string;
 }
 
 const textResult = (text: string, structured?: Record<string, unknown>) => ({
@@ -243,7 +249,58 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
     }
   }
 
+  // One best-effort mcp_audit row per tool call (0017). Fire-and-forget like
+  // touchLastSeen — the audit must never fail, block, or slow a tool call —
+  // and written from raw props: this is attribution, not authorization, so it
+  // records the call even when requireMember() later rejects it.
+  private auditToolCall(tool: string, readOnly: boolean, input: unknown): void {
+    // mcp_audit.teamspace_id is NOT NULL, and a pre-accounts session has no
+    // teamspace to attribute the row to — skip rather than invent one.
+    const teamspaceId = this.props?.teamspaceId;
+    if (!teamspaceId) return;
+    void this.env.DB.prepare(
+      `INSERT INTO mcp_audit
+         (id, teamspace_id, user_id, client, tool, action, target, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        `aud_${nanoid(16)}`,
+        teamspaceId,
+        this.props?.userId ?? null,
+        this.props?.client ?? "oauth",
+        tool,
+        readOnly ? "read" : "write",
+        auditTargetOf(input),
+        Date.now(),
+      )
+      .run()
+      .catch(() => {});
+  }
+
   async init(): Promise<void> {
+    // ── Audit choke point (0017) ────────────────────────────────────────────
+    // Every registration below is wrapped ONCE here rather than pasting an
+    // insert into each of the 22 handlers. read/write comes from the same
+    // readOnlyHint annotation each tool already declares, so a new tool cannot
+    // ship unclassified. The casts are confined to these lines; every call
+    // site keeps its precise inferred input types because the visible
+    // registerTool signature is unchanged.
+    const register = this.server.registerTool.bind(this.server);
+    this.server.registerTool = ((
+      name: string,
+      config: { annotations?: { readOnlyHint?: boolean } },
+      handler: (...args: unknown[]) => unknown,
+    ) => {
+      const readOnly = config.annotations?.readOnlyHint === true;
+      const wrapped = (...args: unknown[]) => {
+        // args[0] is the parsed input when the tool has a schema, and the
+        // request extra when it does not; auditTargetOf tolerates both.
+        this.auditToolCall(name, readOnly, args[0]);
+        return handler(...args);
+      };
+      return register(name as never, config as never, wrapped as never);
+    }) as unknown as McpServer["registerTool"];
+
     this.server.registerTool(
       "ping",
       {

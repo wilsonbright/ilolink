@@ -1,8 +1,5 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#EC3013"/>
-  <g stroke="#F3F2F2" stroke-width="44" stroke-linecap="round" fill="none">
-    <!-- Two interlocking rounded links — the "share link" mark. -->
-    <rect x="120" y="201" width="176" height="110" rx="55"/>
-    <rect x="216" y="201" width="176" height="110" rx="55"/>
-  </g>
+<svg width="512" height="512" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Two interlocking square links — same geometry as lib/ui/logo.tsx.
+       Accent on transparent; hex is correct here, a favicon file has no tokens. -->
+  <path fill="#EC3013" fill-rule="evenodd" d="M3 3H22V22H3ZM8 8H17V17H8ZM8 17H17V22H8ZM10 10H29V29H10ZM15 15H24V24H15ZM15 10H24V15H15Z"/>
 </svg>

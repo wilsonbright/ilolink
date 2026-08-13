@@ -16,9 +16,10 @@
 // BOTH origins.
 
 import { NextResponse } from "next/server";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { currentUser } from "@/lib/auth/current-user";
 import { getMembership } from "@/lib/teamspace/store";
-import { queryFirst } from "@/lib/db/client";
+import { execute, queryFirst } from "@/lib/db/client";
 import { VIEW_ORIGIN } from "@/lib/publish/pipeline";
 import { mintViewToken } from "@/lib/view-gate";
 import { env } from "@/lib/cf";
@@ -55,9 +56,10 @@ export async function GET(
     return NextResponse.redirect(signin, 302);
   }
 
-  // Only what the membership check needs — never the title or body.
-  const doc = await queryFirst<{ teamspace_id: string | null }>(
-    "SELECT teamspace_id FROM documents WHERE slug = ?",
+  // Only what the membership check and the read receipt need — never the
+  // title or body.
+  const doc = await queryFirst<{ id: string; teamspace_id: string | null }>(
+    "SELECT id, teamspace_id FROM documents WHERE slug = ?",
     slug,
   );
   if (!doc) return notFound();
@@ -66,6 +68,31 @@ export async function GET(
   // which folds into the same 404 as everything else.
   const role = await getMembership(doc.teamspace_id ?? null, user.id);
   if (!role) return notFound();
+
+  // Member read receipt (member_doc_views, 0017). This route is the ONE place
+  // where a verified member identity meets a document open — public/unlisted
+  // views on the content origin never carry the session and stay anonymous by
+  // design. Best-effort by rule: the single upsert rides waitUntil so the
+  // redirect never waits on it, and any failure is swallowed — a lost receipt
+  // must never cost a member the document.
+  try {
+    const now = Date.now();
+    const receipt = execute(
+      `INSERT INTO member_doc_views
+         (document_id, user_id, first_viewed_at, last_viewed_at, view_count)
+       VALUES (?, ?, ?, ?, 1)
+       ON CONFLICT(document_id, user_id) DO UPDATE SET
+         last_viewed_at = excluded.last_viewed_at,
+         view_count = view_count + 1`,
+      doc.id,
+      user.id,
+      now,
+      now,
+    ).catch(() => {});
+    getCloudflareContext().ctx.waitUntil(receipt);
+  } catch {
+    // Same best-effort rule when the execution context itself is unavailable.
+  }
 
   const vt = await mintViewToken(viewGateSecret(), slug, Date.now());
   const dest = new URL(`/${slug}`, VIEW_ORIGIN);

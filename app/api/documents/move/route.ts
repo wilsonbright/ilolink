@@ -96,5 +96,17 @@ export async function POST(req: Request): Promise<NextResponse> {
     documentId,
   );
 
+  // Read receipts do not cross teamspaces: teamspace-A members' reading behavior
+  // must not become visible to teamspace B, so the receipts are dropped outright.
+  await execute("DELETE FROM member_doc_views WHERE document_id = ?", documentId);
+
+  // The memory moves with the document: the old teamspace must not keep holding
+  // a readable excerpt of a doc that may have been moved precisely to restrict it.
+  await execute(
+    "UPDATE org_memory SET teamspace_id = ? WHERE document_id = ?",
+    teamspaceId,
+    documentId,
+  );
+
   return NextResponse.json({ ok: true, teamspaceId });
 }

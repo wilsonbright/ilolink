@@ -22,9 +22,25 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Stats } from "@/lib/analytics/query";
 import { TAG_OUTLINE } from "@/lib/ui/tags";
 
-// /api/stats returns Stats plus the doc id (slug→id bridge) and the exact
-// Durable-Object view count (preferred over the sampled AE `views` when present).
-type StatsData = Stats & { doc: string; exactViews?: number | null };
+// One member read receipt — a /private/<slug> open by a signed-in teamspace
+// member. Public/unlisted views never produce one (identity is unknown there
+// by design), so this list is a complement to the anonymous counts above it.
+interface MemberView {
+  email: string;
+  name: string | null;
+  last_viewed_at: number;
+  view_count: number;
+}
+
+// /api/stats returns Stats plus the doc id (slug→id bridge), the exact
+// Durable-Object view count (preferred over the sampled AE `views` when
+// present), and memberViews — null/absent for a doc outside any teamspace,
+// which is what suppresses the Team readers section.
+type StatsData = Stats & {
+  doc: string;
+  exactViews?: number | null;
+  memberViews?: MemberView[] | null;
+};
 
 const VIEW_ORIGIN = "https://view.ilolink.com";
 const REACTIONS = ["👍", "🤔", "👀"] as const;
@@ -63,6 +79,21 @@ function formatDate(ms: number): string {
 function compact(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
   return String(n);
+}
+
+// Relative "last opened" for read receipts; falls back to the short date once
+// it stops being meaningfully recent.
+function formatRelative(ms: number): string {
+  if (!ms || !Number.isFinite(ms)) return "";
+  const diff = Date.now() - ms;
+  if (diff < 60_000) return "just now";
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return formatDate(ms);
 }
 
 function formatDuration(s: number): string {
@@ -160,6 +191,7 @@ export function StatsView({ slug, token }: { slug: string; token: string }) {
       <Tiles stats={stats} />
       <ScrollFunnel stats={stats} />
       <Breakdowns stats={stats} />
+      <TeamReaders stats={stats} />
       <DailySparkline stats={stats} />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[clamp(24px,3vw,42px)]">
         <Reactions feedback={feedback} />
@@ -360,6 +392,54 @@ function BreakdownList({
             </li>
           ))}
         </ul>
+      )}
+    </Section>
+  );
+}
+
+// ── Team readers (member read receipts) ──────────────────────────────────
+// The server includes memberViews only for a teamspace doc whose caller
+// passed the stats guard, so the section's presence is decided there — this
+// component never guesses at membership. Nothing renders while loading or on
+// error: teamspace-ness itself is unknown until the payload arrives.
+
+function TeamReaders({ stats }: { stats: Load<StatsData> }) {
+  if (stats.state !== "ready" || stats.data.memberViews == null) return null;
+  const rows = stats.data.memberViews;
+  return (
+    <Section title="Team readers">
+      {rows.length === 0 ? (
+        <Quiet>
+          No member opens recorded yet. Members are counted when they open the
+          doc signed in through its members link.
+        </Quiet>
+      ) : (
+        <div className="grid gap-2">
+          <ul className="grid gap-2">
+            {rows.map((v) => (
+              <li
+                key={v.email}
+                className="flex items-center justify-between gap-3 bg-accent-wash px-3 py-2 text-sm"
+              >
+                <span className="truncate text-ink" title={v.email}>
+                  {v.name?.trim() || v.email}
+                </span>
+                <span className="flex shrink-0 items-baseline gap-3 tabular-nums">
+                  <span className="text-ink-faint">
+                    {formatRelative(v.last_viewed_at)}
+                  </span>
+                  <span className="text-accent-strong">
+                    {compact(v.view_count)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {/* Honesty caption: receipts exist only where identity does. */}
+          <p className="text-[13px] text-ink-faint">
+            Opens through the public or unlisted link stay anonymous by design.
+          </p>
+        </div>
       )}
     </Section>
   );

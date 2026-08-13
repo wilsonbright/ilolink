@@ -5,6 +5,7 @@
 // that framed us read the message.
 
 import { useEffect, useRef, useState } from "react";
+import { FIELD_INPUT } from "@/lib/ui/form";
 
 const CONTENT_ORIGIN = "https://view.ilolink.com";
 
@@ -34,16 +35,23 @@ export function EmbeddedComposer({
   parentId,
   anchor,
   email,
+  anonAllowed,
 }: {
   doc: string;
   parentId: string | null;
   anchor: string | null;
   email: string | null;
+  anonAllowed: boolean;
 }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // Anonymous-path state: the optional display name and the honeypot. The
+  // honeypot must ride along with the POST so the content worker's spam check
+  // keeps applying now that anonymous composing happens in this frame.
+  const [name, setName] = useState("");
+  const [hp, setHp] = useState("");
   const boxRef = useRef<HTMLTextAreaElement>(null);
 
   // Mention state. `picked` remembers every candidate ever inserted; the
@@ -109,7 +117,11 @@ export function EmbeddedComposer({
     return () => ro.disconnect();
   }, [done, error, open]);
 
-  if (!email) {
+  // Signed out on a document that does not take anonymous comments: the only
+  // affordance is signing in. This is also what an unknown or private doc id
+  // renders (the page fails closed to anonAllowed=false), so the prompt gives
+  // a prober nothing.
+  if (!email && !anonAllowed) {
     return (
       <div className="p-3 text-sm text-ink-soft">
         <a
@@ -128,7 +140,7 @@ export function EmbeddedComposer({
   if (done) {
     return (
       <div className="p-3 text-sm text-ink-soft">
-        Posted as {email}.{" "}
+        {email ? `Posted as ${email}.` : "Posted."}{" "}
         <button
           onClick={() => {
             setDone(false);
@@ -207,17 +219,36 @@ export function EmbeddedComposer({
       .map((p) => p.id)
       .slice(0, 10);
     try {
-      const res = await fetch("/api/comments", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          doc,
-          body: text,
-          parentId,
-          anchor: anchor ? safeParse(anchor) : null,
-          ...(mentions.length > 0 ? { mentions } : {}),
-        }),
-      });
+      // Two POST targets, one per identity. Signed-in goes to /api/comments —
+      // the exclusively identified route. Signed-out uses the widget's old
+      // anonymous contract on the content worker's /_comments, reached
+      // same-origin through the apex rewrite (next.config.ts), so no
+      // cross-origin credentialed fetch exists on either path. That endpoint
+      // rejects an anchor on a reply, hence the parentId guard.
+      const res = email
+        ? await fetch("/api/comments", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              doc,
+              body: text,
+              parentId,
+              anchor: anchor ? safeParse(anchor) : null,
+              ...(mentions.length > 0 ? { mentions } : {}),
+            }),
+          })
+        : await fetch("/_comments", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              doc,
+              body: text,
+              hp,
+              parentId,
+              ...(name.trim() ? { name: name.trim() } : {}),
+              ...(parentId ? {} : { anchor: anchor ? safeParse(anchor) : null }),
+            }),
+          });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setError(data.error ?? "Could not post that.");
@@ -236,6 +267,18 @@ export function EmbeddedComposer({
 
   return (
     <form onSubmit={submit} className="p-3">
+      {!email && (
+        // The same Name-optional affordance the widget's local composer had,
+        // now living on the app origin like every other composer.
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={80}
+          placeholder="Name (optional)"
+          className={`mb-2 w-full ${FIELD_INPUT}`}
+        />
+      )}
       {/* The textarea itself carries the combobox ARIA (ARIA 1.2): focus
           lives in the textarea, so a role/aria-activedescendant on a wrapper
           div would be silent to assistive tech. The list is a plain
@@ -263,7 +306,7 @@ export function EmbeddedComposer({
           rows={3}
           maxLength={4000}
           placeholder="Add a comment…"
-          className="w-full resize-y border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+          className={`w-full resize-y ${FIELD_INPUT}`}
         />
         {open && (
           <ul
@@ -300,8 +343,38 @@ export function EmbeddedComposer({
           </ul>
         )}
       </div>
+      {!email && (
+        // Honeypot: invisible to people, filled by naive bots; the content
+        // worker silently drops any POST that carries a value here.
+        <input
+          type="text"
+          name="hp"
+          value={hp}
+          onChange={(e) => setHp(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="absolute left-[-9999px] h-px w-px opacity-0"
+        />
+      )}
       <div className="mt-2 flex items-center justify-between gap-3">
-        <span className="truncate text-xs text-ink-faint">as {email}</span>
+        <span className="truncate text-xs text-ink-faint">
+          {email ? (
+            <>as {email}</>
+          ) : (
+            <>
+              <a
+                href={`/signin?next=${encodeURIComponent("/dashboard")}`}
+                target="_blank"
+                rel="noopener"
+                className="text-accent-strong underline"
+              >
+                Sign in
+              </a>{" "}
+              to use your account
+            </>
+          )}
+        </span>
         <button
           type="submit"
           disabled={busy || !text.trim()}
