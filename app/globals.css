@@ -46,6 +46,10 @@
   --color-accent: #ec3013;
   --color-accent-soft: #ffe0d9;
   --color-accent-strong: #ae1800;
+  /* The faintest wash (DS accent-100) — row fills behind data (analytics
+     source lists, accent tag grounds). Text on it must be accent-strong
+     or ink; the raw accent stays chrome-only here as everywhere. */
+  --color-accent-wash: #fff2ef;
 
   /* The poster statement — the DS's one place red runs as a field (the
      landing's closing banner). Deliberately does NOT flip in dark mode: a
@@ -104,6 +108,8 @@
       --color-accent: #ff9783;
       --color-accent-soft: #4d170e;
       --color-accent-strong: #ffc4b8;
+      /* One step deeper than accent-soft, mirroring 100 < 200 in light */
+      --color-accent-wash: #33100a;
     }
   }
 

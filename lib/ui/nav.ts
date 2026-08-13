@@ -25,8 +25,12 @@ const NAV_BASE =
 // A nav item that supplies its own text colour (the accent "Sign in", say).
 export const NAV_ITEM = NAV_BASE;
 
-// The ordinary case: a secondary-weight destination.
-export const NAV_LINK = `${NAV_BASE} text-ink-soft`;
+// The ordinary case: a destination, in full ink — the prototype dims only the
+// account chrome (email, sign out), never the places you can go. The signed-in
+// app header marks the current page in the accent via app/(app)/nav-links.tsx;
+// the marketing and landing headers keep plain links with no current-page
+// state, since every one of their links leaves the page you are on.
+export const NAV_LINK = `${NAV_BASE} text-ink`;
 
 // The wordmark is not a nav item — it reads as the brand: Archivo 800 in ink,
 // like the DS .nav-brand. Hover keeps the one idiom (colour to accent).

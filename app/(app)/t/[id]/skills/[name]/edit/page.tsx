@@ -52,7 +52,9 @@ export default async function EditSkillPage({
   if (!found) notFound();
 
   return (
-    <div>
+    // The app shell's <main> no longer caps width (pages own their container),
+    // so the reading measure this page always had is now set here.
+    <div className="mx-auto w-full max-w-3xl">
       <div className="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-divider pb-3">
         <h1 className="font-mono text-2xl text-ink">
           {found.artifact.name}

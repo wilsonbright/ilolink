@@ -6,10 +6,11 @@
 // here, this browser can't manage the doc, and we say so plainly (no data leak).
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getEntry, removeFromHistory, type HistoryEntry } from "@/lib/history";
 import { StatsView } from "@/app/(app)/dashboard/stats-view";
 import { HeatmapView } from "@/app/(app)/dashboard/heatmap-view";
+import { TAG_OUTLINE } from "@/lib/ui/tags";
 
 export default function DocumentDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -24,7 +25,7 @@ export default function DocumentDetailPage() {
   }, [slug]);
 
   return (
-    <section>
+    <section className="mx-auto w-full max-w-[1160px]">
       <Link
         href="/dashboard"
         className="text-sm text-ink-faint transition-colors duration-150 hover:text-ink"
@@ -59,23 +60,19 @@ export default function DocumentDetailPage() {
         </div>
       ) : (
         <>
-          <h1 className="mt-6 text-2xl text-ink">
-            {entry.title || "Untitled"}
-          </h1>
-          <a
-            href={entry.url}
-            className="mt-1 inline-block text-sm text-ink-soft transition-colors duration-150 hover:text-accent"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {entry.url}
-          </a>
+          <div className="flex flex-wrap items-baseline justify-between gap-3.5 pt-5">
+            <h1 className="ml-[-0.058em] text-[clamp(30px,3.4vw,42px)] leading-none text-ink">
+              {entry.title || "Untitled"}
+            </h1>
+            <span className={TAG_OUTLINE}>{entry.visibility}</span>
+          </div>
+          <PublicUrl url={entry.url} />
 
-          <div className="mt-10">
+          <div className="mt-9">
             <StatsView slug={entry.slug} token={entry.manageToken} />
           </div>
 
-          <div className="mt-16 border-t-2 border-divider pt-10">
+          <div className="mt-12">
             <HeatmapView slug={entry.slug} token={entry.manageToken} />
           </div>
 
@@ -83,6 +80,72 @@ export default function DocumentDetailPage() {
         </>
       )}
     </section>
+  );
+}
+
+// The public URL with an inline copy action. Copy mirrors the dashboard
+// row-action mechanism: clipboard API when the context is secure, hidden
+// textarea + execCommand otherwise. On failure we say so rather than staying
+// silent — the URL itself is right there to copy by hand.
+function PublicUrl({ url }: { url: string }) {
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
+
+  const copy = useCallback(async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const el = document.createElement("textarea");
+        el.value = url;
+        el.setAttribute("readonly", "");
+        el.style.position = "fixed";
+        el.style.opacity = "0";
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(el);
+        if (!ok) throw new Error("execCommand refused");
+      }
+      setState("copied");
+    } catch {
+      setState("failed");
+    }
+    setTimeout(() => setState("idle"), 1500);
+  }, [url]);
+
+  return (
+    <p className="mt-2.5 text-sm tabular-nums">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-accent-strong transition-colors duration-150 hover:text-ink"
+      >
+        {url}
+      </a>
+      <span className="text-ink-faint"> · </span>
+      <button
+        type="button"
+        onClick={copy}
+        className="text-ink-faint transition-colors duration-150 hover:text-ink"
+      >
+        {state === "idle"
+          ? "Copy"
+          : state === "copied"
+            ? "Copied"
+            : "Couldn’t copy — grab the link by hand"}
+      </button>
+      {/* The button's own label swap is a silent event for a screen reader, so
+          announce it — same pattern as connect/copy-field.tsx. sr-only is
+          absolutely positioned, so it takes no room in the line. */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {state === "copied"
+          ? "Link copied"
+          : state === "failed"
+            ? "Copy failed"
+            : ""}
+      </span>
+    </p>
   );
 }
 
@@ -117,7 +180,7 @@ function DangerZone({ slug, token }: { slug: string; token: string }) {
 
   return (
     <div className="mt-16 border-t-2 border-divider pt-10">
-      <h2 className="text-[12px] uppercase tracking-[0.08em] text-ink-faint">
+      <h2 className="text-[13px] uppercase tracking-[0.08em] text-ink">
         Danger
       </h2>
       <div className="mt-4 max-w-prose space-y-3">

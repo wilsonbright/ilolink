@@ -8,8 +8,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { FIELD_INPUT } from "@/lib/ui/form";
 
 const MAX_NAME = 60;
+
+const FIELD_LABEL = "mb-1.5 block text-[13px] text-ink-faint";
+// The shared input idiom, at this form's full-column width.
+const FIELD = `w-full min-w-0 ${FIELD_INPUT}`;
 
 export interface CopySource {
   id: string;
@@ -60,22 +65,15 @@ export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
     <form
       id="new-teamspace"
       onSubmit={submit}
-      className="scroll-mt-6 border border-hairline bg-surface p-5"
+      className="mt-10 scroll-mt-6 border-2 border-divider px-6 py-7"
     >
-      <h2 className="border-b-2 border-divider pb-3 text-ink">
-        Create a new teamspace
-      </h2>
+      <h2 className="text-[22px] text-ink">Create a new teamspace</h2>
 
-      {/* items-end so the two controls sit on one line even though the copy
-          label is long enough to wrap above its select. */}
-      <div
-        className={
-          "mt-4 grid gap-4 sm:items-end" +
-          (sources.length > 0 ? " sm:grid-cols-2" : "")
-        }
-      >
+      {/* items-end so the controls and the submit sit on one line even though
+          the copy label is long enough to wrap above its select. */}
+      <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] items-end gap-5">
         <div>
-          <label htmlFor="ts-name" className="block text-sm text-ink-soft">
+          <label htmlFor="ts-name" className={FIELD_LABEL}>
             Teamspace name
           </label>
           <input
@@ -86,7 +84,7 @@ export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Acme Design"
-            className="mt-1 w-full min-w-0 border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+            className={FIELD}
           />
         </div>
 
@@ -95,14 +93,14 @@ export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
             means re-writing each skill by hand. */}
         {sources.length > 0 && (
           <div>
-            <label htmlFor="ts-copy" className="block text-sm text-ink-soft">
+            <label htmlFor="ts-copy" className={FIELD_LABEL}>
               Start with a copy of another teamspace&rsquo;s skills (optional)
             </label>
             <select
               id="ts-copy"
               value={copyFrom}
               onChange={(e) => setCopyFrom(e.target.value)}
-              className="mt-1 w-full border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
+              className={FIELD}
             >
               <option value="">Don&rsquo;t copy — start empty</option>
               {sources.map((s) => (
@@ -114,17 +112,23 @@ export function CreateTeamspace({ sources }: { sources: CopySource[] }) {
             </select>
           </div>
         )}
+
+        <div>
+          <button
+            type="submit"
+            disabled={busy || !name.trim()}
+            className="bg-accent px-4 py-2 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
+          >
+            {busy ? "Creating…" : "Create teamspace"}
+          </button>
+        </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={busy || !name.trim()}
-        className="mt-4 bg-accent px-4 py-2.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong disabled:opacity-45"
-      >
-        {busy ? "Creating…" : "Create teamspace"}
-      </button>
-
-      {error && <p className="mt-3 text-sm text-ink">{error}</p>}
+      {error && (
+        <p className="mt-3.5 text-sm font-extrabold text-accent-strong">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

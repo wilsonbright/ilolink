@@ -7,7 +7,7 @@
 // publishes of the same document left two rows with identical names and no way
 // to tell them apart.
 //
-// The pencil sits next to the title rather than in the row's icon cluster: the
+// The pencil sits next to the title rather than in the row's action cluster: the
 // input replaces the title, so the control and the thing it changes have to live
 // in one client component. Putting the trigger in the cluster would mean lifting
 // the whole row into client state to coordinate two islands, which is a lot of
@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MAX_TITLE } from "@/lib/publish/title";
+import { FIELD_INPUT } from "@/lib/ui/form";
 
 function IconPencil() {
   return (
@@ -92,7 +93,7 @@ export function DocumentTitle({
       <span className="flex min-w-0 items-baseline gap-2">
         <Link
           href={`/dashboard/${slug}`}
-          className="truncate font-semibold text-ink transition-colors duration-150 hover:text-accent"
+          className="truncate text-[19px] font-extrabold tracking-[-0.015em] text-ink transition-colors duration-150 hover:text-accent"
         >
           {title || slug}
         </Link>
@@ -140,15 +141,15 @@ export function DocumentTitle({
           // Blur saves rather than discards: clicking away from a field you have
           // just typed into should not silently throw the typing away.
           onBlur={() => void save()}
-          className="w-full min-w-0 border border-hairline bg-surface px-2 py-1 font-semibold text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
+          className={`w-full min-w-0 ${FIELD_INPUT}`}
         />
       </span>
       {error ? (
-        <span role="alert" className="mt-1 block text-sm text-ink">
+        <span role="alert" className="mt-1 block text-[13px] text-ink">
           {error}
         </span>
       ) : (
-        <span className="mt-1 block text-sm text-ink-faint">
+        <span className="mt-1 block text-[13px] text-ink-faint">
           Enter to save, Esc to cancel. Only changes how it appears here — the
           published page keeps its own heading.
         </span>

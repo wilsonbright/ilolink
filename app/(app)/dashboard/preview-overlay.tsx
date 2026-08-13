@@ -114,7 +114,7 @@ export function PreviewOverlay({
         className="flex h-full w-full max-w-3xl flex-col overflow-hidden border-2 border-divider bg-surface shadow-lg"
       >
         <div className="flex items-center justify-between gap-4 border-b-2 border-divider px-4 py-3">
-          <p className="truncate text-sm font-semibold text-ink">{title}</p>
+          <p className="truncate text-sm font-extrabold text-ink">{title}</p>
           <div className="flex shrink-0 items-center gap-x-1">
             <a
               href={`/${slug}`}

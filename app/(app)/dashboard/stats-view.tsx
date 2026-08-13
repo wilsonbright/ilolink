@@ -20,6 +20,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Stats } from "@/lib/analytics/query";
+import { TAG_OUTLINE } from "@/lib/ui/tags";
 
 // /api/stats returns Stats plus the doc id (slug→id bridge) and the exact
 // Durable-Object view count (preferred over the sampled AE `views` when present).
@@ -160,13 +161,15 @@ export function StatsView({ slug, token }: { slug: string; token: string }) {
       <ScrollFunnel stats={stats} />
       <Breakdowns stats={stats} />
       <DailySparkline stats={stats} />
-      <Reactions feedback={feedback} />
-      <Notes feedback={feedback} />
-      <Moderation
-        comments={comments}
-        moderated={moderated}
-        onModerate={moderate}
-      />
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[clamp(24px,3vw,42px)]">
+        <Reactions feedback={feedback} />
+        <Notes feedback={feedback} />
+        <Moderation
+          comments={comments}
+          moderated={moderated}
+          onModerate={moderate}
+        />
+      </div>
     </div>
   );
 }
@@ -181,11 +184,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4">
-      <h2 className="border-b-2 border-divider pb-2 text-[12px] uppercase tracking-[0.08em] text-ink-faint">
+    <section>
+      <h2 className="mb-2.5 text-[13px] uppercase tracking-[0.08em] text-ink">
         {title}
       </h2>
-      {children}
+      <div className="border-t-2 border-divider pt-3.5">{children}</div>
     </section>
   );
 }
@@ -216,16 +219,13 @@ function Tiles({ stats }: { stats: Load<StatsData> }) {
   }, [stats]);
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-5">
       {tiles.map((t) => (
-        <div
-          key={t.label}
-          className="border-2 border-divider px-4 py-5"
-        >
-          <div className="text-2xl font-extrabold tracking-tight text-ink tabular-nums">
+        <div key={t.label} className="border-2 border-divider p-5">
+          <div className="text-[36px] font-extrabold leading-none tracking-tight text-ink tabular-nums">
             {stats.state === "error" ? "—" : t.value}
           </div>
-          <div className="mt-1 text-[11px] uppercase tracking-[0.08em] text-ink-faint">
+          <div className="mt-2.5 text-[12px] uppercase tracking-[0.08em] text-ink-faint">
             {t.label}
           </div>
         </div>
@@ -234,10 +234,19 @@ function Tiles({ stats }: { stats: Load<StatsData> }) {
   );
 }
 
-// ── Scroll-depth funnel ──────────────────────────────────────────────────
+// ── Read-through funnel ──────────────────────────────────────────────────
 // AE returns discrete 25%-buckets; a reader in the 75 bucket also cleared 25
 // and 50, so each threshold's count is the sum of its bucket and every deeper
-// one. That makes an honest descending funnel.
+// one. That makes an honest descending funnel. Shares are relative to the
+// 25%-depth base; exact reader counts ride on each row's title and the
+// caption names the base.
+
+const FUNNEL_LABEL: Record<number, string> = {
+  25: "Quarter",
+  50: "Halfway",
+  75: "Three quarters",
+  100: "Finished",
+};
 
 function ScrollFunnel({ stats }: { stats: Load<Stats> }) {
   const rows = useMemo(() => {
@@ -256,29 +265,39 @@ function ScrollFunnel({ stats }: { stats: Load<Stats> }) {
   }, [stats]);
 
   return (
-    <Section title="Scroll depth">
+    <Section title="Read-through">
       {stats.state === "error" ? (
         <Quiet>Couldn’t load scroll data.</Quiet>
       ) : !rows || rows[0].n === 0 ? (
         <Quiet>No scroll data yet.</Quiet>
       ) : (
-        <div className="space-y-2">
+        <div className="grid gap-3">
           {rows.map((r) => (
-            <div key={r.t} className="flex items-center gap-3">
-              <span className="w-10 shrink-0 text-right text-xs tabular-nums text-ink-faint">
-                {r.t}%
+            <div
+              key={r.t}
+              title={`${r.n} readers reached ${r.t}%`}
+              className="grid grid-cols-[120px_1fr_44px] items-center gap-3"
+            >
+              <span className="text-[13px] uppercase tracking-[0.06em] text-ink-faint">
+                {FUNNEL_LABEL[r.t]}
               </span>
-              <div className="h-6 flex-1 overflow-hidden bg-accent-soft">
+              <div className="h-3.5 bg-surface">
                 <div
-                  className="h-full bg-accent transition-[width] duration-200"
+                  className="h-3.5 bg-accent transition-[width] duration-200"
                   style={{ width: `${Math.max(2, r.frac * 100)}%` }}
                 />
               </div>
-              <span className="w-10 shrink-0 text-xs tabular-nums text-ink-soft">
-                {compact(r.n)}
+              <span className="text-right text-sm font-extrabold tabular-nums text-ink">
+                {Math.round(r.frac * 100)}%
+                {/* The exact count otherwise lives only on the title attribute,
+                    which a screen reader on a plain div never reaches. */}
+                <span className="sr-only"> — {r.n} readers</span>
               </span>
             </div>
           ))}
+          <p className="text-[13px] text-ink-faint">
+            Of {compact(rows[0].n)} readers who reached a quarter of the page.
+          </p>
         </div>
       )}
     </Section>
@@ -297,7 +316,7 @@ function Breakdowns({ stats }: { stats: Load<Stats> }) {
   }
   const ready = stats.state === "ready" ? stats.data : null;
   return (
-    <div className="grid gap-8 sm:grid-cols-3">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[clamp(24px,3vw,42px)]">
       <BreakdownList
         title="Referrers"
         rows={ready?.referrers.map((r) => ({ label: r.host || "direct", n: r.n }))}
@@ -321,7 +340,6 @@ function BreakdownList({
   title: string;
   rows?: { label: string; n: number }[];
 }) {
-  const max = rows && rows.length ? Math.max(...rows.map((r) => r.n)) : 0;
   return (
     <Section title={title}>
       {!rows ? (
@@ -329,20 +347,16 @@ function BreakdownList({
       ) : rows.length === 0 ? (
         <Quiet>Nothing yet.</Quiet>
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="grid gap-2">
           {rows.map((r) => (
-            <li key={r.label} className="relative">
-              <div
-                className="absolute inset-y-0 left-0 bg-accent-soft"
-                style={{ width: `${max > 0 ? (r.n / max) * 100 : 0}%` }}
-                aria-hidden
-              />
-              <div className="relative flex items-center justify-between px-2 py-1 text-sm">
-                <span className="truncate text-ink-soft">{r.label}</span>
-                <span className="ml-2 shrink-0 tabular-nums text-ink-faint">
-                  {compact(r.n)}
-                </span>
-              </div>
+            <li
+              key={r.label}
+              className="flex items-center justify-between gap-3 bg-accent-wash px-3 py-2 text-sm"
+            >
+              <span className="truncate text-ink">{r.label}</span>
+              <span className="shrink-0 tabular-nums text-accent-strong">
+                {compact(r.n)}
+              </span>
             </li>
           ))}
         </ul>
@@ -425,17 +439,12 @@ function Reactions({ feedback }: { feedback: Load<FeedbackData> }) {
       ) : feedback.state === "loading" ? (
         <Quiet>Loading…</Quiet>
       ) : (
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2.5">
           {REACTIONS.map((emoji) => (
-            <div
-              key={emoji}
-              className="flex items-center gap-2 border border-hairline bg-surface px-3 py-2"
-            >
-              <span className="text-lg leading-none">{emoji}</span>
-              <span className="text-sm tabular-nums text-ink-soft">
-                {feedback.data.reactions?.[emoji] ?? 0}
-              </span>
-            </div>
+            <span key={emoji} className={`${TAG_OUTLINE} gap-1.5 tabular-nums`}>
+              <span>{emoji}</span>
+              <span>{feedback.data.reactions?.[emoji] ?? 0}</span>
+            </span>
           ))}
         </div>
       )}
@@ -448,7 +457,7 @@ function Reactions({ feedback }: { feedback: Load<FeedbackData> }) {
 function Notes({ feedback }: { feedback: Load<FeedbackData> }) {
   const notes = feedback.state === "ready" ? feedback.data.notes ?? [] : [];
   return (
-    <Section title="Notes">
+    <Section title="Notes — only you see these">
       {feedback.state === "error" ? (
         <Quiet>Couldn’t load notes.</Quiet>
       ) : feedback.state === "loading" ? (
@@ -456,14 +465,13 @@ function Notes({ feedback }: { feedback: Load<FeedbackData> }) {
       ) : notes.length === 0 ? (
         <Quiet>No notes yet.</Quiet>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-3.5">
           {notes.map((note, i) => (
-            <li
-              key={i}
-              className="border border-hairline bg-surface px-4 py-3"
-            >
-              <p className="text-sm text-ink-soft">{note.value}</p>
-              <p className="mt-1 text-xs text-ink-faint">
+            <li key={i}>
+              <p className="text-sm leading-[22px] text-ink-soft">
+                &ldquo;{note.value}&rdquo;
+              </p>
+              <p className="mt-1 text-xs tabular-nums text-ink-faint">
                 {formatDate(note.created_at)}
               </p>
             </li>
@@ -500,12 +508,12 @@ function Moderation({
             return (
               <li
                 key={c.id}
-                className={`border border-hairline bg-surface px-4 py-3 transition-opacity duration-150 ${
+                className={`bg-surface px-4 py-3 transition-opacity duration-150 ${
                   action ? "opacity-45" : ""
                 }`}
               >
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm font-semibold text-ink">
+                  <span className="text-sm font-extrabold text-ink">
                     {c.author_name?.trim() || "Anonymous"}
                   </span>
                   <span className="text-xs text-ink-faint">

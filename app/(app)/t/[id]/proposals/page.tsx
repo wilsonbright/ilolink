@@ -65,7 +65,9 @@ export default async function ProposalsPage({
   const canReview = canReviewArtifact(role);
 
   return (
-    <div>
+    // The app shell's <main> no longer caps width (pages own their container),
+    // so the reading measure this page always had is now set here.
+    <div className="mx-auto w-full max-w-3xl">
       <div className="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-divider pb-3">
         <h1 className="text-2xl text-ink">Proposals</h1>
         <span className="flex shrink-0 items-center gap-3 text-sm">

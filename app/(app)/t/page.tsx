@@ -16,6 +16,7 @@ import {
 } from "@/lib/teamspace/store";
 import { indexArtifactCounts } from "@/lib/teamspace/dashboard-kinds";
 import { ARTIFACT_KINDS, KINDS, type ArtifactKind } from "@/lib/artifacts/kinds";
+import { TAG_ACCENT } from "@/lib/ui/tags";
 
 // The populated kinds for one teamspace, in the canonical ARTIFACT_KINDS order
 // so the card and the dashboard axis never disagree about sequence.
@@ -41,93 +42,6 @@ function people(n: number): string {
   return `${n} ${n === 1 ? "person" : "people"}`;
 }
 
-// Inline SVGs rather than an icon dependency: four glyphs are not worth a
-// package, and these are drawn on the same 24-grid at the same 1.7 stroke as
-// the upload icon in /publish so the two surfaces look like one product. All
-// are aria-hidden — the text beside each one already says what it means.
-function IconDocument({ className }: { className: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-      <path d="M14 3v5h5" />
-    </svg>
-  );
-}
-
-function IconPeople({ className }: { className: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M15 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-4A3.5 3.5 0 0 0 4 18.5V20" />
-      <circle cx="9.5" cy="8" r="3.2" />
-      <path d="M20 20v-1.5a3.5 3.5 0 0 0-2.6-3.4" />
-      <path d="M15.2 5.2a3.2 3.2 0 0 1 0 5.6" />
-    </svg>
-  );
-}
-
-function IconSkill({ className }: { className: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.4l-1.9-5.6L4.5 10.9 10.1 9z" />
-    </svg>
-  );
-}
-
-function IconPlus({ className }: { className: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
-    </svg>
-  );
-}
-
-function IconMore({ className }: { className: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <circle cx="5" cy="12" r="1.6" />
-      <circle cx="12" cy="12" r="1.6" />
-      <circle cx="19" cy="12" r="1.6" />
-    </svg>
-  );
-}
-
 export default async function TeamspacesPage() {
   const user = await currentUser();
   if (!user) redirect("/signin?next=%2Ft");
@@ -140,123 +54,103 @@ export default async function TeamspacesPage() {
   const shared = teamspaces.filter((t) => !t.is_personal);
 
   return (
-    <div>
-      <div className="mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b-2 border-divider pb-4">
-          <h1 className="text-2xl text-ink">Teamspaces</h1>
-          <div className="flex shrink-0 items-center gap-2">
-            {/* This was a bare text link, and the designer read it as another
-                line of copy rather than the way out to the document list. It is
-                a bordered control now so it looks like something you press. */}
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 border border-divider px-3 py-2 text-sm font-extrabold text-ink transition-colors duration-150 hover:bg-ink/5"
-            >
-              <IconDocument className="h-4 w-4" />
-              Documents
-            </Link>
-            {/* The form is at the foot of the page, so the primary button is an
-                anchor down to it rather than a second copy of it up here. */}
-            <Link
-              href="#new-teamspace"
-              className="inline-flex items-center gap-1.5 bg-accent px-4 py-2 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong"
-            >
-              <IconPlus className="h-4 w-4" />
-              New teamspace
-            </Link>
-          </div>
+    <div className="mx-auto w-full max-w-[1160px]">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-3 pb-5">
+        <h1 className="ml-[-0.058em] text-[clamp(32px,3.6vw,44px)] leading-none text-ink">
+          Teamspaces
+        </h1>
+        <div className="flex shrink-0 items-baseline gap-2.5">
+          {/* This was a bare text link, and the designer read it as another
+              line of copy rather than the way out to the document list. It is
+              a bordered control now so it looks like something you press. */}
+          <Link
+            href="/dashboard"
+            className="border border-divider px-4 py-2 text-sm font-extrabold text-ink transition-colors duration-150 hover:bg-ink/5"
+          >
+            Documents
+          </Link>
+          {/* The form is at the foot of the page, so the primary button is an
+              anchor down to it rather than a second copy of it up here. */}
+          <Link
+            href="#new-teamspace"
+            className="bg-accent px-4 py-2 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong"
+          >
+            New teamspace
+          </Link>
         </div>
-        <p className="mt-3 leading-relaxed text-ink-soft">
-          A teamspace is a shared home for documents. Everyone in one can see
-          and edit what it holds, so invite the people you actually work with.
-        </p>
       </div>
+      <p className="max-w-[62ch] border-b-2 border-divider pb-7 text-[15.5px] leading-[26px] text-ink-soft">
+        A teamspace is a shared home for documents and the registry. Everyone
+        in one can see and edit what it holds, so invite the people you
+        actually work with.
+      </p>
 
-      <ul className="mb-8 space-y-3">
+      <ul>
         {teamspaces.map((t) => {
           // Array.from rather than charAt: a teamspace named with an emoji
           // would otherwise put half a surrogate pair in the tile.
           const initial = (Array.from(t.name.trim())[0] ?? "?").toUpperCase();
+          const meta: string[] = [];
+          // === 1, not truthiness: is_personal is an integer column, and a
+          // bare truthiness check reads shared rows' 0 as meaningful.
+          if (t.is_personal === 1) meta.push("Personal workspace");
+          // Keyed off the count, not is_personal: a personal teamspace you
+          // have invited someone into really does have two people in it.
+          meta.push(
+            t.member_count === 1 ? "just you" : people(t.member_count),
+          );
+          // Shown at zero, unlike skills: an empty teamspace is worth
+          // spotting, and "0 documents" is the fastest way to see which one
+          // you never actually published into.
+          meta.push(
+            `${t.document_count} ${t.document_count === 1 ? "document" : "documents"}`,
+          );
+          // Every populated kind, not just skills. This row used to say
+          // "13 skills" for a teamspace holding 13 skills AND 3 agents, which
+          // read as wrong the moment /dashboard began showing the agents.
+          // Kinds at zero stay hidden — ten of them would bury the two that
+          // matter.
+          for (const { kind, n } of artifactKindsFor(
+            countsByTeamspace.get(t.id),
+          )) {
+            meta.push(
+              `${n} ${n === 1 ? KINDS[kind].label.toLowerCase() : KINDS[kind].plural.toLowerCase()}`,
+            );
+          }
           return (
             <li
               key={t.id}
-              className="border border-hairline bg-surface p-4"
+              className="grid grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-x-5 gap-y-2 border-b-2 border-divider py-7"
             >
-              <div className="flex items-start gap-3">
-                <span
-                  aria-hidden
-                  className="flex h-10 w-10 shrink-0 items-center justify-center bg-accent-soft font-extrabold text-accent-strong"
+              <span
+                aria-hidden
+                className="grid h-12 w-12 place-items-center bg-accent text-[20px] font-extrabold text-canvas"
+              >
+                {initial}
+              </span>
+              <div className="min-w-0">
+                <Link
+                  href={`/t/${t.id}`}
+                  className="text-[19px] font-extrabold tracking-[-0.015em] text-ink transition-colors duration-150 hover:text-accent"
                 >
-                  {initial}
+                  {t.name}
+                </Link>
+                <p className="mt-1 text-sm text-ink-faint">
+                  {meta.join(" · ")}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2.5">
+                <span className={`${TAG_ACCENT} capitalize`}>
+                  {t.role}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/t/${t.id}`}
-                    className="font-semibold text-ink transition-colors duration-150 hover:text-accent"
-                  >
-                    {t.name}
-                  </Link>
-                  {/* === 1, not truthiness: is_personal is an integer column,
-                      and `{t.is_personal && …}` would render a bare "0" into
-                      the card for every shared teamspace. */}
-                  {t.is_personal === 1 && (
-                    <p className="mt-0.5 text-xs text-ink-faint">
-                      Personal workspace
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-faint">
-                    {/* Keyed off the count, not is_personal: a personal
-                        teamspace you have invited someone into really does
-                        have two people in it. */}
-                    <span className="inline-flex items-center gap-1.5">
-                      <IconPeople className="h-3.5 w-3.5" />
-                      {t.member_count === 1
-                        ? "just you"
-                        : people(t.member_count)}
-                    </span>
-                    {/* Shown at zero, unlike skills: an empty teamspace is
-                        worth spotting, and "0 documents" is the fastest way to
-                        see which one you never actually published into. */}
-                    <span className="inline-flex items-center gap-1.5">
-                      <IconDocument className="h-3.5 w-3.5" />
-                      {t.document_count}{" "}
-                      {t.document_count === 1 ? "document" : "documents"}
-                    </span>
-                    {/* Every populated kind, not just skills. This card used to
-                        say "13 skills" for a teamspace holding 13 skills AND 3
-                        agents, which read as wrong the moment /dashboard began
-                        showing the agents. Kinds at zero stay hidden — ten of
-                        them would bury the two that matter. */}
-                    {artifactKindsFor(countsByTeamspace.get(t.id)).map(
-                      ({ kind, n }) => (
-                        <span
-                          key={kind}
-                          className="inline-flex items-center gap-1.5"
-                        >
-                          <IconSkill className="h-3.5 w-3.5" />
-                          {n} {n === 1 ? KINDS[kind].label.toLowerCase() : KINDS[kind].plural.toLowerCase()}
-                        </span>
-                      ),
-                    )}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  {/* Square tag, not a pill — Modernist has no rounded chips. */}
-                  <span className="bg-accent-soft px-2.5 py-0.5 text-[11px] font-semibold capitalize text-accent-strong">
-                    {t.role}
-                  </span>
-                  {/* The mockup's overflow menu has no per-row actions to hold
-                      yet — renaming, inviting and leaving all live on the
-                      teamspace page — so the dots go there instead of opening
-                      a menu with nothing in it. */}
-                  <Link
-                    href={`/t/${t.id}`}
-                    aria-label={`Manage ${t.name}`}
-                    className="p-1.5 text-ink-faint transition-colors duration-150 hover:text-ink"
-                  >
-                    <IconMore className="h-4 w-4" />
-                  </Link>
-                </div>
+                {/* Member admin — renaming, inviting, leaving — all lives on
+                    the teamspace page, so "People" goes there. */}
+                <Link
+                  href={`/t/${t.id}`}
+                  className="text-[13px] text-accent-strong hover:underline"
+                >
+                  People
+                </Link>
               </div>
             </li>
           );
@@ -264,7 +158,7 @@ export default async function TeamspacesPage() {
       </ul>
 
       {shared.length === 0 && (
-        <p className="mb-4 leading-relaxed text-ink-soft">
+        <p className="mt-7 max-w-[62ch] text-[15.5px] leading-[26px] text-ink-soft">
           You don&rsquo;t share a teamspace with anyone yet. Create one and you
           can invite people by email — they&rsquo;ll get a link that puts them
           straight in.
@@ -287,9 +181,11 @@ export default async function TeamspacesPage() {
           under /guides explains what a teamspace is, and pointing it at the
           nearest page that mentions them (/pricing) would answer a different
           question than the one the sentence asks. */}
-      <section className="mt-6 border border-hairline p-4">
-        <p className="text-sm leading-relaxed text-ink-soft">
-          <span className="font-semibold text-ink">What is a teamspace?</span>{" "}
+      <section className="mt-7">
+        <p className="max-w-[62ch] text-sm leading-6 text-ink-faint">
+          <span className="font-extrabold text-ink">
+            What is a teamspace?
+          </span>{" "}
           It&rsquo;s where your team&rsquo;s documents, skills, and knowledge
           live together.
         </p>

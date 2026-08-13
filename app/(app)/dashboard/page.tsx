@@ -38,6 +38,7 @@ import type { TeamRole } from "@/lib/teamspace/permissions";
 import { ClaimBanner } from "./claim-banner";
 import { DocumentRowActions } from "./document-row-actions";
 import { DocumentTitle } from "./document-title";
+import { TAG_ACCENT, TAG_NEUTRAL, TAG_OUTLINE } from "@/lib/ui/tags";
 
 // What buildMoveTargets needs from a teamspace row — listTeamspacesForUser
 // returns a superset.
@@ -169,26 +170,29 @@ export default async function DashboardPage({
     activeTab === SHARED_TAB_ID ? "/publish" : `/publish?ts=${activeTab}`;
 
   return (
-    <div>
-      <div className="mb-8 flex items-baseline justify-between gap-4">
+    <div className="mx-auto w-full max-w-[1160px]">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-3 pb-5">
         {/* Was "Your documents". The page now holds ten artifact kinds as well,
             so naming one axis value as if it were the whole page was wrong. The
             URL is unchanged, so nothing anyone has bookmarked moves. */}
-        <h1 className="text-2xl text-ink">Your library</h1>
+        <h1 className="ml-[-0.058em] text-[clamp(32px,3.6vw,44px)] leading-none text-ink">
+          Your library
+        </h1>
         {/* On an artifact kind "Publish new" would open a DOCUMENT composer,
             which is not what the person is looking at. Send them where that
-            kind is actually created instead. */}
+            kind is actually created instead — as the quieter button, since it
+            leaves the page rather than making something. */}
         {activeKind === DOCUMENTS_KIND ? (
           <Link
             href={publishHref}
-            className="shrink-0 px-2 py-1 text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:bg-accent-soft/40"
+            className="shrink-0 bg-accent px-4 py-2 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong"
           >
             Publish new
           </Link>
         ) : (
           <Link
             href={`/t/${activeTab}/registry?kind=${activeKind}`}
-            className="shrink-0 px-2 py-1 text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:bg-accent-soft/40"
+            className="shrink-0 border border-divider px-4 py-2 text-sm font-extrabold text-ink transition-colors duration-150 hover:bg-ink/5"
           >
             Open in registry
           </Link>
@@ -198,30 +202,23 @@ export default async function DashboardPage({
       <ClaimBanner knownSlugs={docs.map((d) => d.slug)} />
 
       {tabs.length > 1 && (
-        <div className="mb-4 flex flex-wrap gap-2 border-b-2 border-divider pb-3">
+        <div className="flex flex-wrap gap-2.5 pb-3.5">
           {tabs.map((tab) => (
             <Link
               key={tab.id}
               // Kind is sticky across the teamspace axis: switching teamspace
               // while looking at Agents keeps you on Agents.
               href={dashboardHref(tab.id, activeKind, tabs[0]?.id)}
+              aria-current={tab.id === activeTab ? "page" : undefined}
               className={
-                "px-3 py-1 text-sm font-semibold transition-colors duration-150 " +
-                (tab.id === activeTab
-                  ? "bg-accent text-canvas"
-                  : "text-ink-soft hover:bg-ink/5 hover:text-ink")
+                tab.id === activeTab
+                  ? TAG_ACCENT
+                  : `${TAG_OUTLINE} transition-colors duration-150 hover:bg-accent-wash`
               }
             >
               {tab.label}
-              <span
-                className={
-                  "ml-1.5 tabular-nums " +
-                  // Full canvas, not /80: 14px text on the accent fill is
-                  // already only ~3.8:1 in light mode — dimming it fails even
-                  // the graphics floor.
-                  (tab.id === activeTab ? "text-canvas" : "text-ink-faint")
-                }
-              >
+              {" · "}
+              <span className="tabular-nums">
                 {tab.count + sumKindCounts(countsByTeamspace.get(tab.id))}
               </span>
             </Link>
@@ -234,33 +231,34 @@ export default async function DashboardPage({
           mean nobody with a single teamspace ever discovers that skills and
           agents live here, which is the entire point of the page.
 
-          Quieter than the teamspace tabs on purpose: two rows of identical
-          weight read as one confusing row. This is the registry's treatment. */}
+          Quieter than the teamspace chips on purpose: two rows of identical
+          weight read as one confusing row. */}
       {allowArtifacts && (
-        <div className="mb-8">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-hairline pb-3 text-sm">
+        <>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 border-t-2 border-divider py-3.5 text-sm">
             {kindTabs.map((k) => (
               <Link
                 key={k.id}
                 href={dashboardHref(activeTab, k.id, tabs[0]?.id)}
+                aria-current={k.id === activeKind ? "page" : undefined}
                 className={
                   "transition-colors duration-150 " +
                   (k.id === activeKind
-                    ? "font-semibold text-ink"
-                    : "text-ink-faint hover:text-ink")
+                    ? "font-extrabold text-accent-strong"
+                    : k.count > 0
+                      ? "text-ink hover:text-accent-strong"
+                      : "text-ink-faint hover:text-ink")
                 }
               >
-                {k.label}
-                <span className="ml-1 tabular-nums text-ink-faint">
-                  {k.count}
-                </span>
+                {k.label}{" "}
+                <span className="tabular-nums">{k.count}</span>
               </Link>
             ))}
           </div>
           {/* Ten zeros on a fresh account reads as a broken page rather than a
               capable one. Say where these come from. */}
           {kindTabs.every((k) => k.id === DOCUMENTS_KIND || k.count === 0) && (
-            <p className="mt-3 text-sm leading-relaxed text-ink-faint">
+            <p className="pb-3.5 text-sm leading-[22px] text-ink-faint">
               Skills, agents, specs and plans arrive when a connected assistant
               pushes them.{" "}
               <Link href="/connect" className="text-accent-strong underline">
@@ -268,7 +266,7 @@ export default async function DashboardPage({
               </Link>
             </p>
           )}
-        </div>
+        </>
       )}
 
       {activeKind !== DOCUMENTS_KIND ? (
@@ -299,10 +297,10 @@ export default async function DashboardPage({
         <>
           {rootGroup && <DocList docs={rootGroup.docs} showTeamspace={showTeamspace} teamspaces={teamspaces} />}
           {folderGroups.map(([id, g]) => (
-            <section key={id} className="mt-8">
-              <h2 className="mb-1 border-b-2 border-divider pb-2 text-[12px] uppercase tracking-[0.08em] text-ink-soft">
+            <section key={id} className="mt-10">
+              <h2 className="mb-2 text-[13px] uppercase tracking-[0.08em] text-ink">
                 {g.name}
-                <span className="ml-2 tabular-nums text-ink-faint">
+                <span className="ml-2 font-normal tabular-nums text-ink-faint">
                   {g.docs.length}
                 </span>
               </h2>
@@ -314,14 +312,14 @@ export default async function DashboardPage({
 
       {unpublished.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-3 border-b-2 border-divider pb-2 text-[12px] uppercase tracking-[0.08em] text-ink-soft">
+          <h2 className="mb-2 text-[13px] uppercase tracking-[0.08em] text-ink">
             Unpublished
           </h2>
           <ul>
             {unpublished.map((d) => (
               <li
                 key={d.id}
-                className="border-b border-hairline py-4 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
+                className="border-t-2 border-divider py-4 transition-colors duration-150 hover:bg-ink/5"
               >
                 <Link
                   href={`/dashboard/${d.slug}`}
@@ -362,38 +360,37 @@ function DocList({
   return (
     <ul>
       {docs.map((d) => (
-            <li
-              key={d.id}
-              className="group/row border-b border-hairline py-5 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
-            >
-              <div className="flex items-baseline justify-between gap-4">
-                <DocumentTitle docId={d.id} slug={d.slug} title={d.title} />
-                <span className="shrink-0 text-sm tabular-nums text-ink-faint">
-                  {when(d.published_at)}
-                </span>
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-faint">
-                <span>{d.visibility}</span>
-                <span>{d.source_type}</span>
-                {showTeamspace && d.teamspace_name && (
-                  <span>{d.teamspace_name}</span>
-                )}
-                {d.via === "shared" && <span>shared with you</span>}
-                {/* The bare "open" text link became the first of four controls.
-                    A document shared with you is not yours to relocate, so it
-                    is offered no destinations — the server refuses that move
-                    independently, this just declines to suggest it. */}
-                <DocumentRowActions
-                  docId={d.id}
-                  slug={d.slug}
-                  title={d.title || d.slug}
-                  moveTargets={
-                    d.via === "shared"
-                      ? []
-                      : buildMoveTargets(teamspaces, d.teamspace_id)
-                  }
-                />
-              </div>
+        <li
+          key={d.id}
+          className="group/row grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-5 gap-y-2 border-t-2 border-divider py-5 transition-colors duration-150 hover:bg-ink/5"
+        >
+          <DocumentTitle docId={d.id} slug={d.slug} title={d.title} />
+          <span className="text-[13px] tabular-nums text-ink-faint">
+            {when(d.published_at)}
+          </span>
+          <div className="col-span-2 flex flex-wrap items-center gap-x-2 gap-y-2">
+            <span className={TAG_OUTLINE}>{d.visibility}</span>
+            <span className={TAG_NEUTRAL}>{d.source_type}</span>
+            {showTeamspace && d.teamspace_name && (
+              <span className={TAG_NEUTRAL}>{d.teamspace_name}</span>
+            )}
+            {d.via === "shared" && (
+              <span className={TAG_NEUTRAL}>shared with you</span>
+            )}
+            {/* A document shared with you is not yours to relocate, so it
+                is offered no destinations — the server refuses that move
+                independently, this just declines to suggest it. */}
+            <DocumentRowActions
+              docId={d.id}
+              slug={d.slug}
+              title={d.title || d.slug}
+              moveTargets={
+                d.via === "shared"
+                  ? []
+                  : buildMoveTargets(teamspaces, d.teamspace_id)
+              }
+            />
+          </div>
         </li>
       ))}
     </ul>

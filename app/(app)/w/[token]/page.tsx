@@ -81,7 +81,9 @@ export default async function WorkspaceDashboard({
   const withViews = await Promise.all(docs.map(async (d) => ({ ...d, views: await views(d.id) })));
 
   return (
-    <section>
+    // The app shell's <main> no longer caps width (pages own their container),
+    // so the reading measure this page always had is now set here.
+    <section className="mx-auto w-full max-w-3xl">
       <div className="flex items-baseline justify-between border-b-2 border-divider pb-3">
         <h1 className="text-2xl text-ink">Your workspace</h1>
         <Link href="/connect" className="text-sm font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink">

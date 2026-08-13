@@ -1,76 +1,21 @@
 "use client";
 
-// The per-row controls on /dashboard: view count, open, preview, copy URL, move.
+// The per-row controls on /dashboard: view count, analytics, open, preview,
+// copy URL, move.
 //
 // /dashboard itself stays a server component — this island is the only client
-// code on the page, and it holds exactly the four things that need a browser.
+// code on the page. The Analytics link needs no browser, but it lives here so
+// the whole action line renders as one cluster.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MoveTarget } from "@/lib/teamspace/move-targets";
 import { PreviewOverlay } from "./preview-overlay";
 
-// 16px, currentColor, aria-hidden — the button around each one carries the
-// label. Inline because this project has no icon library and will not gain one
-// for four glyphs.
-const ICON = "h-4 w-4";
-
-function IconOpen() {
-  return (
-    <svg className={ICON} viewBox="0 0 16 16" fill="none" stroke="currentColor"
-      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6.5 3H3.5A1.5 1.5 0 0 0 2 4.5v8A1.5 1.5 0 0 0 3.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-3" />
-      <path d="M10 2h4v4M14 2 7.5 8.5" />
-    </svg>
-  );
-}
-
-function IconPreview() {
-  return (
-    <svg className={ICON} viewBox="0 0 16 16" fill="none" stroke="currentColor"
-      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" />
-      <circle cx="8" cy="8" r="2" />
-    </svg>
-  );
-}
-
-function IconCopy() {
-  return (
-    <svg className={ICON} viewBox="0 0 16 16" fill="none" stroke="currentColor"
-      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" />
-      <path d="M10.5 5.5v-1A1.5 1.5 0 0 0 9 3H4a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 4 11h1" />
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg className={ICON} viewBox="0 0 16 16" fill="none" stroke="currentColor"
-      strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m3 8.5 3.5 3.5L13 5" />
-    </svg>
-  );
-}
-
-// A move glyph, deliberately not an ellipsis: the popover holds destinations,
-// not a general actions menu, and an "..." would promise one this row lacks.
-function IconMove() {
-  return (
-    <svg className={ICON} viewBox="0 0 16 16" fill="none" stroke="currentColor"
-      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 5.5h9M8.5 3 11 5.5 8.5 8" />
-      <path d="M14 10.5H5M7.5 8 5 10.5 7.5 13" />
-    </svg>
-  );
-}
-
-// No per-button focus ring: the global :focus-visible rule draws the DS's
+// No per-control focus ring: the global :focus-visible rule draws the DS's
 // square 2px accent outline.
-const BTN =
-  "p-1.5 text-ink-faint transition-colors duration-150 " +
-  "hover:bg-accent-soft hover:text-ink";
+const LINK = "text-ink-faint transition-colors duration-150 hover:text-ink";
 
 export function DocumentRowActions({
   docId,
@@ -184,42 +129,73 @@ export function DocumentRowActions({
   return (
     <>
       {views !== null && (
-        <span className="tabular-nums">
+        <span className="text-[13px] leading-6 tabular-nums text-ink-faint">
           {views} {views === 1 ? "view" : "views"}
         </span>
       )}
 
-      <span className="ml-auto flex items-center gap-x-0.5">
+      <span className="ml-auto flex flex-wrap items-center gap-x-3.5 text-[13px]">
+        {/* The row title already links here, but the title reads as "the
+            document" while this names what is behind the click. */}
+        <Link
+          href={`/dashboard/${slug}`}
+          aria-label={`Analytics for ${title}`}
+          className="text-accent-strong transition-colors duration-150 hover:text-ink"
+        >
+          Analytics
+        </Link>
+
         <a
           href={`/${slug}`}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Open ${title}`}
-          title="Open"
-          className={BTN}
+          className={LINK}
         >
-          <IconOpen />
+          Open
         </a>
 
-        <button type="button" onClick={() => setPreviewing(true)}
-          aria-label={`Preview ${title}`} title="Preview" className={BTN}>
-          <IconPreview />
+        <button
+          type="button"
+          onClick={() => setPreviewing(true)}
+          aria-label={`Preview ${title}`}
+          className={LINK}
+        >
+          Preview
         </button>
 
-        <button type="button" onClick={copy}
+        <button
+          type="button"
+          onClick={copy}
           aria-label={copied ? "Link copied" : `Copy link to ${title}`}
-          title={copied ? "Copied" : "Copy link"}
-          className={copied ? `${BTN} text-accent` : BTN}>
-          {copied ? <IconCheck /> : <IconCopy />}
+          className={
+            copied
+              ? "text-accent-strong transition-colors duration-150"
+              : LINK
+          }
+        >
+          {copied ? "Copied" : "Copy link"}
         </button>
+        {/* The button's label swap is a silent event for a screen reader, so
+            announce it — same pattern as connect/copy-field.tsx. The failure
+            path is already announced: it renders the URL into the role="alert"
+            line below. */}
+        <span role="status" aria-live="polite" className="sr-only">
+          {copied ? "Link copied" : ""}
+        </span>
 
         {moveTargets.length > 0 && (
           <span className="relative" ref={menuRef}>
-            <button type="button" onClick={() => setMenuOpen((v) => !v)}
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
               aria-label={`Move ${title} to another teamspace`}
-              aria-expanded={menuOpen} aria-haspopup="menu"
-              title="Move to teamspace" className={BTN} disabled={moving}>
-              <IconMove />
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+              className={`${LINK} disabled:opacity-45`}
+              disabled={moving}
+            >
+              Move
             </button>
             {menuOpen && (
               <div role="menu"
@@ -241,7 +217,7 @@ export function DocumentRowActions({
       </span>
 
       {error && (
-        <p role="alert" className="basis-full text-sm text-ink">
+        <p role="alert" className="basis-full text-[13px] text-ink">
           {error}
         </p>
       )}

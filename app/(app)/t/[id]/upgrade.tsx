@@ -9,6 +9,7 @@
 // the money, because a user can reach the success URL without paying.
 
 import { useState } from "react";
+import Link from "next/link";
 import { PLANS, formatPrice, type PlanId } from "@/lib/billing/plans";
 
 export function Upgrade({
@@ -59,11 +60,19 @@ export function Upgrade({
   );
 
   return (
-    <section className="mt-10 border border-hairline bg-surface p-5">
-      <h2 className="border-b-2 border-divider pb-3 text-ink">Plan</h2>
+    <section className="mt-10 border-2 border-divider p-6">
+      <h2 className="text-[13px] uppercase tracking-[0.08em] text-ink">
+        Current plan
+      </h2>
       <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-        {plan.label} — {seatsUsed} of {plan.seats}{" "}
-        {plan.seats === 1 ? "seat" : "seats"} used, {docsUsed} of {plan.docs}{" "}
+        <span className="font-extrabold text-ink">{plan.label}</span> &mdash;{" "}
+        <span className="tabular-nums">
+          {seatsUsed} of {plan.seats}
+        </span>{" "}
+        {plan.seats === 1 ? "seat" : "seats"} used,{" "}
+        <span className="tabular-nums">
+          {docsUsed} of {plan.docs}
+        </span>{" "}
         documents published.
       </p>
 
@@ -104,6 +113,15 @@ export function Upgrade({
           (app/globals.css), and every other form in the app renders errors this
           way. Inventing a colour here would be the one red thing on the site. */}
       {error && <p className="mt-3 text-sm text-ink">{error}</p>}
+
+      <p className="mt-4 text-[13px]">
+        <Link
+          href="/billing"
+          className="font-extrabold text-accent-strong transition-colors duration-150 hover:text-ink"
+        >
+          Full billing record
+        </Link>
+      </p>
     </section>
   );
 }

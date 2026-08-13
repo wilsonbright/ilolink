@@ -30,6 +30,7 @@ import {
   useState,
 } from "react";
 import type { Heatmap } from "@/lib/analytics/heatmap";
+import { TAG_BASE } from "@/lib/ui/tags";
 
 type Bucket = "sm" | "md" | "lg";
 type Layer = "click" | "scroll";
@@ -49,21 +50,70 @@ type Load<T> =
   | { state: "error" }
   | { state: "ready"; data: T };
 
+// ── Colour resolution ─────────────────────────────────────────────────────
+// Canvas has no var(--color-*) the way the stats sparkline's SVG does, so the
+// tokens are resolved to concrete channels here. Always resolved at DRAW time,
+// never at module load: a dark-mode flip swaps the token values, and the next
+// repaint must pick up the dark ramp rather than a cached light one.
+
+type Rgba = { r: number; g: number; b: number; a: number };
+
+// Let the browser do the parsing: assign the value to a probe element's color
+// and read the computed rgb()/rgba() back. This survives color-mix() tokens,
+// which getPropertyValue would hand back as an unparsed string.
+function resolveCssColor(value: string): Rgba | null {
+  const probe = document.createElement("span");
+  probe.style.display = "none";
+  probe.style.color = value;
+  document.body.appendChild(probe);
+  const resolved = getComputedStyle(probe).color;
+  document.body.removeChild(probe);
+  const m = resolved.match(
+    /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\s*\)/,
+  );
+  if (!m) return null;
+  return {
+    r: Number(m[1]),
+    g: Number(m[2]),
+    b: Number(m[3]),
+    a: m[4] === undefined ? 1 : Number(m[4]),
+  };
+}
+
+function resolveToken(name: string): Rgba | null {
+  if (typeof document === "undefined") return null;
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  if (!raw) return null;
+  return resolveCssColor(raw);
+}
+
+function rgba(c: Rgba, a: number): string {
+  return `rgba(${c.r},${c.g},${c.b},${a})`;
+}
+
 // ── Colour ramp for the click density map ────────────────────────────────
-// A calm blue → amber → red gradient, sampled once into a 256-entry LUT. Density
-// (accumulated alpha) indexes it, so sparse clicks read cool and clusters warm.
+// The ramp is the DS accent ramp: sparse clicks sit in accent-soft, clusters
+// climb through the accent to accent-strong — one red, more of it where more
+// happened. Sampled into a 256-entry LUT that density (accumulated alpha)
+// indexes; the alpha stops keep the low end translucent.
 function buildPalette(): Uint8ClampedArray | null {
   if (typeof document === "undefined") return null;
+  const soft = resolveToken("--color-accent-soft");
+  const accent = resolveToken("--color-accent");
+  const strong = resolveToken("--color-accent-strong");
+  if (!soft || !accent || !strong) return null;
   const c = document.createElement("canvas");
   c.width = 256;
   c.height = 1;
   const ctx = c.getContext("2d");
   if (!ctx) return null;
   const g = ctx.createLinearGradient(0, 0, 256, 0);
-  g.addColorStop(0.0, "rgba(91,127,176,0)");
-  g.addColorStop(0.25, "rgba(91,127,176,0.55)"); // muted blue
-  g.addColorStop(0.55, "rgba(217,164,91,0.8)"); // sand amber
-  g.addColorStop(1.0, "rgba(192,91,77,0.92)"); // dusty red
+  g.addColorStop(0.0, rgba(soft, 0));
+  g.addColorStop(0.25, rgba(soft, 0.55));
+  g.addColorStop(0.55, rgba(accent, 0.8));
+  g.addColorStop(1.0, rgba(strong, 0.92));
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 256, 1);
   return ctx.getImageData(0, 0, 256, 1).data;
@@ -79,8 +129,6 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const paletteRef = useRef<Uint8ClampedArray | null>(null);
-  if (paletteRef.current === null) paletteRef.current = buildPalette();
 
   const width = BUCKET_WIDTH[bucket];
 
@@ -163,7 +211,9 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
     if (heat.state !== "ready") return;
 
     if (layer === "click") {
-      paintClicks(ctx, heat.data.clicks, dims.w, dims.h, paletteRef.current);
+      // The palette is rebuilt per paint, not cached: it is a 256×1 canvas
+      // read, and rebuilding is what keeps a dark-mode flip honest.
+      paintClicks(ctx, heat.data.clicks, dims.w, dims.h, buildPalette());
     } else {
       paintScroll(ctx, heat.data.scroll, dims.w, dims.h);
     }
@@ -183,9 +233,9 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
     (layer === "click" ? clickCount === 0 : scrollBase === 0);
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="mr-auto text-[12px] uppercase tracking-[0.08em] text-ink-faint">
+    <section>
+      <div className="mb-2.5 flex flex-wrap items-center gap-3.5">
+        <h2 className="mr-auto text-[13px] uppercase tracking-[0.08em] text-ink">
           Heatmap
         </h2>
         <Toggle<Layer>
@@ -206,54 +256,62 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
         />
       </div>
 
-      {doc.state === "error" ? (
-        <Quiet>Couldn’t load the document preview.</Quiet>
-      ) : heat.state === "error" ? (
-        <Quiet>Couldn’t load heatmap data.</Quiet>
-      ) : (
-        <div className="overflow-x-auto">
-          <div
-            className="relative mx-auto"
-            style={{ width, maxWidth: "100%" }}
-          >
-            {doc.state === "ready" ? (
-              <iframe
-                ref={iframeRef}
-                title="Document preview"
-                srcDoc={doc.data}
-                onLoad={measure}
-                sandbox="allow-same-origin"
-                scrolling="no"
-                className="block w-full border border-hairline bg-surface"
-                style={{ width, minHeight: 320 }}
+      <div className="border-2 border-divider bg-canvas p-9">
+        {doc.state === "error" ? (
+          <Quiet>Couldn’t load the document preview.</Quiet>
+        ) : heat.state === "error" ? (
+          <Quiet>Couldn’t load heatmap data.</Quiet>
+        ) : (
+          <div className="overflow-x-auto">
+            <div
+              className="relative mx-auto"
+              style={{ width, maxWidth: "100%" }}
+            >
+              {doc.state === "ready" ? (
+                <iframe
+                  ref={iframeRef}
+                  title="Document preview"
+                  srcDoc={doc.data}
+                  onLoad={measure}
+                  sandbox="allow-same-origin"
+                  scrolling="no"
+                  className="block w-full bg-surface"
+                  style={{ width, minHeight: 320 }}
+                />
+              ) : (
+                <div className="flex h-80 items-center justify-center bg-surface">
+                  <Quiet>Loading preview…</Quiet>
+                </div>
+              )}
+
+              <canvas
+                ref={canvasRef}
+                aria-hidden
+                className="pointer-events-none absolute left-0 top-0"
+                style={{ opacity: layer === "click" ? 0.85 : 0.7 }}
               />
-            ) : (
-              <div className="flex h-80 items-center justify-center border border-hairline bg-surface">
-                <Quiet>Loading preview…</Quiet>
-              </div>
-            )}
 
-            <canvas
-              ref={canvasRef}
-              aria-hidden
-              className="pointer-events-none absolute left-0 top-0"
-              style={{ opacity: layer === "click" ? 0.85 : 0.7 }}
-            />
-
-            {(heat.state === "loading" || isEmpty) && (
-              // A floating status over the preview — square per the DS; its
-              // overlay shadow stays.
-              <div className="pointer-events-none absolute left-1/2 top-8 -translate-x-1/2 border border-hairline bg-surface px-3 py-1 text-xs text-ink-soft shadow-sm">
-                {heat.state === "loading" ? "Loading…" : emptyMsg}
-              </div>
-            )}
+              {(heat.state === "loading" || isEmpty) && (
+                // A floating status over the preview — square per the DS; its
+                // overlay shadow stays.
+                <div className="pointer-events-none absolute left-1/2 top-8 -translate-x-1/2 border border-hairline bg-surface px-3 py-1 text-xs text-ink-soft shadow-sm">
+                  {heat.state === "loading" ? "Loading…" : emptyMsg}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {layer === "scroll" && heat.state === "ready" && scrollBase > 0 && (
-        <ScrollLegend scroll={heat.data.scroll} base={scrollBase} />
-      )}
+        {layer === "click" && heat.state === "ready" && clickCount > 0 && (
+          <p className="mt-5 text-[13px] text-ink-faint">
+            Red is where readers clicked and stopped, drawn over the document
+            at this width.
+          </p>
+        )}
+        {layer === "scroll" && heat.state === "ready" && scrollBase > 0 && (
+          <ScrollLegend scroll={heat.data.scroll} base={scrollBase} />
+        )}
+      </div>
     </section>
   );
 }
@@ -262,7 +320,7 @@ export function HeatmapView({ slug, token }: { slug: string; token: string }) {
 
 // Two-pass density map: pass 1 accumulates soft radial blobs into the alpha
 // channel (source-over accumulates alpha toward opaque), pass 2 recolours each
-// pixel through the blue→amber→red LUT keyed on that accumulated density.
+// pixel through the accent-ramp LUT keyed on that accumulated density.
 function paintClicks(
   ctx: CanvasRenderingContext2D,
   clicks: { x: number; y: number }[],
@@ -316,21 +374,29 @@ function paintScroll(
   };
   const base = atLeast(25);
   if (base <= 0) return;
+  // Resolved at draw time, same as the click ramp, so dark mode repaints in
+  // the dark tokens. Bands are the accent, labels ink, rules the divider.
+  const accent = resolveToken("--color-accent");
+  const ink = resolveToken("--color-ink");
+  const divider = resolveToken("--color-divider");
+  if (!accent || !ink || !divider) return;
   ctx.textBaseline = "middle";
-  ctx.font =
-    "12px ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif";
+  // The DS face, not a system stack: the body already computes the resolved
+  // var(--font-sans) list, so read it from there.
+  ctx.font = `12px ${getComputedStyle(document.body).fontFamily}`;
   SCROLL_THRESHOLDS.forEach((t, i) => {
     const n = atLeast(t);
     const frac = n / base;
     const y0 = (i / 4) * h;
     const bandH = h / 4;
-    // Warm sand fill; more readers => more opaque. Calm ceiling of ~0.5.
-    ctx.fillStyle = `rgba(202,138,74,${(frac * 0.5).toFixed(3)})`;
+    // Accent fill; more readers => more opaque. Calm ceiling of ~0.5.
+    ctx.fillStyle = rgba(accent, frac * 0.5);
     ctx.fillRect(0, y0, w, bandH);
-    // Faint divider + a small right-aligned "depth · count" label.
-    ctx.fillStyle = "rgba(120,116,104,0.35)";
+    // Faint divider + a small right-aligned "depth · count" label. The divider
+    // token carries its own alpha (40% ink), so it is used as-is.
+    ctx.fillStyle = rgba(divider, divider.a);
     ctx.fillRect(0, y0, w, 1);
-    ctx.fillStyle = "rgba(60,58,52,0.75)";
+    ctx.fillStyle = rgba(ink, 0.75);
     ctx.textAlign = "right";
     ctx.fillText(`${t}% · ${n}`, w - 10, y0 + 12);
   });
@@ -347,17 +413,21 @@ function Toggle<T extends string>({
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
 }) {
+  // Adjoining DS tags as a segmented control: the active option is a filled
+  // tag-accent, the rest are tag-outlines. A transparent border on the active
+  // one keeps both states the same height.
   return (
-    <div className="inline-flex border border-divider">
+    <div className="inline-flex">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`px-2.5 py-1 text-xs font-semibold tabular-nums transition-colors duration-150 ${
+          aria-pressed={value === o.value}
+          className={`${TAG_BASE} tabular-nums transition-colors duration-150 ${
             value === o.value
-              ? "bg-accent text-canvas"
-              : "text-ink-faint hover:bg-ink/5 hover:text-ink"
+              ? "border border-transparent bg-accent-wash text-accent-strong"
+              : "cursor-pointer border border-accent text-accent-strong hover:bg-accent-wash"
           }`}
         >
           {o.label}
@@ -385,7 +455,7 @@ function ScrollLegend({
     return sum;
   };
   return (
-    <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-ink-faint">
+    <div className="mt-5 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-ink-faint">
       {SCROLL_THRESHOLDS.map((t) => {
         const n = atLeast(t);
         const pct = base > 0 ? Math.round((n / base) * 100) : 0;

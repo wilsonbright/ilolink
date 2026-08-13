@@ -42,7 +42,9 @@ export default async function ConnectPage() {
   const connectorUrl = `${mcpOrigin}/mcp`;
 
   return (
-    <div>
+    // The app shell's <main> no longer caps width (pages own their container),
+    // so the reading measure this page always had is now set here.
+    <div className="mx-auto w-full max-w-3xl">
       {/* The kicker and the numbered cells below come from the Connect
           handoff prototype; the functional content of each cell is this
           page's own and stays exactly what it was. */}

@@ -4,6 +4,13 @@
 // The header is session-aware: signed out it offers a way in, signed in it
 // shows who you are and where your teamspaces live.
 //
+// CONTAINER CONTRACT: <main> provides only the horizontal gutter
+// (px-[clamp(20px,4vw,56px)]) and vertical rhythm — NO max-width. Every page
+// under app/(app)/ owns its own width: redesigned pages use
+// mx-auto w-full max-w-[1160px] as their root, the rest keep their reading
+// width (~max-w-3xl or narrower) themselves. The header's inner container is
+// capped at the same 1160px so its edges line up with the widest pages.
+//
 // This used to render one link per shared teamspace and hide the concept
 // entirely from anyone who had none. That was a closed loop: the only way to
 // get a shared teamspace is to create one, and the only page that creates one
@@ -12,6 +19,7 @@
 import Link from "next/link";
 import { currentUser } from "@/lib/auth/current-user";
 import { NAV_ITEM, NAV_LINK, NAV_ROW, NAV_WORDMARK } from "@/lib/ui/nav";
+import { NavLinks } from "./nav-links";
 import { SignOutButton } from "./sign-out";
 
 export default async function AppLayout({
@@ -24,31 +32,33 @@ export default async function AppLayout({
   return (
     <div className="min-h-dvh bg-canvas">
       <header className="border-b-2 border-divider">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4">
+        <div className="mx-auto flex max-w-[1160px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-[clamp(20px,4vw,56px)] py-4">
           <Link href={user ? "/dashboard" : "/"} className={NAV_WORDMARK}>
             ilolink
           </Link>
           <nav className={NAV_ROW}>
-            {user && (
-              <Link href="/t" className={NAV_LINK}>
-                Teamspaces
-              </Link>
-            )}
-            {/* The marketing header offers "Connect", and signing in used to
+            {/* The wordmark also goes to /dashboard, but a wordmark is not a
+                destination anyone reads as "my documents" — the library needs
+                its own named entry like everything else here.
+
+                The marketing header offers "Connect", and signing in used to
                 take it away: this nav had no link to /connect, /dashboard links
                 only to /publish, and /t links only to /dashboard. The single
                 remaining route in was a teamspace DETAIL page you had to
                 already know to open. A tester reported exactly that — "after
                 logging into the platform, it was difficult to find where to
-                initiate the connection". */}
-            {user && (
-              <Link href="/connect" className={NAV_LINK}>
-                Connect
+                initiate the connection".
+
+                NavLinks is a client island so the current page can carry
+                aria-current + the accent; signed out, only Publish applies and
+                a plain server-rendered link does. */}
+            {user ? (
+              <NavLinks />
+            ) : (
+              <Link href="/publish" className={NAV_LINK}>
+                Publish
               </Link>
             )}
-            <Link href="/publish" className={NAV_LINK}>
-              Publish
-            </Link>
             {user ? (
               // Who you are and how to leave are not navigation, so they sit in
               // their own group behind a hairline rather than reading as two
@@ -71,7 +81,8 @@ export default async function AppLayout({
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-6 py-12">{children}</main>
+      {/* No max-width here — see the container contract in the header comment. */}
+      <main className="px-[clamp(20px,4vw,56px)] py-12">{children}</main>
     </div>
   );
 }

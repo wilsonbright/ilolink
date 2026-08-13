@@ -7,6 +7,10 @@
 import { useState } from "react";
 import type { TeamRole } from "@/lib/teamspace/permissions";
 import { CopyField } from "@/app/(app)/connect/copy-field";
+// Accent-tinted for the roles that carry authority, outlined for plain
+// membership.
+import { TAG_ACCENT, TAG_OUTLINE } from "@/lib/ui/tags";
+import { FIELD_INPUT } from "@/lib/ui/form";
 
 export interface MemberView {
   user_id: string;
@@ -15,6 +19,11 @@ export interface MemberView {
 }
 
 const ROLES: TeamRole[] = ["member", "admin", "owner"];
+
+// Member rows are three tracks (who / role / action); the header spans the
+// first two. Both defined here so they cannot drift apart.
+const ROW_GRID =
+  "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-5 border-t border-hairline py-3.5";
 
 export function MembersAdmin({
   teamspaceId,
@@ -168,89 +177,96 @@ export function MembersAdmin({
 
   return (
     <div>
-      {/* Table idiom: an uppercase header over a strong 2px rule, hairline
+      {/* Table idiom: an uppercase header over a strong 2px top rule, hairline
           rules between rows. The invited/pending rows below share the same
-          two columns, so one header covers all three lists. */}
-      <div className="flex items-center justify-between border-b-2 border-divider pb-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
+          columns, so one header covers all three lists. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-5 border-t-2 border-divider py-3 text-[12px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
         <span>Member</span>
         <span>Role</span>
       </div>
       <ul className="mb-8">
         {rows.map((m) => (
-          <li
-            key={m.user_id}
-            className="flex items-center justify-between border-b border-hairline py-3 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
-          >
-            <span className="text-ink">
+          <li key={m.user_id} className={ROW_GRID}>
+            <span className="truncate text-[15px] text-ink">
               {m.email}
               {m.user_id === currentUserId && (
-                <span className="ml-2 text-sm text-ink-faint">you</span>
+                <span className="ml-2 text-[13px] text-ink-faint">
+                  &mdash; you
+                </span>
               )}
             </span>
-            <span className="flex items-center gap-3 text-sm text-ink-faint">
-              {isOwner && !isLastOwner(m) ? (
-                <select
-                  aria-label={`Role for ${m.email}`}
-                  value={m.role}
-                  disabled={saving === m.user_id}
-                  onChange={(ev) => changeRole(m, ev.target.value as TeamRole)}
-                  className="border border-hairline bg-surface px-2 py-1 text-sm text-ink transition-colors duration-150 focus:border-accent focus:outline-none disabled:opacity-45"
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span>{m.role}</span>
-              )}
-              {canRemove(m) && (
-                <button
-                  onClick={() => remove(m.user_id, m.email)}
-                  className="transition-colors duration-150 hover:text-accent-strong"
-                >
-                  {m.user_id === currentUserId ? "leave" : "remove"}
-                </button>
-              )}
-            </span>
+            {isOwner && !isLastOwner(m) ? (
+              <select
+                aria-label={`Role for ${m.email}`}
+                value={m.role}
+                disabled={saving === m.user_id}
+                onChange={(ev) => changeRole(m, ev.target.value as TeamRole)}
+                className={`${FIELD_INPUT} disabled:opacity-45`}
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className={m.role === "member" ? TAG_OUTLINE : TAG_ACCENT}>
+                {m.role}
+              </span>
+            )}
+            {canRemove(m) ? (
+              <button
+                onClick={() => remove(m.user_id, m.email)}
+                className="text-[13px] text-ink-faint transition-colors duration-150 hover:text-accent-strong"
+              >
+                {m.user_id === currentUserId ? "leave" : "remove"}
+              </button>
+            ) : (
+              // Keeps the action track occupied so the role column does not
+              // drift to the right edge on rows with nothing to click.
+              <span aria-hidden="true" className="w-px" />
+            )}
           </li>
         ))}
         {invited.map((i) => (
-          <li
-            key={`new-${i.email}`}
-            className="flex items-center justify-between border-b border-hairline py-3 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
-          >
-            <span className="text-ink-soft">{i.email}</span>
-            <span className="text-sm text-ink-faint">
+          <li key={`new-${i.email}`} className={ROW_GRID}>
+            <span className="truncate text-[15px] text-ink-soft">{i.email}</span>
+            <span className="text-[13px] text-ink-faint">
               invited as {i.role}
             </span>
+            <span aria-hidden="true" className="w-px" />
           </li>
         ))}
         {pending.map((i) => (
-          <li
-            key={i.id}
-            className="flex items-center justify-between border-b border-hairline py-3 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
-          >
-            <span className="text-ink-soft">{i.email_norm}</span>
-            <span className="flex items-center gap-3 text-sm text-ink-faint">
-              <span>invited as {i.role}</span>
-              {isOwner && (
-                <button
-                  onClick={() => revoke(i.id, i.email_norm)}
-                  className="transition-colors duration-150 hover:text-accent-strong"
-                >
-                  revoke
-                </button>
-              )}
+          <li key={i.id} className={ROW_GRID}>
+            <span className="truncate text-[15px] text-ink-soft">
+              {i.email_norm}
             </span>
+            <span className="text-[13px] text-ink-faint">
+              invited as {i.role}
+            </span>
+            {isOwner ? (
+              <button
+                onClick={() => revoke(i.id, i.email_norm)}
+                className="text-[13px] text-ink-faint transition-colors duration-150 hover:text-accent-strong"
+              >
+                revoke
+              </button>
+            ) : (
+              <span aria-hidden="true" className="w-px" />
+            )}
           </li>
         ))}
       </ul>
 
       {isOwner && (
-        <form onSubmit={invite} className="space-y-3">
-          <label htmlFor="invite-email" className="block text-sm text-ink-soft">
+        // id="invite": the page header's "Invite someone" button is an anchor
+        // down to this form.
+        <form onSubmit={invite} id="invite" className="scroll-mt-6 space-y-3">
+          <label
+            htmlFor="invite-email"
+            className="block text-[12px] font-extrabold uppercase tracking-[0.08em] text-ink-faint"
+          >
             Invite by email
           </label>
           <div className="flex gap-2">
@@ -261,13 +277,13 @@ export function MembersAdmin({
               value={email}
               onChange={(ev) => setEmail(ev.target.value)}
               placeholder="teammate@example.com"
-              className="min-w-0 flex-1 border border-hairline bg-surface px-3 py-2.5 text-ink placeholder:text-ink-faint transition-colors duration-150 focus:border-accent focus:outline-none"
+              className={`min-w-0 flex-1 ${FIELD_INPUT}`}
             />
             <select
               aria-label="Role for the invitation"
               value={inviteRole}
               onChange={(ev) => setInviteRole(ev.target.value as TeamRole)}
-              className="shrink-0 border border-hairline bg-surface px-3 py-2.5 text-ink transition-colors duration-150 focus:border-accent focus:outline-none"
+              className={`shrink-0 ${FIELD_INPUT}`}
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>

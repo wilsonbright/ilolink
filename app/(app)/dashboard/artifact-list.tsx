@@ -76,29 +76,29 @@ export function ArtifactList({
           return (
             <li
               key={a.id}
-              className="border-b border-hairline py-5 transition-colors duration-150 last:border-b-0 hover:bg-ink/5"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-5 gap-y-2 border-t-2 border-divider py-5 transition-colors duration-150 hover:bg-ink/5"
             >
-              <div className="flex items-baseline justify-between gap-4">
-                {href ? (
-                  <Link
-                    href={href}
-                    className="font-mono font-semibold text-ink transition-colors duration-150 hover:text-accent"
-                  >
-                    {a.name}
-                  </Link>
-                ) : (
-                  <span className="font-mono font-semibold text-ink-soft">
-                    {a.name}
-                  </span>
-                )}
-                <span className="shrink-0 text-sm tabular-nums text-ink-faint">
-                  {when(a.updated_at)}
+              {href ? (
+                <Link
+                  href={href}
+                  className="truncate font-mono font-semibold text-ink transition-colors duration-150 hover:text-accent"
+                >
+                  {a.name}
+                </Link>
+              ) : (
+                <span className="truncate font-mono font-semibold text-ink-soft">
+                  {a.name}
                 </span>
-              </div>
-              <p className="mt-1 leading-relaxed text-ink-soft">
-                {a.description}
-              </p>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-ink-faint">
+              )}
+              <span className="text-[13px] tabular-nums text-ink-faint">
+                {when(a.updated_at)}
+              </span>
+              {a.description && (
+                <p className="col-span-2 leading-relaxed text-ink-soft">
+                  {a.description}
+                </p>
+              )}
+              <div className="col-span-2 flex flex-wrap items-center gap-x-3.5 text-[13px] text-ink-faint">
                 {/* "v?" would imply something readable exists. It does not. */}
                 {a.version == null ? (
                   <Link
