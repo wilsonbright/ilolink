@@ -17,6 +17,14 @@ date, what was asked, what was done, files touched.
 - **Not done:** content-worker reading pages (view.ilolink.com) keep their own deliberately neutral document styling — restyling the reader surface is a separate decision; `lib/email/templates.ts` still carries the old blue (emails are fixed-light; rebrand them when touched next); `opengraph-image.png` (the static site-wide card) not regenerated — the dynamic `/api/og` card is rebranded.
 - **Branch `redesign/modernist`, commit `9b2a090`. Not merged, not deployed** — full visual change; the user should eyeball it first.
 
+### Reader pages + emails (same day, on the user's "update the reader pages and email templates too")
+
+- The two surfaces the redesign left out, now carried over. **Reader pages** (`content-worker/src/index.ts` + `widget-script.ts`): shell tokens → Modernist in both schemes with soft/faint mixes **precomposited to hex** (reader browsers get no color-mix dependency); the Markdown reading shell drops Newsreader/Georgia for the single-family system — extrabold flush-left headings, 2px rule under h2 and for hr, uppercase table headers over a 2px rule, square corners; Archivo *named but not loaded*, because the doc origin makes zero external requests on purpose (the "counted without cookies" promise) — same fallback behaviour the old shell always had. Password gate → bordered flush-left panel, DS button. Comments/feedback widget: every pill and blue swept — square panels, red pins/highlights, ink cancel state.
+- **Emails** (`lib/email/templates.ts`): blue-on-white card → Modernist ground with a 2px divider border, 800 headings, square red button. Fixed-light, literal hex mirroring globals.css.
+- **Verified before shipping:** both tsconfigs clean, 306/306 vitest, and the reading shell + password gate rendered from the ACTUAL template strings (extracted by script, screenshotted light + dark) — not assumed from the CSS.
+- **Deployed content worker first** (per the standing deploy-order note), `ilolink-content` version **`bf98e20d`**; then the app worker for the email templates, `ilolink` version **`e4d678f7`**. Confirmed live: a real document serves `--accent: #ec3013` (light) / `#ff9783` (dark) with zero `3b5bdb`; `/widget.js` carries 6 red literals and no blue; tracker 200; exploit probe 404; robots pair 200; noindex trio intact; sitemap 63; landing hero still serving.
+- Emails not test-sent to a real mailbox — templates are pure functions and the palette swap is the whole diff; next real invite/sign-in mail is the live check.
+
 ### Merged and deployed (same day, on the user's "merge and deploy")
 
 - Fast-forward merge to `main` (`07b4c84`), pushed; divergence checked both directions first — local == origin, branch was main+2, reverse empty. Diff confirmed **app-only** (no mcp-worker/content-worker files), so only the app worker shipped.
