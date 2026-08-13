@@ -21,30 +21,34 @@ function esc(s: string): string {
 }
 
 // Inline styles only — no external stylesheet survives an email client. Colors
-// mirror the app's light-mode tokens from app/globals.css.
+// mirror the app's light-mode tokens from app/globals.css (Modernist: emails
+// are fixed-light, square corners, one red, extrabold headings; the soft/faint
+// mixes are precomposited to hex since email clients know no color-mix). The
+// font stack names Archivo but no client will have it — system sans carries
+// the weightwork, same as every product email.
 function shell(heading: string, inner: string): string {
-  return `<!doctype html><html><body style="margin:0;padding:0;background:#fafaf8">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafaf8;padding:40px 16px">
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#f3f2f2">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f2f2;padding:40px 16px">
 <tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #eae8e1;border-radius:12px;padding:32px">
-<tr><td style="font-family:Inter,-apple-system,system-ui,sans-serif;color:#1a1a17">
-<h1 style="margin:0 0 16px;font-size:20px;font-weight:620;color:#1a1a17">${esc(heading)}</h1>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#f3f2f2;border:2px solid #9f9d9d;padding:32px">
+<tr><td style="font-family:Archivo,-apple-system,system-ui,sans-serif;color:#201e1d">
+<h1 style="margin:0 0 16px;font-size:20px;font-weight:800;letter-spacing:-0.015em;color:#201e1d">${esc(heading)}</h1>
 ${inner}
-<p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#8a8a80">If you didn't request this, you can ignore this email — nothing will happen.</p>
+<p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#6a6868">If you didn't request this, you can ignore this email — nothing will happen.</p>
 </td></tr></table>
 </td></tr></table>
 </body></html>`;
 }
 
 function codeBlock(code: string): string {
-  return `<p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#56564f">Enter this code to continue:</p>
-<p style="margin:0 0 24px;font-size:32px;font-weight:600;letter-spacing:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#1a1a17">${esc(code)}</p>`;
+  return `<p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#4e4d4c">Enter this code to continue:</p>
+<p style="margin:0 0 24px;font-size:32px;font-weight:600;letter-spacing:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#201e1d">${esc(code)}</p>`;
 }
 
 function linkBlock(url: string, label: string): string {
-  return `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#56564f">Or ${esc(label)} in this browser:</p>
-<p style="margin:0 0 8px"><a href="${esc(url)}" style="display:inline-block;padding:12px 20px;background:#3b5bdb;color:#ffffff;text-decoration:none;border-radius:9px;font-size:15px;font-weight:560">${esc(label)}</a></p>
-<p style="margin:12px 0 0;font-size:12px;line-height:1.6;color:#8a8a80;word-break:break-all">${esc(url)}</p>`;
+  return `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#4e4d4c">Or ${esc(label)} in this browser:</p>
+<p style="margin:0 0 8px"><a href="${esc(url)}" style="display:inline-block;padding:12px 20px;background:#ec3013;color:#f3f2f2;text-decoration:none;font-size:15px;font-weight:800">${esc(label)}</a></p>
+<p style="margin:12px 0 0;font-size:12px;line-height:1.6;color:#6a6868;word-break:break-all">${esc(url)}</p>`;
 }
 
 export function signInEmail(code: string, linkUrl: string, minutes: number): EmailBody {
@@ -53,7 +57,7 @@ export function signInEmail(code: string, linkUrl: string, minutes: number): Ema
     html: shell(
       "Sign in to ilolink",
       codeBlock(code) + linkBlock(linkUrl, "sign in") +
-        `<p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:#8a8a80">This code and link expire in ${minutes} minutes and can each be used once.</p>`,
+        `<p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:#6a6868">This code and link expire in ${minutes} minutes and can each be used once.</p>`,
     ),
     text: [
       "Sign in to ilolink",
@@ -77,9 +81,9 @@ export function inviteEmail(
     subject: `${inviterEmail} invited you to ${teamspaceName} on ilolink`,
     html: shell(
       `Join ${teamspaceName}`,
-      `<p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:#56564f">${esc(inviterEmail)} invited you to collaborate in <strong style="color:#1a1a17">${esc(teamspaceName)}</strong> on ilolink.</p>` +
+      `<p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:#4e4d4c">${esc(inviterEmail)} invited you to collaborate in <strong style="color:#201e1d">${esc(teamspaceName)}</strong> on ilolink.</p>` +
         linkBlock(linkUrl, "accept the invitation") +
-        `<p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:#8a8a80">This invitation expires in 14 days.</p>`,
+        `<p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:#6a6868">This invitation expires in 14 days.</p>`,
     ),
     text: [
       `Join ${teamspaceName} on ilolink`,

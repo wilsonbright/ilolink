@@ -199,55 +199,70 @@ function descriptionFromBody(html: string): string {
 }
 
 // Design tokens shared by both shells (and the injected feedback/comments widget).
+// Modernist (Aug 2026 redesign): mirrors app/globals.css, with the soft/faint
+// mixes PRECOMPOSITED to plain hex — this CSS serves to every reader's browser,
+// so it takes no dependency on color-mix() support. Divider is the strong rule
+// color; hairline the quiet one.
 const SHELL_TOKENS = `:root {
   color-scheme: light;
-  --canvas: #fafaf8; --surface: #ffffff;
-  --ink: #1a1a17; --ink-soft: #56564f; --ink-faint: #8a8a80;
-  --hairline: #eae8e1; --accent: #3b5bdb; --accent-soft: #dfe5fb;
+  --canvas: #f3f2f2; --surface: #eae9e9;
+  --ink: #201e1d; --ink-soft: #4e4d4c; --ink-faint: #6a6868;
+  --hairline: #d7d3d3; --divider: #9f9d9d;
+  --accent: #ec3013; --accent-soft: #ffe0d9; --accent-strong: #ae1800;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --canvas: #17171a; --surface: #1f1f23;
-    --ink: #edece7; --ink-soft: #a8a79f; --ink-faint: #6f6e67;
-    --hairline: #2c2c31; --accent: #7c93f0; --accent-soft: #262a40;
+    --canvas: #1b1a19; --surface: #262423;
+    --ink: #f3f2f2; --ink-soft: #c3c2c1; --ink-faint: #989796;
+    --hairline: #3b3836; --divider: #717070;
+    --accent: #ff9783; --accent-soft: #4d170e; --accent-strong: #ffc4b8;
   }
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }`;
 
-// The zen reading shell — for Markdown docs, which carry no styling of their own:
-// warm canvas, ~68ch measure, reading serif. Content wraps in <main class="doc">.
+// The reading shell — for Markdown docs, which carry no styling of their own.
+// Modernist: single family, extrabold flush-left headings, square corners,
+// a strong 2px rule under h2s and for hr. Archivo is NAMED but not loaded —
+// this origin makes zero external requests on purpose (that is the "counted
+// without cookies" promise), so most readers get their system sans, exactly
+// as the old shell fell back from an unloaded Newsreader to Georgia.
+// Content wraps in <main class="doc">.
 const READING_CSS = `body {
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
-  font-family: "Newsreader", ui-serif, Georgia, serif;
-  font-size: 1.125rem;
+  font-family: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 1.0625rem;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 .doc { max-width: 68ch; margin: 0 auto; padding: 5rem 1.5rem 8rem; }
 .doc h1, .doc h2, .doc h3, .doc h4 {
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  line-height: 1.25; margin: 2.25em 0 0.6em; font-weight: 620;
+  line-height: 1.15; margin: 2.25em 0 0.6em; font-weight: 800;
+  letter-spacing: -0.015em;
 }
 .doc h1 { font-size: 2rem; margin-top: 0; }
-.doc h2 { font-size: 1.45rem; }
+.doc h2 { font-size: 1.45rem; padding-bottom: 0.35em; border-bottom: 2px solid var(--divider); }
 .doc h3 { font-size: 1.2rem; }
 .doc p, .doc ul, .doc ol, .doc blockquote, .doc pre, .doc table { margin: 1.15em 0; }
-.doc a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
-.doc img { max-width: 100%; height: auto; border-radius: 4px; }
-.doc blockquote { margin-left: 0; padding-left: 1.1em; border-left: 2px solid var(--hairline); color: var(--ink-soft); }
-.doc pre { background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 1em 1.1em; overflow-x: auto; font-size: 0.9em; }
+.doc a { color: var(--accent-strong); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.doc a:hover { color: var(--ink); }
+.doc img { max-width: 100%; height: auto; }
+.doc blockquote { margin-left: 0; padding-left: 1.1em; border-left: 2px solid var(--divider); color: var(--ink-soft); }
+.doc pre { background: var(--surface); border: 1px solid var(--hairline); padding: 1em 1.1em; overflow-x: auto; font-size: 0.9em; }
 .doc code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
-.doc :not(pre) > code { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; padding: 0.1em 0.35em; }
-.doc hr { border: none; border-top: 1px solid var(--hairline); margin: 2.5em 0; }
+.doc :not(pre) > code { background: var(--surface); border: 1px solid var(--hairline); padding: 0.1em 0.35em; }
+.doc hr { border: none; border-top: 2px solid var(--divider); margin: 2.5em 0; }
 .doc table { border-collapse: collapse; width: 100%; font-size: 0.95em; }
-.doc th, .doc td { border: 1px solid var(--hairline); padding: 0.5em 0.7em; text-align: left; }
+.doc th { border-bottom: 2px solid var(--divider); font-size: 0.8em; letter-spacing: 0.08em; text-transform: uppercase; }
+.doc th, .doc td { padding: 0.5em 0.7em; text-align: left; }
+.doc td { border-bottom: 1px solid var(--hairline); }
 .doc figure { margin: 1.5em 0; }
-.doc figcaption { color: var(--ink-faint); font-size: 0.9em; margin-top: 0.5em; }`;
+.doc figcaption { color: var(--ink-faint); font-size: 0.9em; margin-top: 0.5em; }
+::selection { background: var(--accent-soft); }`;
 
 // Full-bleed shell — for HTML docs (landing mockups etc.), which bring their own
 // complete CSS. We only reset the body and define the tokens (so the injected
@@ -375,7 +390,7 @@ ${css}
 <body>
 ${bodyInner}
 <!-- Abuse report affordance (spec §7): subtle, on every published page. -->
-<a id="ilo-report" href="#" style="position:fixed;left:10px;bottom:10px;font:12px/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--ink-faint,#8a8a80);text-decoration:none;opacity:.55;z-index:2147483000">⚑ Report</a>
+<a id="ilo-report" href="#" style="position:fixed;left:10px;bottom:10px;font:12px/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--ink-faint,#6a6868);text-decoration:none;opacity:.55;z-index:2147483000">⚑ Report</a>
 <script nonce="${opts.nonce}">
 (function(){var m=document.querySelector('meta[name="ilo:doc"]');var doc=m&&m.getAttribute('content');var a=document.getElementById('ilo-report');if(!a||!doc)return;a.addEventListener('click',function(e){e.preventDefault();var r=window.prompt('Report this page. What is wrong? (phishing, spam, malware, abuse…)');if(!r)return;fetch('/_report',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({doc:doc,reason:r})}).then(function(){a.textContent='⚑ Reported';a.style.pointerEvents='none';},function(){a.textContent='⚑ Report failed';});});})();
 </script>
@@ -404,16 +419,18 @@ ${robots}
 <style>
 :root {
   color-scheme: light;
-  --canvas: #fafaf8; --surface: #ffffff;
-  --ink: #1a1a17; --ink-soft: #56564f; --ink-faint: #8a8a80;
-  --hairline: #eae8e1; --accent: #3b5bdb; --accent-soft: #edf0fd;
+  --canvas: #f3f2f2; --surface: #eae9e9;
+  --ink: #201e1d; --ink-soft: #4e4d4c; --ink-faint: #6a6868;
+  --hairline: #d7d3d3; --divider: #9f9d9d;
+  --accent: #ec3013; --accent-soft: #ffe0d9; --accent-strong: #ae1800;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --canvas: #17171a; --surface: #1f1f23;
-    --ink: #edece7; --ink-soft: #a8a79f; --ink-faint: #6f6e67;
-    --hairline: #2c2c31; --accent: #7c93f0; --accent-soft: #23263a;
+    --canvas: #1b1a19; --surface: #262423;
+    --ink: #f3f2f2; --ink-soft: #c3c2c1; --ink-faint: #989796;
+    --hairline: #3b3836; --divider: #717070;
+    --accent: #ff9783; --accent-soft: #4d170e; --accent-strong: #ffc4b8;
   }
 }
 * { box-sizing: border-box; }
@@ -421,28 +438,30 @@ body {
   margin: 0; min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
   background: var(--canvas); color: var(--ink);
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-.card { width: 100%; max-width: 30rem; padding: 2rem 1.5rem; text-align: center; }
-h1 { font-size: 1.35rem; font-weight: 620; margin: 0 0 0.5rem; }
+.card { width: 100%; max-width: 30rem; padding: 2rem 1.5rem; text-align: left; border: 2px solid var(--divider); background: var(--canvas); }
+h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.015em; margin: 0 0 0.5rem; }
 p { color: var(--ink-soft); line-height: 1.6; margin: 0 0 1.5rem; }
 form { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; text-align: left; }
 label { font-size: 0.85rem; color: var(--ink-soft); }
 input {
   width: 100%; padding: 0.7rem 0.8rem; font-size: 1rem;
-  color: var(--ink); background: var(--surface);
-  border: 1px solid var(--hairline); border-radius: 8px;
+  color: var(--ink); background: var(--surface); caret-color: var(--accent);
+  border: 1px solid var(--hairline);
   transition: border-color 180ms ease;
 }
 input:focus { outline: none; border-color: var(--accent); }
 button {
-  padding: 0.7rem 0.9rem; font-size: 0.95rem; font-weight: 560;
-  color: #fff; background: var(--accent); border: none; border-radius: 8px;
-  cursor: pointer; transition: opacity 180ms ease;
+  padding: 0.7rem 0.9rem; font-size: 0.95rem; font-weight: 800;
+  color: var(--canvas); background: var(--accent); border: none;
+  cursor: pointer; transition: background 150ms ease;
+  text-align: left;
 }
-button:hover { opacity: 0.92; }
-.err { color: var(--accent); font-size: 0.85rem; margin: 0.25rem 0 0; }
+button:hover { background: var(--accent-strong); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.err { color: var(--accent-strong); font-size: 0.85rem; margin: 0.25rem 0 0; }
 </style>
 </head>
 <body>

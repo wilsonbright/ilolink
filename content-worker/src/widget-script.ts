@@ -58,16 +58,16 @@ window.addEventListener("message",onMsg);
 return fr;
 }
 var docEl=document.querySelector(".doc")||document.body;
-var SANS="Inter,ui-sans-serif,system-ui,-apple-system,sans-serif";
+var SANS="Archivo,ui-sans-serif,system-ui,-apple-system,sans-serif";
 function mk(t,s,x){var e=document.createElement(t);if(s)e.style.cssText=s;if(x!=null)e.textContent=x;return e;}
 function post(u,b){return fetch(u,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)});}
 function hpf(){var h=mk("input","position:absolute;left:-9999px;width:1px;height:1px;opacity:0;");h.type="text";h.name="hp";h.tabIndex=-1;h.setAttribute("autocomplete","off");return h;}
 // Scope the widget's own light, always-readable tokens locally so a dark doc
 // can't leave dark text on a dark surface. --accent inherits so accents match.
-var TOK="--surface:#ffffff;--ink:#1a1a17;--ink-soft:#56564f;--ink-faint:#8a8a80;--hairline:#e2ddd3;--accent-soft:#eef0fd;--canvas:#faf9f7;";
-var IN="width:100%;padding:.55rem .7rem;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--hairline);border-radius:8px;box-sizing:border-box;";
-var BTN="padding:.5rem .9rem;font:inherit;font-size:.9rem;font-weight:560;color:#fff;background:var(--accent);border:none;border-radius:8px;cursor:pointer;";
-var GHOST="padding:.35rem .6rem;font:inherit;font-size:.8rem;color:var(--ink-soft);background:transparent;border:1px solid var(--hairline);border-radius:8px;cursor:pointer;";
+var TOK="--surface:#eae9e9;--ink:#201e1d;--ink-soft:#4e4d4c;--ink-faint:#6a6868;--hairline:#d7d3d3;--accent-soft:#ffe0d9;--canvas:#f3f2f2;";
+var IN="width:100%;padding:.55rem .7rem;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--hairline);box-sizing:border-box;";
+var BTN="padding:.5rem .9rem;font:inherit;font-size:.9rem;font-weight:600;color:#f3f2f2;background:var(--accent);border:none;cursor:pointer;";
+var GHOST="padding:.35rem .6rem;font:inherit;font-size:.8rem;color:var(--ink-soft);background:transparent;border:1px solid var(--hairline);cursor:pointer;";
 var allComments=[];
 function fmt(ms){try{return new Date(ms).toLocaleDateString();}catch(e){return"";}}
 function docW(){return Math.max(document.documentElement.scrollWidth,document.body.scrollWidth||0);}
@@ -107,7 +107,7 @@ var total=0,marks=[];
 for(var i=0;i<nodes.length;i++){var node=nodes[i],len=node.nodeValue.length,ns=total,ne=total+len;total=ne;
 if(ne<=start||ns>=end)continue;var a=Math.max(start,ns)-ns,b=Math.min(end,ne)-ns;if(a>=b)continue;
 var rg=document.createRange();rg.setStart(node,a);rg.setEnd(node,b);
-var m=document.createElement("mark");m.style.cssText="background:var(--accent-soft);color:inherit;border-radius:2px;box-shadow:inset 0 -1px 0 var(--accent);cursor:pointer;";
+var m=document.createElement("mark");m.style.cssText="background:var(--accent-soft);color:inherit;box-shadow:inset 0 -1px 0 var(--accent);cursor:pointer;";
 try{rg.surroundContents(m);marks.push(m);}catch(e){}}
 return marks;
 }
@@ -120,7 +120,7 @@ var a=c.anchor;if(!a||a.type!=="text"||!box)return;
 var marks=highlight(a.start,a.end);if(!marks.length)return;
 anchorMap[c.id]={marks:marks,box:box,pin:null};
 marks.forEach(function(m){markEls.push(m);m.addEventListener("click",function(){focusComment(c.id);});m.addEventListener("mouseenter",function(){setActive(c.id,true);});m.addEventListener("mouseleave",function(){setActive(c.id,false);});});
-var pin=mk("button","position:absolute;width:12px;height:12px;padding:0;border-radius:50%;background:var(--accent);border:2px solid #fff;cursor:pointer;transition:transform 120ms ease;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,.25);");
+var pin=mk("button","position:absolute;width:12px;height:12px;padding:0;border-radius:50%;background:var(--accent);border:2px solid #f3f2f2;cursor:pointer;transition:transform 120ms ease;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,.25);");
 pin.type="button";pin.title="View comment";pin.addEventListener("click",function(){focusComment(c.id);});
 layer.appendChild(pin);anchorMap[c.id].pin=pin;
 box.addEventListener("mouseenter",function(){setActive(c.id,true);});box.addEventListener("mouseleave",function(){setActive(c.id,false);});
@@ -138,7 +138,7 @@ function scheduleHoverClose(){cancelHoverTimers();if(pinnedOpen)return;hoverClos
 function closePop(){if(popover&&popover.parentNode)popover.parentNode.removeChild(popover);popover=null;pinnedOpen=false;hoverC=null;cancelHoverTimers();}
 function popAtDoc(dl,dt){
 closePop();
-var pv=mk("div",TOK+"position:absolute;z-index:2147483001;width:300px;max-width:88vw;background:var(--canvas);border:1px solid var(--hairline);border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.2);padding:.85rem;font-family:"+SANS+";color:var(--ink);pointer-events:auto;");
+var pv=mk("div",TOK+"position:absolute;z-index:2147483001;width:300px;max-width:88vw;background:var(--canvas);border:1px solid var(--hairline);box-shadow:0 10px 34px rgba(0,0,0,.2);padding:.85rem;font-family:"+SANS+";color:var(--ink);pointer-events:auto;");
 var left=dl+16;if(left+300>docW())left=Math.max(8,dl-316);if(left<8)left=8;
 pv.style.left=left+"px";pv.style.top=dt+"px";
 // Entering the popover cancels a pending hover-close so the user can read/reply;
@@ -149,7 +149,7 @@ layer.appendChild(pv);popover=pv;return pv;
 function appendComment(parent,c,isReply){
 var box=mk("div",isReply?"margin-left:.9rem;padding-left:.7rem;border-left:2px solid var(--hairline);margin-top:.55rem;":"margin-top:.1rem;");
 var m=mk("div","display:flex;gap:.4rem;align-items:baseline;font-size:.75rem;color:var(--ink-faint);margin-bottom:.2rem;");
-m.appendChild(mk("span","color:var(--ink-soft);font-weight:560;",c.author_name?String(c.author_name):"Anonymous"));
+m.appendChild(mk("span","color:var(--ink-soft);font-weight:600;",c.author_name?String(c.author_name):"Anonymous"));
 if(c.author_kind==="user")m.appendChild(mk("span","color:var(--accent);font-size:.7rem;","\u2713"));
 m.appendChild(mk("span",null,fmt(c.created_at)));box.appendChild(m);
 box.appendChild(mk("div","white-space:pre-wrap;line-height:1.5;font-size:.9rem;",String(c.body==null?"":c.body)));
@@ -216,12 +216,12 @@ n++;var a=c.anchor,count=1+allComments.filter(function(r){return r.parent_id===c
 var px=clamp01(a.x)*W,py=clamp01(a.y)*H,box=null;
 if(a.type==="region"){
 box=mk("div","");box.className="ilo-box";
-box.style.cssText="position:absolute;pointer-events:none;border:2px solid var(--accent,#3b5bdb);background:rgba(59,91,219,.08);border-radius:4px;transition:background 120ms ease;z-index:39;";
+box.style.cssText="position:absolute;pointer-events:none;border:2px solid var(--accent,#ec3013);background:rgba(236,48,19,.08);transition:background 120ms ease;z-index:39;";
 box.style.left=px+"px";box.style.top=py+"px";box.style.width=(clamp01(a.w)*W)+"px";box.style.height=(clamp01(a.h)*H)+"px";
 layer.appendChild(box);
 }
 var pin=mk("button","","");pin.className="ilo-pin";pin.type="button";pin.title="View thread";
-pin.style.cssText="position:absolute;pointer-events:auto;min-width:24px;height:24px;padding:0 6px;border-radius:12px 12px 12px 2px;background:var(--accent,#3b5bdb);color:#fff;border:2px solid #fff;font:600 12px "+SANS+";display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);transform:translate(-2px,-24px);z-index:41;";
+pin.style.cssText="position:absolute;pointer-events:auto;min-width:24px;height:24px;padding:0 6px;background:var(--accent,#ec3013);color:#f3f2f2;border:2px solid #f3f2f2;font:600 12px "+SANS+";display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);transform:translate(-2px,-24px);z-index:41;";
 pin.textContent=count>1?(n+" · "+count):String(n);
 pin.style.left=px+"px";pin.style.top=py+"px";
 (function(c,box){
@@ -229,9 +229,9 @@ pin.style.left=px+"px";pin.style.top=py+"px";
 pin.addEventListener("click",function(e){e.stopPropagation();cancelHoverTimers();if(popover&&hoverC===c&&pinnedOpen){closePop();}else{openThreadPinned(c);}});
 // Hover: brighten a region box, then open the thread after a short delay. Skip in
 // pin-placement mode, and don't rebuild if this pin's thread is already showing.
-pin.addEventListener("mouseenter",function(){if(box)box.style.background="rgba(59,91,219,.22)";if(pinMode)return;cancelHoverTimers();if(popover&&hoverC===c)return;hoverOpenT=setTimeout(function(){hoverOpenT=null;if(pinMode)return;openThreadHover(c);},180);});
+pin.addEventListener("mouseenter",function(){if(box)box.style.background="rgba(236,48,19,.22)";if(pinMode)return;cancelHoverTimers();if(popover&&hoverC===c)return;hoverOpenT=setTimeout(function(){hoverOpenT=null;if(pinMode)return;openThreadHover(c);},180);});
 // Leaving the pin arms the grace timer; moving onto the popover cancels it.
-pin.addEventListener("mouseleave",function(){if(box)box.style.background="rgba(59,91,219,.08)";scheduleHoverClose();});
+pin.addEventListener("mouseleave",function(){if(box)box.style.background="rgba(236,48,19,.08)";scheduleHoverClose();});
 })(c,box);
 layer.appendChild(pin);
 });
@@ -241,23 +241,23 @@ layer.appendChild(pin);
 var pinMode=false,hint=null,dragStart=null,band=null;
 function enterPin(){
 if(pinMode)return;pinMode=true;document.documentElement.style.cursor="crosshair";document.body.style.userSelect="none";document.body.style.touchAction="none";
-hint=mk("div",TOK+"position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:2147483003;background:#111;color:#fff;padding:.5rem .9rem;border-radius:999px;font:500 13px "+SANS+";box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;white-space:nowrap;","Click a spot, or drag to select an area · Esc to cancel");
+hint=mk("div",TOK+"position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:2147483003;background:#201e1d;color:#f3f2f2;padding:.5rem .9rem;font:500 13px "+SANS+";box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;white-space:nowrap;","Click a spot, or drag to select an area · Esc to cancel");
 document.body.appendChild(hint);
 document.addEventListener("pointerdown",onDown,true);
-launchBtn.textContent="Cancel";launchBtn.style.background="#111";
+launchBtn.textContent="Cancel";launchBtn.style.background="#201e1d";
 }
 function exitPin(){
 if(!pinMode)return;pinMode=false;document.documentElement.style.cursor="";document.body.style.userSelect="";document.body.style.touchAction="";
 if(hint&&hint.parentNode)hint.parentNode.removeChild(hint);hint=null;
 document.removeEventListener("pointerdown",onDown,true);document.removeEventListener("pointermove",onMove,true);document.removeEventListener("pointerup",onUp,true);
 if(band&&band.parentNode)band.parentNode.removeChild(band);band=null;dragStart=null;
-launchBtn.textContent="Comment";launchBtn.style.background="var(--accent,#3b5bdb)";
+launchBtn.textContent="Comment";launchBtn.style.background="var(--accent,#ec3013)";
 }
 function onDown(e){
 if(layer.contains(e.target)||launcher.contains(e.target))return;
 e.preventDefault();e.stopPropagation();
 dragStart={x:e.clientX,y:e.clientY};
-band=mk("div","position:absolute;z-index:2147483001;border:2px solid var(--accent,#3b5bdb);background:rgba(59,91,219,.12);border-radius:4px;pointer-events:none;");
+band=mk("div","position:absolute;z-index:2147483001;border:2px solid var(--accent,#ec3013);background:rgba(236,48,19,.12);pointer-events:none;");
 band.style.left=(e.clientX+window.scrollX)+"px";band.style.top=(e.clientY+window.scrollY)+"px";band.style.width="0px";band.style.height="0px";
 layer.appendChild(band);
 document.addEventListener("pointermove",onMove,true);document.addEventListener("pointerup",onUp,true);
@@ -280,15 +280,15 @@ else{openComposer({type:"region",x:clamp01((Math.min(s.x,e.clientX)+window.scrol
 // ─── floating launcher (always visible) ────────────────────────────────────
 var launcher=mk("div",TOK+"position:fixed;right:18px;bottom:18px;z-index:2147483003;display:flex;gap:.45rem;align-items:center;font-family:"+SANS+";");
 var openPanel=mk("button","","Comments");
-openPanel.style.cssText="padding:.6rem .9rem;font:500 13px "+SANS+";color:#1a1a17;background:#fff;border:1px solid #e2ddd3;border-radius:999px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.14);";
+openPanel.style.cssText="padding:.6rem .9rem;font:500 13px "+SANS+";color:#201e1d;background:#f3f2f2;border:1px solid #9f9d9d;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.14);";
 openPanel.addEventListener("click",function(){root.scrollIntoView({behavior:"smooth",block:"start"});});
 var launchBtn=mk("button","","Comment");
-launchBtn.style.cssText="padding:.6rem 1.05rem;font:600 14px "+SANS+";color:#fff;background:var(--accent,#3b5bdb);border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.24);";
+launchBtn.style.cssText="padding:.6rem 1.05rem;font:600 14px "+SANS+";color:#f3f2f2;background:var(--accent,#ec3013);border:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.24);";
 launchBtn.addEventListener("click",function(){if(pinMode)exitPin();else enterPin();});
 launcher.appendChild(openPanel);launcher.appendChild(launchBtn);
 
 // ─── bottom panel: reactions + notes + full comment list ───────────────────
-var root=mk("section",TOK+"max-width:72ch;margin:4rem auto 7rem;padding:1.75rem 1.75rem 2rem;background:var(--canvas);border:1px solid var(--hairline);border-radius:14px;font-family:"+SANS+";color:var(--ink);");
+var root=mk("section",TOK+"max-width:72ch;margin:4rem auto 7rem;padding:1.75rem 1.75rem 2rem;background:var(--canvas);border:1px solid var(--hairline);font-family:"+SANS+";color:var(--ink);");
 var EMOJI=["👍","🤔","👀"],counts={};
 var rrow=mk("div","display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;");
 EMOJI.forEach(function(em){
@@ -305,7 +305,7 @@ noteForm.appendChild(noteTa);noteForm.appendChild(noteHp);noteForm.appendChild(n
 noteBtn.addEventListener("click",function(){noteForm.style.display=noteForm.style.display==="none"?"flex":"none";});
 noteForm.addEventListener("submit",function(ev){ev.preventDefault();var v=noteTa.value.trim();if(!v)return;noteSend.disabled=true;post("/_feedback",{doc:doc,kind:"note",value:v,hp:noteHp.value}).then(function(){noteTa.value="";noteForm.style.display="none";noteSend.disabled=false;noteBtn.textContent="Note sent — thank you";}).catch(function(){noteSend.disabled=false;});});
 root.appendChild(noteBtn);root.appendChild(noteForm);
-root.appendChild(mk("h3","font-family:"+SANS+";font-size:1.1rem;font-weight:620;margin:2.5rem 0 .35rem;","Comments"));
+root.appendChild(mk("h3","font-family:"+SANS+";font-size:1.1rem;font-weight:800;margin:2.5rem 0 .35rem;","Comments"));
 root.appendChild(mk("p","font-size:.8rem;color:var(--ink-faint);margin:0 0 1rem;","Tip: use the Comment button (bottom-right) to pin a comment anywhere on the page."));
 var list=mk("div","display:flex;flex-direction:column;gap:1.1rem;");
 root.appendChild(list);
@@ -325,8 +325,8 @@ function buildMainForm(){
 if(COMMENTS_MODE==="off")return mk("div",null,"");
 if(COMMENTS_MODE==="signed")return signedComposer(null,pendingAnchor,function(){pendingAnchor=null;load();});
 var f=mk("form","display:flex;flex-direction:column;gap:.5rem;margin-top:1.25rem;max-width:34rem;");
-var chip=mk("div","display:none;align-items:center;gap:.5rem;padding:.4rem .6rem;background:var(--accent-soft);border:1px solid var(--hairline);border-radius:8px;font-size:.8rem;color:var(--ink-soft);");
-chip.appendChild(mk("span","color:var(--accent);font-weight:560;white-space:nowrap;","On selection:"));
+var chip=mk("div","display:none;align-items:center;gap:.5rem;padding:.4rem .6rem;background:var(--accent-soft);border:1px solid var(--hairline);font-size:.8rem;color:var(--ink-soft);");
+chip.appendChild(mk("span","color:var(--accent);font-weight:600;white-space:nowrap;","On selection:"));
 var qlabel=mk("span","overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:22rem;");chip.appendChild(qlabel);
 var clr=mk("button","margin-left:auto;padding:.05rem .35rem;font:inherit;font-size:.85rem;color:var(--ink-soft);background:transparent;border:none;cursor:pointer;","✕");clr.type="button";clr.addEventListener("click",function(){pendingAnchor=null;chip.style.display="none";});chip.appendChild(clr);
 var name=mk("input",IN);name.type="text";name.placeholder="Name (optional)";name.maxLength=80;
@@ -342,7 +342,7 @@ function setAnchorTarget(a){pendingAnchor=a;if(mainChip){mainChipQuote.textConte
 function renderRow(c,isReply){
 var box=mk("div",isReply?"margin-left:1.25rem;padding-left:1rem;border-left:2px solid var(--hairline);":"");
 var m=mk("div","display:flex;gap:.5rem;align-items:baseline;font-size:.8rem;color:var(--ink-faint);margin-bottom:.25rem;");
-m.appendChild(mk("span","color:var(--ink-soft);font-weight:560;",c.author_name?String(c.author_name):"Anonymous"));
+m.appendChild(mk("span","color:var(--ink-soft);font-weight:600;",c.author_name?String(c.author_name):"Anonymous"));
 if(c.author_kind==="user")m.appendChild(mk("span","color:var(--accent);font-size:.7rem;","\u2713"));
 m.appendChild(mk("span",null,fmt(c.created_at)));box.appendChild(m);
 if(!isReply&&c.anchor){
@@ -368,7 +368,7 @@ function load(){fetch("/_comments?doc="+encodeURIComponent(doc)).then(function(r
 root.appendChild(buildMainForm());
 
 // ─── text-selection affordance (anchors to a text range) ───────────────────
-var aff=mk("button","display:none;position:absolute;z-index:2147483002;padding:.34rem .65rem;font:600 .82rem "+SANS+";color:#fff;background:var(--accent,#3b5bdb);border:none;border-radius:8px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25);white-space:nowrap;","💬 Comment");aff.type="button";
+var aff=mk("button","display:none;position:absolute;z-index:2147483002;padding:.34rem .65rem;font:600 .82rem "+SANS+";color:#f3f2f2;background:var(--accent,#ec3013);border:none;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25);white-space:nowrap;","💬 Comment");aff.type="button";
 var lastAnchor=null;
 function hideAff(){aff.style.display="none";}
 function showAff(){var sel=window.getSelection();if(!sel||sel.rangeCount===0)return;var rects=sel.getRangeAt(0).getClientRects();if(!rects.length)return;var r=rects[rects.length-1];aff.style.top=(window.scrollY+r.bottom+8)+"px";aff.style.left=(window.scrollX+Math.max(r.right-40,r.left))+"px";aff.style.display="block";}
