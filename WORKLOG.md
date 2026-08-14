@@ -5,6 +5,13 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — Category tabs on /trending; marketing header goes sticky and full-width
+
+- **Asked:** (1) make the category row real tabs for quick nav; (2) keep the marketing header fixed like the landing page — "in few pages I see it is inside and doesn't look great."
+- **Tabs:** new `kind-tabs.tsx` client island — the page's only client JS. Panels arrive as server-rendered children and inactive ones get the `hidden` attribute, never unmounted, so every table stays in the HTML source of every week (the SEO thesis survives the tabs). Active tab = solid accent block (the New-tag/primary-button treatment), zero radius. Deep links work both ways: incoming `#mcp-server` activates that tab on mount; clicking rewrites the hash via `replaceState` (no history spam, no scroll jump). Section `h2`s went `sr-only` — the tab already names the panel visually.
+- **Header:** the marketing layout's bar was static and its inner container `max-w-2xl` — on any page wider than the guides column (i.e. /trending's `max-w-5xl` well) the chrome sat visibly "inside" the content edge. Now sticky with the landing header's exact treatment (`top-0 bg-canvas/85 backdrop-blur`) and the landing `WRAP` width (`max-w-[1200px]` + its padding scale). Footer container widened to match — chrome frames the page even when the content column between is narrow.
+- **Verified live, both breakpoints:** Evals click swaps the panel in place and sets `#eval`; fresh load of `#workflow` activates Workflows; `getComputedStyle(header).position === "sticky"` at scroll 1200; mobile 390px — tabs wrap, cards render, `scrollWidth === innerWidth`. Deployed app `653523ba` (tabs shipped in `b295e155`, header in `653523ba`).
+
 ## 2026-08-14 — /trending refactored: tables on desktop, cards on mobile
 
 - **Asked:** table-style trending for easy desktop reading; a different design for mobile.

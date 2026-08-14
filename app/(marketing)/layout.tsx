@@ -14,11 +14,17 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="flex min-h-dvh flex-col bg-canvas">
-      <header className="border-b-2 border-divider">
+      {/* Sticky, and full-width like the landing header (its exact treatment:
+          top-0, translucent canvas, backdrop blur). The old max-w-2xl inner
+          matched the guides' reading column but read as "floating inside" on
+          any page wider than it — /trending's tables made that visible. The
+          bar now spans the landing WRAP width on every marketing page; the
+          content below keeps whatever measure it chooses. */}
+      <header className="sticky top-0 z-20 border-b-2 border-divider bg-canvas/85 backdrop-blur">
         {/* Same flat nav as the app shell (lib/ui/nav.ts). This header was left
             behind by the first pass at the Aug 2026 design review, so a guide
             page hovered differently from the product it is a guide for. */}
-        <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4 sm:px-10 lg:px-[72px]">
           <Link
             href="/"
             className={`inline-flex items-center gap-2 ${NAV_WORDMARK}`}
@@ -43,7 +49,9 @@ export default function MarketingLayout({
       <div className="flex-1">{children}</div>
 
       <footer className="border-t-2 border-divider">
-        <div className="mx-auto max-w-2xl px-6 py-12">
+        {/* Same WRAP as the header — the chrome frames the page edge-to-edge
+            even when the content column between them is narrow. */}
+        <div className="mx-auto w-full max-w-[1200px] px-6 py-12 sm:px-10 lg:px-[72px]">
           <div className="grid gap-8 sm:grid-cols-3">
             <div>
               <p className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">

@@ -13,6 +13,7 @@ import {
   RelatedLinks,
 } from "../../_components/content";
 import { KINDS, type Card, type Kind, type WeekSnapshot } from "@/lib/trending/types";
+import { KindTabs } from "./kind-tabs";
 
 // Section headings / tag labels per kind, in KINDS display order.
 const KIND_LABELS: Record<Kind, string> = {
@@ -323,41 +324,28 @@ export function SnapshotView({
         </div>
       </section>
 
-      {/* Anchor nav instead of client tabs: the whole week stays one
-          indexable document. */}
-      <nav
-        aria-label="Categories"
-        className="mt-10 flex flex-wrap gap-x-4 gap-y-2 border-t-2 border-divider pt-6 text-sm"
-      >
+      {/* Tabs, not an anchor row: six categories deep, jumping to Evals meant
+          scrolling past five tables. The island only toggles visibility —
+          every panel below is server-rendered into the HTML (hidden, not
+          unmounted), so the whole week stays one indexable document. */}
+      <KindTabs tabs={present.map((k) => ({ id: k, label: KIND_LABELS[k] }))}>
         {present.map((k) => (
-          <a
-            key={k}
-            href={`#${k}`}
-            className="text-ink-soft transition-colors duration-150 hover:text-accent"
-          >
-            {KIND_LABELS[k]}
-          </a>
-        ))}
-      </nav>
-
-      {present.map((k) => (
-        <section key={k} id={k} className="mt-14 scroll-mt-6">
-          <h2 className="text-2xl font-extrabold text-ink">{KIND_LABELS[k]}</h2>
-          {/* Desktop reads a table; mobile keeps the card stack (a four-column
-              table crammed into 390px is the worse of both worlds). No
-              aria-hidden needed: display:none already removes the inactive
-              rendering from the accessibility tree, so AT hears the list
-              exactly once at either breakpoint. */}
-          <div className="mt-5">
+          <section key={k} className="mt-8">
+            <h2 className="sr-only">{KIND_LABELS[k]}</h2>
+            {/* Desktop reads a table; mobile keeps the card stack (a
+                four-column table crammed into 390px is the worse of both
+                worlds). No aria-hidden needed: display:none already removes
+                the inactive rendering from the accessibility tree, so AT
+                hears the list exactly once at either breakpoint. */}
             <KindTable cards={snapshot.kinds[k] ?? []} baseline={baseline} />
             <div className="grid gap-4 md:hidden">
               {(snapshot.kinds[k] ?? []).map((c) => (
                 <TrendCard key={c.id} card={c} baseline={baseline} />
               ))}
             </div>
-          </div>
-        </section>
-      ))}
+          </section>
+        ))}
+      </KindTabs>
 
       <WeekSelector weeks={weeks} activeWeek={snapshot.week} />
       <TrendingRelated />
