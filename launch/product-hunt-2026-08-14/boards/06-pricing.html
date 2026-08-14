@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_board.css">
+<style>
+  .board { justify-content: space-between; }
+  h1 { font-size: 110px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.02; margin-left: -0.058em; margin-top: 30px; }
+  h1 .accent { color: var(--accent); }
+  .rows { margin-top: 48px; border-top: 2px solid var(--ink); max-width: 780px; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--divider); padding: 18px 0; font-size: 22px; }
+  .row strong { font-weight: 800; }
+  .row span { color: var(--ink-soft); font-size: 18px; }
+  .foot { border-top: 2px solid var(--divider); padding-top: 20px; font-size: 16px; color: var(--ink-faint); }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="brandbar">
+    <span class="wordmark">
+      <svg width="26" height="26" viewBox="3 3 26 26"><path fill="currentColor" fill-rule="evenodd" d="M3 3H22V22H3ZM8 8H17V17H8ZM8 17H17V22H8ZM10 10H29V29H10ZM15 15H24V24H15ZM15 10H24V15H15Z"/></svg>
+      ilolink
+    </span>
+    <span class="kicker">Pricing</span>
+  </div>
+  <div>
+    <h1>$9 <span class="accent">once.</span><br>Not monthly.</h1>
+    <div class="rows">
+      <div class="row"><strong>Free</strong><span>one person, full registry, publish anything</span></div>
+      <div class="row"><strong>$9 once</strong><span>a team of five &mdash; pay it one time, keep it</span></div>
+    </div>
+  </div>
+  <div class="foot">No card to start. No seat-month math. ilolink.com</div>
+</div>
+</body>
+</html>

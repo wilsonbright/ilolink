@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_board.css">
+<style>
+  .board { justify-content: space-between; }
+  h1 {
+    font-size: 92px;
+    font-weight: 800;
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    margin-left: -0.058em;
+  }
+  h1 .accent { color: var(--accent); }
+  .sub { font-size: 24px; color: var(--ink-soft); max-width: 44ch; line-height: 1.45; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; border-top: 2px solid var(--divider); padding-top: 20px; font-size: 16px; color: var(--ink-faint); }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="brandbar">
+    <span class="wordmark">
+      <svg width="26" height="26" viewBox="3 3 26 26"><path fill="currentColor" fill-rule="evenodd" d="M3 3H22V22H3ZM8 8H17V17H8ZM8 17H17V22H8ZM10 10H29V29H10ZM15 15H24V24H15ZM15 10H24V15H15Z"/></svg>
+      ilolink
+    </span>
+    <span class="kicker">ilolink.com</span>
+  </div>
+  <div>
+    <h1>Push it once.<br>Every teammate&rsquo;s<br>agent <span class="accent">knows it.</span></h1>
+    <p class="sub" style="margin-top:36px">The registry for what agents produce &mdash; skills, specs, plans, runbooks, handoffs. Every assistant on the team reads the same versioned, reviewed set.</p>
+  </div>
+  <div class="foot">
+    <span>Works with Claude &middot; Claude Code &middot; ChatGPT &middot; any MCP client</span>
+    <span>Free for one person</span>
+  </div>
+</div>
+</body>
+</html>

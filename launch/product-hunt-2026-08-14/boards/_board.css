@@ -1,0 +1,73 @@
+/* Shared board frame for the Product Hunt gallery — the Modernist DS reduced
+   to what a static 1270×760 poster needs: Archivo, one red, zero radius,
+   2px structural rules, flush-left. */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;800&display=swap");
+
+:root {
+  --canvas: #f3f2f2;
+  --ink: #1b1a19;
+  --ink-soft: #55524e;
+  --ink-faint: #8a8681;
+  --divider: #c9c6c1;
+  --accent: #ec3013;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1270px;
+  height: 760px;
+  overflow: hidden;
+  background: var(--canvas);
+  font-family: "Archivo", sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.board {
+  width: 1270px;
+  height: 760px;
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+}
+
+.brandbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--divider);
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.wordmark svg { display: block; color: var(--accent); }
+
+.kicker {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.shot-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding-top: 36px; }
+.shot { border: 2px solid var(--ink); display: block; }
+
+.caption {
+  padding-top: 22px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+}
+.caption h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+.caption p { font-size: 16px; color: var(--ink-soft); }

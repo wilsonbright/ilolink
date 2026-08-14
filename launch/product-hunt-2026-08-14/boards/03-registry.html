@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_board.css">
+<style>
+  .board { justify-content: space-between; }
+  h1 { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.08; margin-top: 40px; }
+  .kinds {
+    margin-top: 44px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border-top: 2px solid var(--ink);
+    border-left: 2px solid var(--ink);
+  }
+  .kind {
+    border-right: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    padding: 26px 22px;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .kind span { display: block; margin-top: 6px; font-size: 13px; font-weight: 400; color: var(--ink-soft); letter-spacing: 0; }
+  .kind.hot { background: var(--accent); color: var(--canvas); }
+  .kind.hot span { color: rgba(243, 242, 242, 0.85); }
+  .foot { border-top: 2px solid var(--divider); padding-top: 20px; font-size: 16px; color: var(--ink-faint); }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="brandbar">
+    <span class="wordmark">
+      <svg width="26" height="26" viewBox="3 3 26 26"><path fill="currentColor" fill-rule="evenodd" d="M3 3H22V22H3ZM8 8H17V17H8ZM8 17H17V22H8ZM10 10H29V29H10ZM15 15H24V24H15ZM15 10H24V15H15Z"/></svg>
+      ilolink
+    </span>
+    <span class="kicker">The registry</span>
+  </div>
+  <div>
+    <h1>Ten kinds of team knowledge.<br>One name resolves for everyone.</h1>
+    <div class="kinds">
+      <div class="kind hot">skill<span>how to do it</span></div>
+      <div class="kind">agent<span>who does it</span></div>
+      <div class="kind">spec<span>what to build</span></div>
+      <div class="kind">design<span>how it looks</span></div>
+      <div class="kind">plan<span>in what order</span></div>
+      <div class="kind">workflow<span>step by step</span></div>
+      <div class="kind">session<span>what happened</span></div>
+      <div class="kind">decision<span>and why</span></div>
+      <div class="kind">runbook<span>when it breaks</span></div>
+      <div class="kind">eval<span>how well it works</span></div>
+    </div>
+  </div>
+  <div class="foot">Member writes land as proposals &mdash; an admin approves before any agent reads them.</div>
+</div>
+</body>
+</html>

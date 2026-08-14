@@ -5,6 +5,14 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — Product Hunt launch assets
+
+- **Asked:** launch assets for Product Hunt on the new design, stored in a timestamped folder inside the project.
+- **`launch/product-hunt-2026-08-14/`** — three layers, all regenerable: `shots/` (live product screenshots taken at 1270×760: landing, trending table+tabs, MCP page, pricing), `boards/` (plain-HTML art boards, shared `_board.css` carrying the DS — Archivo, one red, zero radius, 2px rules), `assets/` (final PNGs at PH spec: six gallery boards 1270×760 + `thumbnail-240.png`).
+- **Gallery order argued in copy.md:** hook (the site's own headline) → product shot → the ten-kind registry grid → MCP connect → trending directory → "$9 once. Not monthly." last so it sticks. `copy.md` also carries three tagline options under PH's 60-char limit, the description field, and a maker first comment written in the launch voice (the leak → the registry → agents-propose-back → pricing).
+- **Every claim in the copy is real product copy** — pricing lines match the landing footer verbatim; no invented features. Boards render via `python3 -m http.server` + Playwright (file:// is blocked in the browser plugin).
+- **Verified by looking at all 7 PNGs.** One real defect caught: 980px-wide screenshots overflowed the 760px board, clipping captions on all three shot boards — reshrunk to 860 and re-rendered; captions confirmed visible.
+
 ## 2026-08-14 — Category tabs on /trending; marketing header goes sticky and full-width
 
 - **Asked:** (1) make the category row real tabs for quick nav; (2) keep the marketing header fixed like the landing page — "in few pages I see it is inside and doesn't look great."
