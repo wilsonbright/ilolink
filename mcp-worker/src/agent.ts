@@ -131,6 +131,13 @@ const KIND_MENU = ARTIFACT_KINDS.map(
   (k) => `${k} — ${KINDS[k].description}`,
 ).join("\n");
 
+// Ceiling on proposals awaiting review in one teamspace. A member under review
+// who writes through artifacts_put/push/contribute files proposals; without a
+// cap they could bury the admin's review queue and pile up 'proposed'-status
+// R2 bodies (security audit 2026-08-14, MEDIUM). Every proposal-filing path
+// checks this before writing.
+const MAX_PENDING_PROPOSALS = 25;
+
 // The caller's role, widened to include 'admin'.
 //
 // authz.ts still declares Caller.role as owner|member; D1 has been able to hold
@@ -995,6 +1002,16 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
           const caller = await this.caller();
           await enforceMcpRate(this.env.KV, caller.teamspaceId, "artifacts_put", 20, 60);
           const publish = await this.canPublish(caller);
+          // A member under review files a proposal; cap the queue so it can't be
+          // flooded (audit MEDIUM). Publishers skip this — their writes go live.
+          if (!publish) {
+            const waiting = await countProposals(this.artifactStore, caller.teamspaceId);
+            if (waiting >= MAX_PENDING_PROPOSALS) {
+              return errResult(
+                `This teamspace has ${waiting} proposals already waiting for review. Nothing was saved. Ask an admin to clear the queue first: ${this.reviewUrl(caller.teamspaceId)}`,
+              );
+            }
+          }
           const res = await putArtifact(
             this.artifactStore,
             caller.teamspaceId,
@@ -1129,7 +1146,7 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
 
           // Bounds a slow drip that stays under the hourly window for days.
           const waiting = await countProposals(this.artifactStore, caller.teamspaceId);
-          if (waiting >= 25) {
+          if (waiting >= MAX_PENDING_PROPOSALS) {
             return errResult(
               `This teamspace has ${waiting} proposals already waiting for review. Nothing was filed. Tell the user what you would have contributed and ask an admin to clear the queue at ${this.reviewUrl(caller.teamspaceId)}.`,
             );
@@ -1269,6 +1286,18 @@ export class IlolinkMCP extends McpAgent<Env, Record<string, never>, Props> {
           await enforceMcpRate(this.env.KV, caller.teamspaceId, "artifacts_push", 5, 60);
           const publish = await this.canPublish(caller);
           const store = this.artifactStore;
+
+          // A member under review turns this whole batch into proposals; refuse
+          // up front if the queue is already at the ceiling (audit MEDIUM) rather
+          // than let 50 files bury it. Publishers write live and skip this.
+          if (!publish) {
+            const waiting = await countProposals(store, caller.teamspaceId);
+            if (waiting >= MAX_PENDING_PROPOSALS) {
+              return errResult(
+                `This teamspace has ${waiting} proposals already waiting for review. Nothing was pushed. Ask an admin to clear the queue first: ${this.reviewUrl(caller.teamspaceId)}`,
+              );
+            }
+          }
 
           // Version numbers as they stand BEFORE this push, so an unchanged
           // file can be reported as such: putArtifact returns the same version

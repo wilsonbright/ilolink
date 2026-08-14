@@ -683,8 +683,23 @@ async function postFeedback(request: Request, env: Env): Promise<Response> {
   if (!(await rateLimitKV(env, `fb:${ip}`, 30, 60))) {
     return jsonResponse({ error: "rate limited" }, 429);
   }
-  if (!(await docExists(env, docId))) {
-    return jsonResponse({ error: "not found" }, 404);
+  // Same rule the composer renders from and postComment enforces: the doc must
+  // exist, not be private, and still be published. Previously this checked only
+  // docExists, so anyone holding a private doc's UUID (surfaced post-gate in the
+  // page's <meta name="ilo:doc">) could POST spoofed "reader notes" that surface
+  // to the owner (audit LOW). Every rejection is the honeypot's silent ok, so a
+  // prober can't tell "no such doc" from "exists but private".
+  const docRow = await env.DB.prepare(
+    "SELECT visibility, unpublished_at FROM documents WHERE id = ?",
+  )
+    .bind(docId)
+    .first<{ visibility: string; unpublished_at: number | null }>();
+  if (
+    !docRow ||
+    docRow.visibility === "private" ||
+    docRow.unpublished_at !== null
+  ) {
+    return jsonResponse({ ok: true });
   }
 
   const ua = request.headers.get("user-agent") ?? "";

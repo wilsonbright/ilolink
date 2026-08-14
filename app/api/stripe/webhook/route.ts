@@ -15,7 +15,7 @@
 
 import { NextResponse } from "next/server";
 import { env } from "@/lib/cf";
-import { execute, queryFirst } from "@/lib/db/client";
+import { db, execute, queryFirst } from "@/lib/db/client";
 import { verifyStripeEvent } from "@/lib/billing/stripe";
 import { isPlanId } from "@/lib/billing/plans";
 
@@ -48,20 +48,33 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   // Idempotency, in D1 rather than KV. Stripe delivers at-least-once and will
-  // redeliver on any non-2xx, so without this a retry could grant a plan twice
-  // (harmless today, but it would also double any future side effect such as a
-  // receipt email). INSERT OR IGNORE + meta.changes is atomic; a KV read-then-
-  // write is not, and lib/ratelimit.ts already documents that KV loses races.
-  const first = await execute(
-    "INSERT OR IGNORE INTO stripe_events (id, type, received_at) VALUES (?, ?, ?)",
+  // redeliver on any non-2xx. We detect a repeat by READING the marker first and
+  // commit it only alongside (or after) the outcome it stands for — never before.
+  //
+  // The earlier version wrote the marker with INSERT OR IGNORE as the very first
+  // step, so a transient D1 failure on the plan UPDATE that followed left the
+  // event marked "processed" while nothing was granted: Stripe's retry then
+  // short-circuited on the marker and the paying customer stayed on free forever
+  // (audit LOW). Grants are idempotent and `stripe_session_id` is UNIQUE, so the
+  // read-then-write window this opens cannot double-grant or cross-grant.
+  const seen = await queryFirst<{ id: string }>(
+    "SELECT id FROM stripe_events WHERE id = ?",
     event.id,
-    event.type,
-    Date.now(),
   );
-  if (!first.meta.changes) {
+  if (seen) {
     // Already processed. 200 so Stripe stops retrying.
     return NextResponse.json({ ok: true, duplicate: true });
   }
+
+  // Mark an event processed on a terminal path that grants nothing (no side
+  // effect to keep atomic), so Stripe stops redelivering it.
+  const markProcessed = () =>
+    execute(
+      "INSERT OR IGNORE INTO stripe_events (id, type, received_at) VALUES (?, ?, ?)",
+      event.id,
+      event.type,
+      Date.now(),
+    );
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as {
@@ -75,6 +88,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // delayed payment method still pending. Granting on anything other than
     // `paid` would hand out plans for money that has not arrived.
     if (session.payment_status !== "paid") {
+      await markProcessed();
       return NextResponse.json({ ok: true, ignored: "unpaid" });
     }
 
@@ -82,8 +96,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     const planId = session.metadata?.plan_id ?? "";
     if (!teamspaceId || !isPlanId(planId) || planId === "free") {
       console.error("stripe webhook: unusable metadata", event.id, teamspaceId, planId);
-      // 200: retrying will not fix bad metadata, and a 4xx here would have
-      // Stripe redeliver this same broken event for three days.
+      // 200 + mark: retrying will not fix bad metadata, and a 4xx here would
+      // have Stripe redeliver this same broken event for three days.
+      await markProcessed();
       return NextResponse.json({ ok: true, ignored: "metadata" });
     }
 
@@ -93,35 +108,43 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
     if (!ts) {
       console.error("stripe webhook: unknown teamspace", event.id, teamspaceId);
+      await markProcessed();
       return NextResponse.json({ ok: true, ignored: "unknown-teamspace" });
     }
 
-    // Grant. `stripe_session_id` carries a UNIQUE index (migration 0015), so
-    // one session can never upgrade two teamspaces even if the events table
-    // were lost — the second write would fail rather than silently succeed.
-    await execute(
-      `UPDATE teamspaces
-          SET plan = ?, plan_source = 'stripe', plan_updated_at = ?,
-              stripe_customer_id = COALESCE(?, stripe_customer_id),
-              stripe_session_id = ?
-        WHERE id = ?`,
-      planId,
-      Date.now(),
-      session.customer ?? null,
-      session.id ?? null,
-      teamspaceId,
-    );
-
-    // The MCP worker reads its own workspaces row. Its quota field is a stale
-    // snapshot, so keep it in step rather than leaving two numbers that
-    // disagree. The publish path no longer reads it (it counts by teamspace),
-    // but anything else that does should not see 'free' on a paid team.
-    await execute(
-      "UPDATE workspaces SET plan = ? WHERE teamspace_id = ?",
-      planId,
-      teamspaceId,
-    );
+    // Grant AND mark processed in ONE transactional batch. If any statement
+    // fails the whole batch rolls back — the marker is not written, so Stripe's
+    // retry re-attempts the grant cleanly rather than seeing a marker that
+    // outran its own UPDATE. `stripe_session_id` carries a UNIQUE index
+    // (migration 0015), so one session can never upgrade two teamspaces. The
+    // workspaces row is a stale MCP snapshot kept in step so nothing reads
+    // 'free' on a paid team (the publish path counts by teamspace and no longer
+    // relies on it).
+    const now = Date.now();
+    const d = db();
+    await d.batch([
+      d
+        .prepare(
+          `UPDATE teamspaces
+              SET plan = ?, plan_source = 'stripe', plan_updated_at = ?,
+                  stripe_customer_id = COALESCE(?, stripe_customer_id),
+                  stripe_session_id = ?
+            WHERE id = ?`,
+        )
+        .bind(planId, now, session.customer ?? null, session.id ?? null, teamspaceId),
+      d
+        .prepare("UPDATE workspaces SET plan = ? WHERE teamspace_id = ?")
+        .bind(planId, teamspaceId),
+      d
+        .prepare(
+          "INSERT OR IGNORE INTO stripe_events (id, type, received_at) VALUES (?, ?, ?)",
+        )
+        .bind(event.id, event.type, now),
+    ]);
+    return NextResponse.json({ ok: true });
   }
 
+  // Any other event type: no side effect today, just mark it so Stripe stops.
+  await markProcessed();
   return NextResponse.json({ ok: true });
 }

@@ -5,6 +5,14 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — Closed the 3 lesser audit findings
+
+- **Asked:** knock out the remaining findings (after the two critical blockers).
+- **MEDIUM — proposal-queue flood:** the 25-pending ceiling existed only in `artifacts_contribute`. Added `MAX_PENDING_PROPOSALS = 25` (shared const) and the same `countProposals` guard to `artifacts_put` and `artifacts_push` — but only on the proposal path (`!publish`), so publishers writing live are unaffected. `artifacts_push` refuses the whole 50-file batch up front rather than burying the queue.
+- **LOW — Stripe webhook ordering:** the idempotency marker was written with `INSERT OR IGNORE` before the plan-grant `UPDATE`, so a transient D1 failure on the grant left the event marked processed and the paying customer stuck on free. Now duplicate detection is a `SELECT`, and the grant + marker commit in ONE transactional `db().batch([...])` — a failure rolls back both, and Stripe's retry re-grants cleanly. Terminal non-grant paths (unpaid/bad-metadata/unknown-teamspace/other-type) still mark processed so Stripe stops retrying.
+- **LOW — `/_feedback` visibility:** `postFeedback` gated only on `docExists`, so a leaked private-doc UUID could POST spoofed reader notes. Now it loads `visibility` + `unpublished_at` and returns the honeypot's silent `{ok:true}` for private/unpublished/unknown — mirroring `postComment`, preserving the no-existence-oracle invariant.
+- **Verified:** tsc clean across app+mcp+content, 465/465 tests. Deployed content `00314b60`, mcp `0a86582e`, app `0ec65afb`. **Observed live:** `/_feedback` on a would-be-404 now returns silent `{ok:true}` (the fix is live); webhook loads + rejects unsigned (400). **Boundary:** the webhook batch-atomicity (real signed paid event) and the proposal over-quota path (PAT + 25 pending) were not driven live — code + tsc + symmetry with the shipped contribute guard. All audit findings now FIXED.
+
 ## 2026-08-14 — The blue pill mark, killed everywhere it survived
 
 - **Asked:** the Product Hunt listing shows the old logo — check the icon and OG images on the site and while sharing, then update every blue pill mark in the project to the red one.

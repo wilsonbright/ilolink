@@ -16,11 +16,11 @@ line-by-line by hand against source (see "Hand-verification" per finding).
 | 🔴 Blocker 1 — unbounded R2 (docs) | **FIXED** — superseded doc versions pruned on every write (`pruneSupersededVersionsWith` in `lib/publish/store-core.ts`, called from both store composites + `updateDoc`). Bounds every doc to one stored version; self-healing on existing bloat. |
 | 🔴 Blocker 1 — unbounded R2 (artifacts) | **FIXED** — per-teamspace version ceiling `MAX_VERSIONS_PER_TEAMSPACE = 20_000` enforced in `putArtifact` before any insert. Abuse-stop set far above any legit registry, so no UX impact. |
 | 🔴 Blocker 2 — docx decompression bomb | **FIXED** — converted HTML re-checked against the 15 MB text ceiling before storing, at all 3 sites (`docs.ts`, `publish-core.ts`, `app/api/publish/route.ts`). |
-| 🟠 Medium — proposal flood | Open (recommended next). |
-| 🟡 Low — webhook ordering | Open (recommended next). |
-| 🟡 Low — `/_feedback` visibility | Open (recommended next). |
+| 🟠 Medium — proposal flood | **FIXED** — `MAX_PENDING_PROPOSALS = 25` guard now on `artifacts_put` and `artifacts_push` (only when the write lands as a proposal), matching the existing `artifacts_contribute` guard. |
+| 🟡 Low — webhook ordering | **FIXED** — the idempotency marker is now committed in the SAME transactional D1 batch as the plan grant (`db().batch([...])`), never before it; duplicate detection moved to a read. A transient failure now rolls back both, so Stripe's retry re-grants cleanly. |
+| 🟡 Low — `/_feedback` visibility | **FIXED** — `postFeedback` now loads `visibility` + `unpublished_at` and returns the honeypot's silent `{ok:true}` for private/unpublished/unknown docs, matching `postComment` (no existence oracle). |
 
-Deployed: app `877d1f14`, mcp `5b79941b`. Tests: 465/465 (5 new pinning the prune + cap). **Verification boundary:** prune/cap logic is unit-tested against the real functions and tsc-clean across all workers; a live `update_document` loop watching R2 stay flat was NOT run (needs an authenticated MCP session / PAT). Serving is unaffected by construction — prune deletes only non-current versions, after the KV slug swap.
+Deployed: app `877d1f14` → `0ec65afb`, mcp `5b79941b` → `0a86582e`, content `00314b60`. Tests: 465/465 (5 new pinning the prune + cap). **Verification boundary:** prune/cap/proposal-guard logic is unit-tested/tsc-clean across all workers; the `/_feedback` fix was observed live (a would-be-404 now returns silent `{ok:true}`). A live `update_document` R2-stays-flat loop and a real signed Stripe paid event were NOT driven (need a PAT / real Stripe). Serving and the grant path are unaffected by construction.
 
 ---
 
