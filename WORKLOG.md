@@ -5,6 +5,13 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — /trending refactored: tables on desktop, cards on mobile
+
+- **Asked:** table-style trending for easy desktop reading; a different design for mobile.
+- **Desktop:** each kind section is now a real `<table>` (`KindTable`) — rank | repository + description | stars/velocity (right-aligned, tabular-nums) | listed-on — 2px divider under the header row, hairline between rows. The metric header itself is honest: "Stars" on a baseline week, "This week" on a velocity week. **Mobile keeps the card stack** — a four-column table crammed into 390px is the worse of both worlds. No aria duplication: `display:none` removes the inactive rendering from the accessibility tree, so AT hears each list once (an `aria-hidden` first draft would have left mobile screen readers with NOTHING — caught before shipping).
+- **The first deploy showed why width matters:** the shared marketing `Article` is a 42rem reading measure, and the table rendered strangled — names wrapping mid-word, the lists column starved. The snapshot view now uses its own wide well (`max-w-5xl` at `md:`), with the lead re-constrained to 42rem so only tabular content uses the extra room, and the hero goes three-up (`md:grid-cols-3`).
+- **Verified in the browser, both breakpoints:** desktop 1352px — 6 tables, 3-up hero, right-aligned numerals; mobile 390px — table `display:none`, cards render, `scrollWidth === innerWidth` (no horizontal scroll). Screenshots taken. Deployed app `078e5c23`.
+
 ## 2026-08-14 — Trending linked from the landing page and the app; new hero
 
 - **Asked:** (1) is trending linked from the landing page and the app? (it wasn't — only the marketing subpage layout had it); (2) an alternative for the hero message.

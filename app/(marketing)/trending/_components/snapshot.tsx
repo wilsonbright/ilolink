@@ -68,6 +68,82 @@ function breakouts(snapshot: WeekSnapshot): Card[] {
     .slice(0, 3);
 }
 
+// One kind's ranked list, desktop: a real table — ten repos scan far better
+// as rows (rank | name+description | metric | lists) than as a stack of ten
+// cards. Mobile keeps the card stack (rendered by the section below); the
+// inactive rendering is display:none at each breakpoint, which also removes
+// it from the accessibility tree — no double-reading.
+function KindTable({ cards, baseline }: { cards: Card[]; baseline: boolean }) {
+  return (
+    <table className="hidden w-full border-collapse text-sm md:table">
+      <thead>
+        <tr className="border-b-2 border-divider text-left text-[11px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
+          <th scope="col" className="w-8 py-2 pr-3 font-extrabold">
+            #
+          </th>
+          <th scope="col" className="py-2 pr-4 font-extrabold">
+            Repository
+          </th>
+          <th scope="col" className="w-44 py-2 pr-4 text-right font-extrabold">
+            {baseline ? "Stars" : "This week"}
+          </th>
+          <th scope="col" className="w-56 py-2 font-extrabold">
+            Listed on
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {cards.map((card) => (
+          <tr key={card.id} className="border-b border-hairline align-top">
+            <td className="py-3.5 pr-3 tabular-nums text-ink-faint">
+              {card.rank}
+            </td>
+            <td className="py-3.5 pr-4">
+              <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <a
+                  href={card.repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-extrabold text-ink transition-colors duration-150 hover:text-accent"
+                >
+                  {card.name}
+                </a>
+                {card.isNew && !baseline && (
+                  <span className="bg-accent px-1.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-canvas">
+                    New
+                  </span>
+                )}
+              </span>
+              {/* The repo's own description — attributed by the link, never
+                  README content. */}
+              {card.description && (
+                <span className="mt-1 block max-w-[52ch] leading-relaxed text-ink-soft">
+                  {card.description}
+                </span>
+              )}
+            </td>
+            <td className="py-3.5 pr-4 text-right tabular-nums text-ink">
+              {baseline ? (
+                card.stars.toLocaleString("en-US")
+              ) : (
+                <>
+                  &uarr; {card.starVel.toLocaleString("en-US")} (
+                  {card.starGrowth.toFixed(1)}&times;)
+                </>
+              )}
+            </td>
+            <td className="py-3.5 text-ink-faint">
+              {card.corroboration.length > 0
+                ? card.corroboration.join(" · ")
+                : "—"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function TrendCard({ card, baseline }: { card: Card; baseline: boolean }) {
   return (
     <article className="border-2 border-divider p-5">
@@ -174,7 +250,12 @@ export function SnapshotView({
   const top = breakouts(snapshot);
   const baseline = snapshot.baseline === true;
   return (
-    <Article>
+    // Wider than the shared Article on desktop — this is a DATA page, and the
+    // tables were strangled at the guides' 42rem reading measure (names
+    // wrapping, the lists column starved). Mobile keeps the standard width;
+    // the header/lead below re-constrain themselves to a reading measure so
+    // only the tabular content actually uses the extra room.
+    <article className="mx-auto max-w-2xl px-6 py-14 sm:py-20 md:max-w-5xl">
       <Breadcrumbs
         crumbs={
           archive
@@ -192,6 +273,9 @@ export function SnapshotView({
               ]
         }
       />
+      {/* The lead re-constrains to the guides' reading measure — only the
+          tables and hero row get the wide well. */}
+      <div className="md:max-w-[42rem]">
       <PageHeader
         eyebrow={
           archive
@@ -225,12 +309,14 @@ export function SnapshotView({
           )
         }
       />
+      </div>
 
       <section>
         <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
           {baseline ? "Heaviest hitters right now" : "Breakouts of the week"}
         </h2>
-        <div className="mt-4 grid gap-4">
+        {/* Three category winners side by side where the width exists. */}
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
           {top.map((c) => (
             <TrendCard key={c.id} card={c} baseline={baseline} />
           ))}
@@ -257,17 +343,25 @@ export function SnapshotView({
       {present.map((k) => (
         <section key={k} id={k} className="mt-14 scroll-mt-6">
           <h2 className="text-2xl font-extrabold text-ink">{KIND_LABELS[k]}</h2>
-          <div className="mt-5 grid gap-4">
-            {(snapshot.kinds[k] ?? []).map((c) => (
-              <TrendCard key={c.id} card={c} baseline={baseline} />
-            ))}
+          {/* Desktop reads a table; mobile keeps the card stack (a four-column
+              table crammed into 390px is the worse of both worlds). No
+              aria-hidden needed: display:none already removes the inactive
+              rendering from the accessibility tree, so AT hears the list
+              exactly once at either breakpoint. */}
+          <div className="mt-5">
+            <KindTable cards={snapshot.kinds[k] ?? []} baseline={baseline} />
+            <div className="grid gap-4 md:hidden">
+              {(snapshot.kinds[k] ?? []).map((c) => (
+                <TrendCard key={c.id} card={c} baseline={baseline} />
+              ))}
+            </div>
           </div>
         </section>
       ))}
 
       <WeekSelector weeks={weeks} activeWeek={snapshot.week} />
       <TrendingRelated />
-    </Article>
+    </article>
   );
 }
 
