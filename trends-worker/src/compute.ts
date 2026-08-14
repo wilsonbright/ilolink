@@ -2,12 +2,14 @@
 // trending_snapshots rows. Runs Monday 06:00 against the week that just ended
 // (week.ts computeWeek), or on demand via POST /admin/compute.
 //
-// Two refusals are deliberate:
+// One refusal and one degradation are deliberate:
 //   - Immutability: a week already computed is frozen (published archives
 //     point at it); recomputing requires an explicit ?force=1.
 //   - First-ever week: with no prior-week snapshots at all, star velocity is
-//     unknowable for everything, and any "ranking" would be fabricated. The
-//     run reports "insufficient history" instead; real rankings start in
+//     unknowable for everything, so instead of a velocity ranking the week is
+//     scored as a BASELINE — absolute stars, starVel/starGrowth stored as 0,
+//     published carrying baseline:true so the page renders "N stars" and
+//     never a fabricated "↑ N this week". Real velocity rankings start in
 //     week 2. (Per-item missing history is handled in scoring.ts: only repos
 //     created this week get an honest prior of 0.)
 
@@ -16,6 +18,7 @@ import { KINDS } from "./types";
 import { priorWeek } from "./week";
 import {
   mergeScoringConfig,
+  scoreBaselineWeek,
   scoreWeek,
   type ScoreInput,
 } from "./scoring";
@@ -23,6 +26,7 @@ import {
 export interface ComputeResult {
   ok: boolean;
   itemCount: number;
+  baseline?: boolean;
   error?: string;
 }
 
@@ -62,20 +66,15 @@ export async function computeTrendingWeek(
       .run();
   }
 
-  // First-run gate: no prior-week snapshots at all => nothing is scoreable.
+  // First-run detection: no prior-week snapshots at all => velocity is
+  // unknowable, score as a baseline week instead (see header).
   const prior = priorWeek(week);
   const priorCount = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM item_snapshots WHERE week_start = ?`,
   )
     .bind(prior)
     .first<{ n: number }>();
-  if ((priorCount?.n ?? 0) === 0) {
-    return {
-      ok: false,
-      itemCount: 0,
-      error: `insufficient history: no snapshots for prior week ${prior}`,
-    };
-  }
+  const baseline = (priorCount?.n ?? 0) === 0;
 
   const rows = await env.DB.prepare(COMPUTE_QUERY).bind(prior, week).all<{
     item_id: string;
@@ -99,7 +98,10 @@ export async function computeTrendingWeek(
 
   // Weights are tunable via KV without a deploy; junk degrades to defaults.
   const rawConfig = await env.KV.get("trending:config", "json");
-  const scored = scoreWeek(week, inputs, mergeScoringConfig(rawConfig));
+  const cfg = mergeScoringConfig(rawConfig);
+  const scored = baseline
+    ? scoreBaselineWeek(inputs, cfg)
+    : scoreWeek(week, inputs, cfg);
 
   if (scored.length > 0) {
     const CHUNK = 50;
@@ -125,5 +127,5 @@ export async function computeTrendingWeek(
     }
   }
 
-  return { ok: true, itemCount: scored.length };
+  return { ok: true, itemCount: scored.length, ...(baseline ? { baseline } : {}) };
 }

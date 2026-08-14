@@ -104,6 +104,9 @@ describe("approveWeek", () => {
           },
         ];
       }
+      // A prior week with snapshots => a NORMAL velocity week, no baseline
+      // flag in the payload (the baseline case has its own test below).
+      if (/COUNT\(\*\) AS n FROM item_snapshots/.test(sql)) return [{ n: 1689 }];
       return [];
     });
     const { KV, map } = fakeKV();
@@ -200,6 +203,20 @@ describe("approveWeek", () => {
     expect(insert!.binds[1]).toBe(NOW.getTime());
   });
 
+  it("stamps baseline:true when the prior week has no snapshots at all", async () => {
+    const { DB } = fakeDB((sql) => {
+      if (/FROM trending_snapshots t/.test(sql)) {
+        return [publishRow({ item_id: "gh:a/x", star_vel: 0, star_growth: 0 })];
+      }
+      if (/COUNT\(\*\) AS n FROM item_snapshots/.test(sql)) return [{ n: 0 }];
+      return [];
+    });
+    const { KV, map } = fakeKV();
+    await approveWeek(env(DB, KV), WEEK, NOW);
+    const payload = JSON.parse(map.get(`trending:${WEEK}`)!) as WeekPayload;
+    expect(payload.baseline).toBe(true);
+  });
+
   it("refuses to publish a week that was never computed — and touches nothing", async () => {
     const { DB, statements } = fakeDB(() => []);
     const { KV, map } = fakeKV();
@@ -274,5 +291,15 @@ describe("buildWeekPayload", () => {
       new Map(),
     );
     expect(payload.kinds.skill![0].repoUrl).toBe("https://github.com/a/x");
+  });
+
+  it("carries baseline:true only when asked — absent otherwise, never false", () => {
+    const rows = [publishRow({ item_id: "gh:a/x" })];
+    const base = buildWeekPayload(WEEK, NOW.toISOString(), rows, new Map(), true);
+    expect(base.baseline).toBe(true);
+    // Absence (not false) on a normal week keeps the published JSON identical
+    // to what the pre-baseline contract emitted.
+    const normal = buildWeekPayload(WEEK, NOW.toISOString(), rows, new Map());
+    expect("baseline" in normal).toBe(false);
   });
 });

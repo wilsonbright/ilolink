@@ -5,6 +5,14 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — The directory goes live today: baseline-week mode
+
+- **Asked:** "get the current data live. and then trend next week."
+- **The honest path to a day-one directory:** velocity needs two weekly snapshots and only one exists, so instead of faking movement the first-ever week is now a **baseline week** — compute detects "no prior-week snapshots", ranks by absolute stars (`scoreBaselineWeek`: floor 50★, top 10 per kind, `starVel`/`starGrowth` stored as 0, never invented), publish stamps `baseline: true` into the KV payload, and the page changes what it claims: lead says "launch snapshot … ranks by total stars and says so", hero becomes "Heaviest hitters right now", cards read "239,944 stars" instead of "↑ N this week", New tags suppressed (everything is new in week 1). The flag is absent-not-false on normal weeks so previously published JSON shape is unchanged; the strict reader rejects a non-boolean `baseline` as contract drift.
+- **Live now:** compute `{ok:true, itemCount:58, baseline:true}` → approved → **ilolink.com/trending shows 58 cards across 6 kinds** (skills, MCP servers, agents, frameworks, workflows, evals), corroboration chips appearing where awesome-list overlap exists. Verified in the browser: hero copy, star-count metric lines, no velocity claims, screenshotted.
+- **Trend next week:** nothing else to do by hand — Sun Aug 16 cron refreshes this week's snapshots, Sun Aug 23 ingests week `2026-08-17`, Mon Aug 24 06:00 cron computes it against a real prior week → first true velocity ranking, one `POST /admin/approve` publishes it. The baseline week then lives on in the archive, labelled as what it was.
+- **Verified:** 460/460 tests (7 new: baseline scoring floor/cap/zeroing, payload flag absent-vs-true, reader drift rejection, approve stamps baseline), tsc ×2 clean, build green. Deployed trends-worker `d0be602e`, app `951e4d64`.
+
 ## 2026-08-14 — Trending directory, phase 1: trends-worker + /trending (ultracode)
 
 - **Asked:** implement the external-sources trending spec (v2), "first version" — read as Phase 1 of its §8: GitHub + awesome-list ingest, watchlist from topic searches, scoring, hand-approved weekly snapshot, `/trending` page + archive. No newsletter infra, no registry ingests, no Claude enrichment (needs an API key the user said not to set up — kind classification is mechanical instead), no npm/buzz/Reddit signals.

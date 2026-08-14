@@ -57,14 +57,18 @@ function kindsPresent(snapshot: WeekSnapshot): Kind[] {
 // comparable across kinds — the worker publishes z-scores only when a kind has
 // enough qualifiers and falls back to ln(raw+1) below that, and the two scales
 // differ by an order of magnitude — so the hero compares category winners on
-// the one scale every card shares: absolute stars gained this week.
+// the one scale every card shares: absolute stars gained this week (total
+// stars on a baseline week, where velocity is 0 across the board).
 function breakouts(snapshot: WeekSnapshot): Card[] {
-  return KINDS.flatMap((k) => (snapshot.kinds[k] ?? []).slice(0, 1))
-    .sort((a, b) => b.starVel - a.starVel)
+  const winners = KINDS.flatMap((k) => (snapshot.kinds[k] ?? []).slice(0, 1));
+  return winners
+    .sort((a, b) =>
+      snapshot.baseline ? b.stars - a.stars : b.starVel - a.starVel,
+    )
     .slice(0, 3);
 }
 
-function TrendCard({ card }: { card: Card }) {
+function TrendCard({ card, baseline }: { card: Card; baseline: boolean }) {
   return (
     <article className="border-2 border-divider p-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -83,7 +87,9 @@ function TrendCard({ card }: { card: Card }) {
         <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-ink-faint">
           {KIND_TAGS[card.kind]}
         </span>
-        {card.isNew && (
+        {/* Suppressed on a baseline week — everything is "new" in week 1,
+            so the tag would be noise on every card. */}
+        {card.isNew && !baseline && (
           <span className="bg-accent px-1.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-canvas">
             New
           </span>
@@ -96,10 +102,18 @@ function TrendCard({ card }: { card: Card }) {
           {card.description}
         </p>
       )}
-      <p className="mt-3 text-sm tabular-nums text-ink">
-        &uarr; {card.starVel.toLocaleString("en-US")} stars this week (
-        {card.starGrowth.toFixed(1)}&times;)
-      </p>
+      {/* Baseline week has no velocity to report — total stars is the ranking
+          and the metric, stated as such rather than dressed up as movement. */}
+      {baseline ? (
+        <p className="mt-3 text-sm tabular-nums text-ink">
+          {card.stars.toLocaleString("en-US")} stars
+        </p>
+      ) : (
+        <p className="mt-3 text-sm tabular-nums text-ink">
+          &uarr; {card.starVel.toLocaleString("en-US")} stars this week (
+          {card.starGrowth.toFixed(1)}&times;)
+        </p>
+      )}
       {card.corroboration.length > 0 && (
         <p className="mt-1 text-sm text-ink-faint">
           Listed on {card.corroboration.join(" · ")}
@@ -158,6 +172,7 @@ export function SnapshotView({
 }) {
   const present = kindsPresent(snapshot);
   const top = breakouts(snapshot);
+  const baseline = snapshot.baseline === true;
   return (
     <Article>
       <Breadcrumbs
@@ -185,7 +200,15 @@ export function SnapshotView({
         }
         title="Trending in agent work"
         lead={
-          archive ? (
+          baseline ? (
+            <>
+              The launch snapshot: the most-starred skills, MCP servers,
+              agents, and frameworks on the watchlist right now. Trending
+              needs two weeks of data — velocity rankings start with the next
+              Monday snapshot; this baseline week ranks by total stars and
+              says so.
+            </>
+          ) : archive ? (
             <>
               A frozen snapshot of the skills, MCP servers, agents, and
               frameworks that broke out in the week of{" "}
@@ -205,11 +228,11 @@ export function SnapshotView({
 
       <section>
         <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-accent-strong">
-          Breakouts of the week
+          {baseline ? "Heaviest hitters right now" : "Breakouts of the week"}
         </h2>
         <div className="mt-4 grid gap-4">
           {top.map((c) => (
-            <TrendCard key={c.id} card={c} />
+            <TrendCard key={c.id} card={c} baseline={baseline} />
           ))}
         </div>
       </section>
@@ -236,7 +259,7 @@ export function SnapshotView({
           <h2 className="text-2xl font-extrabold text-ink">{KIND_LABELS[k]}</h2>
           <div className="mt-5 grid gap-4">
             {(snapshot.kinds[k] ?? []).map((c) => (
-              <TrendCard key={c.id} card={c} />
+              <TrendCard key={c.id} card={c} baseline={baseline} />
             ))}
           </div>
         </section>

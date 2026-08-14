@@ -7,6 +7,7 @@ import { describe, it, expect } from "vitest";
 import {
   DEFAULT_SCORING_CONFIG,
   mergeScoringConfig,
+  scoreBaselineWeek,
   scoreWeek,
   type ScoreInput,
 } from "@/trends-worker/src/scoring";
@@ -239,5 +240,45 @@ describe("mergeScoringConfig", () => {
   it("clamps maxPerKind at 12 (approve's IN() must stay under D1's 100 params)", () => {
     expect(mergeScoringConfig({ maxPerKind: 50 }).maxPerKind).toBe(12);
     expect(mergeScoringConfig({ maxPerKind: 5 }).maxPerKind).toBe(5);
+  });
+});
+
+// The first-ever week: no prior snapshots exist, so velocity is unknowable
+// for everything and the week ranks by absolute stars instead — published
+// labelled baseline, never dressed up as movement.
+describe("scoreBaselineWeek", () => {
+  it("ranks by total stars with velocity honestly zeroed", () => {
+    const out = scoreBaselineWeek([
+      input({ itemId: "gh:a/small", starsNow: 500, starsPrior: null }),
+      input({ itemId: "gh:a/big", starsNow: 9000, starsPrior: null }),
+    ]);
+    expect(out.map((r) => r.itemId)).toEqual(["gh:a/big", "gh:a/small"]);
+    expect(out.map((r) => r.rankInKind)).toEqual([1, 2]);
+    // Zero, not fabricated: there is no prior week to subtract.
+    expect(out.every((r) => r.starVel === 0 && r.starGrowth === 0)).toBe(true);
+  });
+
+  it("applies the baseline star floor (49 drops, 50 stays)", () => {
+    const out = scoreBaselineWeek([
+      input({ itemId: "gh:a/junk", starsNow: 49, starsPrior: null }),
+      input({ itemId: "gh:a/real", starsNow: 50, starsPrior: null }),
+    ]);
+    expect(out.map((r) => r.itemId)).toEqual(["gh:a/real"]);
+  });
+
+  it("keeps per-kind buckets and the maxPerKind cap", () => {
+    const rows = Array.from({ length: 15 }, (_, i) =>
+      input({ itemId: `gh:a/r${String(i).padStart(2, "0")}`, starsNow: 100 + i, starsPrior: null }),
+    ).concat([input({ itemId: "gh:b/skill", kind: "skill" as Kind, starsNow: 60, starsPrior: null })]);
+    const out = scoreBaselineWeek(rows);
+    expect(out.filter((r) => r.kind === "mcp-server")).toHaveLength(10);
+    expect(out.filter((r) => r.kind === "skill")).toHaveLength(1);
+  });
+
+  it("scores ln(stars+1) so the stored scale matches the small-n velocity path", () => {
+    const out = scoreBaselineWeek([
+      input({ itemId: "gh:a/x", starsNow: 999, starsPrior: null }),
+    ]);
+    expect(out[0].score).toBeCloseTo(Math.log(1000), 10);
   });
 });

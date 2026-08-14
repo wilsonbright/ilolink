@@ -134,6 +134,14 @@ describe("parseWeek", () => {
     expect(parseWeek(JSON.stringify(s))?.kinds.skill?.[0]?.description).toBeNull();
   });
 
+  it("passes the baseline flag through, rejects a non-boolean one", () => {
+    expect(parseWeek(JSON.stringify({ ...snapshot, baseline: true }))?.baseline).toBe(true);
+    // Absent stays absent — the reader must not invent `baseline: false`.
+    expect("baseline" in (parseWeek(JSON.stringify(snapshot)) ?? {})).toBe(false);
+    // Anything else is contract drift, and drift rejects the whole snapshot.
+    expect(parseWeek(JSON.stringify({ ...snapshot, baseline: "yes" }))).toBeNull();
+  });
+
   it("re-sorts by rank and caps at 10 per kind", () => {
     const cards = Array.from({ length: 14 }, (_, i) =>
       card({ id: `gh:o/r${i}`, rank: 14 - i }),

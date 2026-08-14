@@ -12,6 +12,7 @@
 
 import type { Card, Env, Kind, WeekPayload } from "./types";
 import { KINDS } from "./types";
+import { priorWeek } from "./week";
 
 const MAX_WEEKS = 12;
 const MAX_PER_KIND = 10;
@@ -52,6 +53,7 @@ export function buildWeekPayload(
   generatedAt: string,
   rows: PublishRow[],
   sourcesByItem: Map<string, string[]>,
+  baseline = false,
 ): WeekPayload {
   const kinds: Partial<Record<Kind, Card[]>> = {};
   const KIND_SET = new Set<string>(KINDS);
@@ -90,7 +92,7 @@ export function buildWeekPayload(
       .slice(0, MAX_PER_KIND);
   }
 
-  return { week, generatedAt, kinds };
+  return { week, generatedAt, kinds, ...(baseline ? { baseline } : {}) };
 }
 
 export interface ApproveResult {
@@ -169,11 +171,22 @@ export async function approveWeek(
     sourcesByItem.set(itemId, [...names].sort());
   }
 
+  // Baseline detection mirrors compute.ts exactly: a week with no prior-week
+  // snapshots was scored on absolute stars, and the page must say so instead
+  // of rendering zero-velocity lines as if nothing moved.
+  const priorCount = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM item_snapshots WHERE week_start = ?`,
+  )
+    .bind(priorWeek(week))
+    .first<{ n: number }>();
+  const baseline = (priorCount?.n ?? 0) === 0;
+
   const payload = buildWeekPayload(
     week,
     now.toISOString(),
     rows.results,
     sourcesByItem,
+    baseline,
   );
 
   // The week payload must exist before the index points at it — a reader that

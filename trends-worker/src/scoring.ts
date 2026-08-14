@@ -38,6 +38,7 @@ export interface ScoringConfig {
   multiplierCap: number; // amendment (b)
   zScoreMinN: number; // amendment (a)
   maxPerKind: number;
+  baselineStarFloor: number; // min total stars to appear in a baseline week
 }
 
 export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
@@ -50,6 +51,7 @@ export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
   multiplierCap: 12,
   zScoreMinN: 20,
   maxPerKind: 10,
+  baselineStarFloor: 50,
 };
 
 // Overlay a KV-sourced config blob onto the defaults. Only known keys carrying
@@ -178,6 +180,53 @@ export function scoreWeek(
     );
     bucket.slice(0, cfg.maxPerKind).forEach((c, i) => {
       const { lnRaw: _drop, ...scored } = c;
+      out.push({ ...scored, rankInKind: i + 1 });
+    });
+  }
+  return out;
+}
+
+// Baseline week (the very first one): velocity is unknowable for EVERYTHING —
+// there is no prior snapshot to subtract — so instead of refusing outright the
+// launch week ranks by absolute stars and is published labelled as a baseline
+// (WeekPayload.baseline, rendered as "N stars", never "↑ N this week"). This
+// is the only honest ranking a single data point supports. starVel/starGrowth
+// are 0 on purpose: a made-up velocity here would be exactly the fabrication
+// the first-run refusal existed to prevent.
+export function scoreBaselineWeek(
+  rows: ScoreInput[],
+  cfg: ScoringConfig = DEFAULT_SCORING_CONFIG,
+): ScoredRow[] {
+  type Candidate = ScoredRow & { stars: number };
+  const byKind = new Map<Kind, Candidate[]>();
+  for (const row of rows) {
+    if (row.starsNow < cfg.baselineStarFloor) continue; // junk floor
+    const candidate: Candidate = {
+      itemId: row.itemId,
+      kind: row.kind,
+      // ln keeps the stored score on the same shape the small-n velocity path
+      // uses; ordering within the week is what matters, not the unit.
+      score: Math.log(row.starsNow + 1),
+      rankInKind: 0,
+      starVel: 0,
+      starGrowth: 0,
+      corroborationCount: row.corroborationCount,
+      stars: row.starsNow,
+    };
+    const bucket = byKind.get(row.kind);
+    if (bucket) bucket.push(candidate);
+    else byKind.set(row.kind, [candidate]);
+  }
+
+  const out: ScoredRow[] = [];
+  for (const bucket of byKind.values()) {
+    bucket.sort(
+      (a, b) =>
+        b.stars - a.stars ||
+        (a.itemId < b.itemId ? -1 : a.itemId > b.itemId ? 1 : 0),
+    );
+    bucket.slice(0, cfg.maxPerKind).forEach((c, i) => {
+      const { stars: _drop, ...scored } = c;
       out.push({ ...scored, rankInKind: i + 1 });
     });
   }

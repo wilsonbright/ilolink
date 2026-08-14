@@ -59,4 +59,11 @@ export interface WeekSnapshot {
   generatedAt: string;
   /** Only kinds that actually have cards are present. */
   kinds: Partial<Record<Kind, Card[]>>;
+  /**
+   * The first-ever week: no prior snapshot existed, so cards are ranked by
+   * absolute stars and carry starVel/starGrowth of 0. The page renders
+   * "N stars" instead of a velocity line and suppresses New tags (everything
+   * is new in week 1).
+   */
+  baseline?: boolean;
 }

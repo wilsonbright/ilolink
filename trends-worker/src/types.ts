@@ -50,10 +50,14 @@ export interface Card {
 }
 
 // Value under "trending:" + week. Cards per kind sorted by rank asc, max 10.
+// baseline marks the first-ever week: ranked by absolute stars because no
+// prior snapshot exists to derive velocity from — the page renders "N stars"
+// and suppresses the velocity line and New tags (everything is new in week 1).
 export interface WeekPayload {
   week: string;
   generatedAt: string; // ISO timestamp of the approve step
   kinds: Partial<Record<Kind, Card[]>>;
+  baseline?: boolean;
 }
 
 // Value under "trending:weeks": ISO-Monday strings, newest first, max 12.

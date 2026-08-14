@@ -77,6 +77,8 @@ export function parseWeek(raw: string | null): WeekSnapshot | null {
     if (typeof parsed !== "object" || parsed === null) return null;
     const o = parsed as Record<string, unknown>;
     if (!isWeekString(o.week) || typeof o.generatedAt !== "string") return null;
+    // Optional flag; anything but a boolean or absence is contract drift.
+    if (o.baseline !== undefined && typeof o.baseline !== "boolean") return null;
     if (typeof o.kinds !== "object" || o.kinds === null) return null;
     const rawKinds = o.kinds as Record<string, unknown>;
 
@@ -88,7 +90,12 @@ export function parseWeek(raw: string | null): WeekSnapshot | null {
       if (cards.length === 0) continue;
       kinds[kind] = [...cards].sort((a, b) => a.rank - b.rank).slice(0, 10);
     }
-    return { week: o.week, generatedAt: o.generatedAt, kinds };
+    return {
+      week: o.week,
+      generatedAt: o.generatedAt,
+      kinds,
+      ...(o.baseline === true ? { baseline: true } : {}),
+    };
   } catch {
     return null;
   }
