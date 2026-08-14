@@ -13,7 +13,7 @@ line-by-line by hand against source (see "Hand-verification" per finding).
 
 | Finding | Status |
 |---|---|
-| 🔴 Blocker 1 — unbounded R2 (docs) | **FIXED** — superseded doc versions pruned on every write (`pruneSupersededVersionsWith` in `lib/publish/store-core.ts`, called from both store composites + `updateDoc`). Bounds every doc to one stored version; self-healing on existing bloat. |
+| 🔴 Blocker 1 — unbounded R2 (docs) | **FIXED + VERIFIED LIVE** — superseded doc versions pruned on every write (`pruneSupersededVersionsWith` in `lib/publish/store-core.ts`, called from both store composites + `updateDoc`). Bounds every doc to one stored version; self-healing on existing bloat. **Live proof (2026-08-14):** drove `update_document` 10× against a real doc in a free Personal teamspace via a PAT — D1 `document_versions` count stayed at **1** (not 11), and the doc still served the latest revision. |
 | 🔴 Blocker 1 — unbounded R2 (artifacts) | **FIXED** — per-teamspace version ceiling `MAX_VERSIONS_PER_TEAMSPACE = 20_000` enforced in `putArtifact` before any insert. Abuse-stop set far above any legit registry, so no UX impact. |
 | 🔴 Blocker 2 — docx decompression bomb | **FIXED** — converted HTML re-checked against the 15 MB text ceiling before storing, at all 3 sites (`docs.ts`, `publish-core.ts`, `app/api/publish/route.ts`). |
 | 🟠 Medium — proposal flood | **FIXED** — `MAX_PENDING_PROPOSALS = 25` guard now on `artifacts_put` and `artifacts_push` (only when the write lands as a proposal), matching the existing `artifacts_contribute` guard. |

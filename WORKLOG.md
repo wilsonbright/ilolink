@@ -5,6 +5,13 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — Blocker 1 doc-prune verified LIVE (the last unobserved fix)
+
+- **Asked:** (the user minted a PAT so the one remaining unverified fix could be driven end-to-end.)
+- Drove the real MCP `update_document` tool 10× against a throwaway doc in the free Personal teamspace (`t_fl48zYMT…`, owner) over Streamable HTTP with the PAT. **Baseline `document_versions` count = 1; after 10 updates = 1** (the pre-fix behavior would be 11), and `ilolink.com/<slug>` served `filebomb-test v10` — the latest revision. So: R2 accumulation bounded, functionality intact. The 9 intermediate versions' R2 objects were pruned; only the current version id survived.
+- Cleaned up fully: unpublished via MCP (KV slug dropped), deleted the 2 surviving R2 objects, deleted the D1 rows. Teamspace left clean.
+- This closes the only observed-truth gap in the whole remediation. **The PAT used is live and appears in the session transcript — it must be revoked at /connect.**
+
 ## 2026-08-14 — Closed the 3 lesser audit findings
 
 - **Asked:** knock out the remaining findings (after the two critical blockers).
