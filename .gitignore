@@ -47,6 +47,9 @@ cloudflare-env.d.ts
 # serves no og:image and no apple-touch-icon, with nothing failing anywhere.
 !app/opengraph-image.png
 !app/apple-icon.png
+# Launch asset packs are deliverables, not test screenshots — the PNGs are the
+# thing being stored, so they beat the blanket *.png above.
+!launch/**/*.png
 
 # Public build vars only (NEXT_PUBLIC_*) — never real secrets
 !.env.production
