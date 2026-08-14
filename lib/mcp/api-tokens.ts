@@ -20,6 +20,22 @@ export interface ApiTokenRow {
   last_used_at: number | null;
   expires_at: number | null;
   revoked_at: number | null;
+  // Connection audit (migration 0019); NULL on tokens minted before it.
+  created_ip: string | null;
+  created_ua: string | null;
+  created_geo: string | null;
+}
+
+// One row of the team audit view: a member's token plus who owns it.
+export interface TeamApiTokenRow extends ApiTokenRow {
+  owner_email: string;
+}
+
+// Where a connection was made from, recorded at creation time.
+export interface CreateContext {
+  ip: string | null;
+  ua: string | null;
+  geo: string | null;
 }
 
 export interface ResolvedToken {
@@ -40,12 +56,15 @@ export async function createApiToken(
   teamspaceId: string,
   name: string | null,
   scopes: string[],
+  ctx: CreateContext = { ip: null, ua: null, geo: null },
 ): Promise<{ id: string; token: string }> {
   const token = mintTokenValue();
   const id = `pat_${nanoid(16)}`;
   await DB.prepare(
-    `INSERT INTO api_tokens (id, user_id, teamspace_id, name, token_hash, scopes, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO api_tokens
+       (id, user_id, teamspace_id, name, token_hash, scopes, created_at,
+        created_ip, created_ua, created_geo)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
@@ -55,6 +74,9 @@ export async function createApiToken(
       await hashToken(token),
       scopes.join(","),
       Date.now(),
+      ctx.ip,
+      ctx.ua,
+      ctx.geo,
     )
     .run();
   // The raw value is returned exactly once and never stored.
@@ -119,13 +141,35 @@ export async function listApiTokens(
 ): Promise<ApiTokenRow[]> {
   const res = await DB.prepare(
     `SELECT id, user_id, teamspace_id, name, scopes, created_at, last_used_at,
-            expires_at, revoked_at
+            expires_at, revoked_at, created_ip, created_ua, created_geo
        FROM api_tokens
       WHERE user_id = ? AND revoked_at IS NULL
       ORDER BY created_at DESC`,
   )
     .bind(userId)
     .all<ApiTokenRow>();
+  return res.results;
+}
+
+// The team audit view: every live token in a teamspace, with its owner's email.
+// Caller MUST have verified the requester is an admin/owner of the teamspace —
+// this function does no authorization of its own.
+export async function listTeamApiTokens(
+  DB: D1Database,
+  teamspaceId: string,
+): Promise<TeamApiTokenRow[]> {
+  const res = await DB.prepare(
+    `SELECT t.id, t.user_id, t.teamspace_id, t.name, t.scopes, t.created_at,
+            t.last_used_at, t.expires_at, t.revoked_at,
+            t.created_ip, t.created_ua, t.created_geo,
+            u.email AS owner_email
+       FROM api_tokens t
+       JOIN users u ON u.id = t.user_id
+      WHERE t.teamspace_id = ? AND t.revoked_at IS NULL
+      ORDER BY t.created_at DESC`,
+  )
+    .bind(teamspaceId)
+    .all<TeamApiTokenRow>();
   return res.results;
 }
 

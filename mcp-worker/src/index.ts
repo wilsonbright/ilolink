@@ -61,6 +61,39 @@ function handoffSecret(env: Env): string {
   return s;
 }
 
+interface GrantLike {
+  id: string;
+  clientId: string;
+  scope: string[];
+  createdAt: number;
+  metadata: unknown;
+}
+
+// Shape a grant for the manage-access UI. The provider stores createdAt in Unix
+// SECONDS (Math.floor(Date.now()/1e3)); the UI works in milliseconds, so a raw
+// value renders as "Jan 1970". Prefer our own connectedAt (already ms, and
+// carrying the audit context); fall back to createdAt*1000 for grants approved
+// before that field existed.
+function grantView(g: GrantLike) {
+  const m = (g.metadata ?? {}) as {
+    email?: string;
+    connectedAt?: number;
+    ip?: string | null;
+    ua?: string | null;
+    geo?: string | null;
+  };
+  return {
+    id: g.id,
+    clientId: g.clientId,
+    scope: g.scope,
+    connectedAt: typeof m.connectedAt === "number" ? m.connectedAt : g.createdAt * 1000,
+    email: m.email ?? null,
+    ip: m.ip ?? null,
+    ua: m.ua ?? null,
+    geo: m.geo ?? null,
+  };
+}
+
 // App → MCP connection management. The app (which owns the session) signs a
 // short-lived {userId} assertion with the shared handoff secret; this worker,
 // which owns OAUTH_KV, verifies it and lists/revokes the OAuth grants for that
@@ -85,14 +118,7 @@ async function handleGrants(request: Request, env: Env): Promise<Response> {
 
   if (url.pathname === "/grants" && request.method === "GET") {
     const res = await api.listUserGrants(claims.userId);
-    const grants = res.items.map((g) => ({
-      id: g.id,
-      clientId: g.clientId,
-      scope: g.scope,
-      createdAt: g.createdAt,
-      email: (g.metadata as { email?: string } | null)?.email ?? null,
-    }));
-    return new Response(JSON.stringify({ grants }), {
+    return new Response(JSON.stringify({ grants: res.items.map(grantView) }), {
       status: 200,
       headers: { "content-type": "application/json", "cache-control": "no-store" },
     });
@@ -123,6 +149,43 @@ async function handleGrants(request: Request, env: Env): Promise<Response> {
   return new Response(JSON.stringify({ error: "not found" }), {
     status: 404,
     headers: { "content-type": "application/json" },
+  });
+}
+
+// Team audit view (read-only): the OAuth grants of a whole team's members. The
+// app verifies the requester is an admin/owner of the teamspace those members
+// belong to, then signs the member userId list — so this endpoint trusts the
+// SIGNED list rather than re-deriving membership here. Capped so a forged-but-
+// -unsigned request can never fan out; the signature is the real gate.
+async function handleTeamGrants(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const token = url.searchParams.get("t") ?? "";
+  const claims = await verifyPayload<{ userIds: string[] }>(
+    handoffSecret(env),
+    token,
+    Date.now(),
+  );
+  if (!claims || !Array.isArray(claims.userIds)) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  const api = getOAuthApi(providerOptions, env);
+  const ids = claims.userIds.filter((u) => typeof u === "string").slice(0, 200);
+
+  const byUser: Record<string, ReturnType<typeof grantView>[]> = {};
+  for (const userId of ids) {
+    try {
+      const res = await api.listUserGrants(userId);
+      if (res.items.length) byUser[userId] = res.items.map(grantView);
+    } catch {
+      // One member's KV hiccup must not blank the whole team view.
+    }
+  }
+  return new Response(JSON.stringify({ byUser }), {
+    status: 200,
+    headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
 }
 
@@ -183,8 +246,11 @@ export default {
       return mcpHandler.fetch(request, env, ctx);
     }
 
-    // Connection management (app-signed): list/revoke this user's OAuth grants.
-    // Before the provider, which would not recognize these paths.
+    // Connection management (app-signed): list/revoke this user's OAuth grants,
+    // and the team audit view. Before the provider, which would 404 these.
+    if (url.pathname === "/grants/team") {
+      return handleTeamGrants(request, env);
+    }
     if (url.pathname === "/grants" || url.pathname === "/grants/revoke") {
       return handleGrants(request, env);
     }

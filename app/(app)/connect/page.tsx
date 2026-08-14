@@ -141,6 +141,12 @@ export default async function ConnectPage() {
           teamspaceNames={Object.fromEntries(
             teamspaces.map((t) => [t.id, t.name]),
           )}
+          adminTeamspaces={teamspaces
+            .filter(
+              (t) =>
+                !t.is_personal && (t.role === "admin" || t.role === "owner"),
+            )
+            .map((t) => ({ id: t.id, name: t.name }))}
         />
       </section>
 

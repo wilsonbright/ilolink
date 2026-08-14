@@ -49,6 +49,8 @@ export async function GET(): Promise<NextResponse> {
     if (!res.ok) {
       return NextResponse.json({ connections: [] }, { status: 200 });
     }
+    // The worker already shaped each grant (id, clientId, scope, connectedAt in
+    // ms, email, ip, ua, geo) — pass it straight through.
     const data = (await res.json()) as { grants?: unknown };
     return NextResponse.json(
       { connections: Array.isArray(data.grants) ? data.grants : [] },

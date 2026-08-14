@@ -14,6 +14,7 @@ import {
   listApiTokens,
   revokeApiToken,
 } from "@/lib/mcp/api-tokens";
+import { captureConnectionContext } from "@/lib/connection/context";
 import { rateLimit } from "@/lib/ratelimit";
 import { env } from "@/lib/cf";
 import { db } from "@/lib/db/client";
@@ -87,6 +88,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     teamspaceId,
     typeof body.name === "string" ? body.name.slice(0, 60) : null,
     scopes,
+    captureConnectionContext(req),
   );
 
   return NextResponse.json(

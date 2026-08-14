@@ -5,6 +5,14 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — Connection audit: fix the 1970 date, capture device/IP/geo, team view
+
+- **Asked:** the connect date read "Jan 21, 1970"; log device/IP/geo (and anything useful) for connections; and for a team, show all members' connections.
+- **Date bug:** `@cloudflare/workers-oauth-provider` stores grant `createdAt` in Unix SECONDS (`Math.floor(Date.now()/1e3)`); the UI treated it as milliseconds, so every grant rendered as ~1970. Fixed in the worker's `grantView`: prefer our own `connectedAt` (ms) and fall back to `createdAt*1000`. Verified the arithmetic — `1786000000` as-ms = 1970-01-21 (the screenshot), `*1000` = 2026-08-06 (correct); existing grants now show right without any backfill.
+- **Capture (device/IP/geo):** new `lib/connection/context.ts` reads `cf-connecting-ip`, `cf-ipcountry` + `request.cf` city/region, and the user-agent from the incoming request. Recorded at both creation points: **PATs** — migration `0019` adds `created_ip/ua/geo` to `api_tokens`, captured in `POST /api/tokens`; **OAuth grants** — captured in the worker's `/authorize/complete` (the browser's own redirect, so real client context) into the grant metadata, plus a millisecond `connectedAt`. All descriptive only — never an authorization input (authority stays re-derived from D1), so a spoofed header can only mislead an audit line, never grant access. The UI derives a friendly device label from the UA and shows "date · place · device · IP" per row.
+- **Team view:** admins/owners get a read-only audit of every member's connections per non-personal teamspace. `GET /api/connections/team?teamspace=` derives admin authority from the session+D1, lists members + their team PATs, then signs the member userId list to the worker's new `/grants/team` (which trusts the signed list rather than re-deriving membership it can't see; capped at 200). **Read-only on purpose** — revoking another person's account-level access is a stronger power, left as a deliberate follow-up.
+- **Verified:** tsc clean app+mcp, 465/465. Migration applied remote BEFORE deploy (standing rule). Deployed mcp `3d819d76`, app `aa712631`. Live: `/grants/team` + `/api/connections/team` 401 unsigned/no-session, `/connect` 307. **Boundary:** the rendered UI, real geo capture on a fresh connect, and PAT-create capture were NOT exercised live — all need a signed-in session (inbox) I can't create. Date fix proven by arithmetic; capture + team paths proven by tsc + route health.
+
 ## 2026-08-14 — Connection management: revoke PATs, disconnect MCP assistants
 
 - **Asked:** a screen to see generated tokens (with the account they belong to) and delete them; same for MCP connections, with disconnect. (Triggered by there being no way to revoke a token in the app.)

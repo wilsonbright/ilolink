@@ -28,6 +28,7 @@ import {
   verifyPayload,
 } from "../../lib/crypto/hmac";
 import { canonicalResource } from "./canonical-path";
+import { captureConnectionContext } from "../../lib/connection/context";
 
 interface OAuthHelpers {
   parseAuthRequest(request: Request): Promise<{ clientId?: string; scope?: string[] } & Record<string, unknown>>;
@@ -175,11 +176,23 @@ async function handleAuthorize(request: Request, env: Env): Promise<Response> {
       return new Response("Invalid authorize request.", { status: 400 });
     }
 
+    // Record where this connection was approved from, for the manage-access
+    // audit trail. This GET is the browser's own redirect, so the request
+    // carries the real client IP/UA/geo. Descriptive only — never authorization
+    // (that is re-derived from D1 on every tool call). connectedAt is our own
+    // millisecond stamp, so the UI never has to guess the provider's unit.
+    const ctx = captureConnectionContext(request);
     const { redirectTo } = await helpers.completeAuthorization({
       request: parsed,
       userId: assertion.userId,
       scope: parsed.scope ?? ["publish"],
-      metadata: { email: assertion.email },
+      metadata: {
+        email: assertion.email,
+        connectedAt: Date.now(),
+        ip: ctx.ip,
+        ua: ctx.ua,
+        geo: ctx.geo,
+      },
       // Identity ONLY. No role, no permissions: those are re-read from D1 on
       // every tool call (see mcp-worker/src/authz.ts), because this props
       // object is decrypted once and then cached in a warm Durable Object.
