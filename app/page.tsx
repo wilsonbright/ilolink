@@ -186,6 +186,11 @@ export default function Home() {
             <Link href="#publish" className={`hidden sm:inline ${NAV_LINK}`}>
               Publish
             </Link>
+            {/* Hidden on the phone row like Registry/Publish — Pricing,
+                Connect and the CTA keep priority in the tight space. */}
+            <Link href="/trending" className={`hidden sm:inline ${NAV_LINK}`}>
+              Trending
+            </Link>
             <Link href="#pricing" className={NAV_LINK}>
               Pricing
             </Link>
@@ -213,11 +218,9 @@ export default function Home() {
         {/* ── Hero ──────────────────────────────────────────────────────── */}
         <section className={`${WRAP} pb-[76px] pt-[92px]`}>
           <h1 className="-ml-[0.058em] text-[clamp(40px,5.6vw,76px)] font-extrabold leading-[1.06] tracking-[-0.02em] text-ink">
+            <span className="block">Push it once.</span>
             <span className="block">
-              Your AI writes the team&rsquo;s best work.
-            </span>
-            <span className="block">
-              Then it dies in one person&rsquo;s chat.
+              Every teammate&rsquo;s agent knows it.
             </span>
           </h1>
           <p className="mt-9 max-w-[56ch] text-[17px] leading-[28px] text-ink">
@@ -672,6 +675,12 @@ export default function Home() {
                 className="text-ink transition-colors duration-150 hover:text-accent"
               >
                 Connect to Claude, ChatGPT &amp; more
+              </Link>
+              <Link
+                href="/trending"
+                className="text-ink transition-colors duration-150 hover:text-accent"
+              >
+                Trending this week
               </Link>
               <Link
                 href="#pricing"

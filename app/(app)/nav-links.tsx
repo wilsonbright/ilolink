@@ -1,6 +1,6 @@
 "use client";
 
-// The six signed-in destinations, with the current one marked.
+// The seven signed-in destinations, with the current one marked.
 //
 // A tiny client island so the server-rendered app header can know where it is:
 // usePathname() only exists in the browser, and the layout itself must stay a
@@ -23,6 +23,10 @@ const DESTINATIONS = [
   { href: "/t", label: "Teamspaces" },
   { href: "/billing", label: "Billing" },
   { href: "/connect", label: "Connect" },
+  // Marketing-layout page, linked from the app on purpose: "what broke out
+  // this week" is a signed-in habit, not just a landing pitch. Renders with
+  // the marketing chrome; prefix-matching still marks it current here.
+  { href: "/trending", label: "Trending" },
   { href: "/notifications", label: "Notifications" },
   { href: "/publish", label: "Publish" },
 ] as const;

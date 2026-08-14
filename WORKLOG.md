@@ -5,6 +5,13 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — Trending linked from the landing page and the app; new hero
+
+- **Asked:** (1) is trending linked from the landing page and the app? (it wasn't — only the marketing subpage layout had it); (2) an alternative for the hero message.
+- **Links added in all three missing places:** landing header (`hidden sm:inline`, same priority tier as Registry/Publish — Pricing/Connect/CTA keep the phone row), landing footer Product column ("Trending this week"), and the app shell's `DESTINATIONS` (between Connect and Notifications, with a comment on why a marketing-layout page is a signed-in destination: "what broke out this week" is a habit, not a pitch).
+- **Hero:** four alternatives offered with previews; the user picked **"Push it once. Every teammate's agent knows it."** — mechanism-forward, says what ilolink does in the headline instead of only naming the pain. Replaced "Your AI writes the team's best work. Then it dies in one person's chat." (grep confirmed the phrase lived nowhere else — no OG image or metadata drift).
+- **Verified:** tsc clean, deployed app `ff4f4cb4`, live landing screenshotted — new hero + Trending in the header render. App-shell link is code-verified only (no session in the test browser): same `DESTINATIONS` render path as the existing six links.
+
 ## 2026-08-14 — The directory goes live today: baseline-week mode
 
 - **Asked:** "get the current data live. and then trend next week."
