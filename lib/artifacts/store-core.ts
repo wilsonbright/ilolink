@@ -21,6 +21,19 @@ export const MAX_ARTIFACT_BYTES = 256 * 1024;
 export const MAX_NAME_LENGTH = 64;
 export const MAX_DESCRIPTION_LENGTH = 500;
 
+// Absolute ceiling on stored artifact versions per teamspace. Unlike documents,
+// artifact versions are load-bearing history (a proposal consumes a version
+// number, if_version compares against the published one), so they cannot be
+// pruned — they must instead be bounded. Without this, artifacts_put/push had NO
+// count, byte, or plan cap: a free teamspace could loop distinct bodies through
+// the registry and accumulate unbounded R2 (security audit 2026-08-14, Blocker
+// 1). This is an ABUSE ceiling, deliberately set an order of magnitude above any
+// plausible real registry (a large team syncing a monorepo of skills, revised
+// for years, lands in the low thousands), so it never touches a legitimate user
+// — it only converts "unbounded" into "bounded". A tighter, plan-aware quota is
+// a product decision left as a follow-up.
+export const MAX_VERSIONS_PER_TEAMSPACE = 20_000;
+
 export type VersionStatus = "published" | "proposed" | "rejected";
 
 export interface ArtifactBindings {
@@ -283,6 +296,23 @@ export async function putArtifact(
   if (!body.trim()) throw new ArtifactError("The body is empty.");
   if (new TextEncoder().encode(body).length > MAX_ARTIFACT_BYTES) {
     throw new ArtifactError("That is larger than 256 KB.");
+  }
+
+  // Abuse ceiling (see MAX_VERSIONS_PER_TEAMSPACE): refuse BEFORE any insert so a
+  // teamspace at the limit never leaves an orphan artifact row behind. An
+  // idempotent re-push of an unchanged body dedups below without adding a
+  // version, so this pays one indexed COUNT but does not block legitimate syncs.
+  const versionCount = await b.DB.prepare(
+    `SELECT COUNT(*) AS n FROM artifact_versions v
+       JOIN artifacts a ON a.id = v.skill_id
+      WHERE a.teamspace_id = ?`,
+  )
+    .bind(teamspaceId)
+    .first<{ n: number }>();
+  if ((versionCount?.n ?? 0) >= MAX_VERSIONS_PER_TEAMSPACE) {
+    throw new ArtifactError(
+      "This teamspace has reached its registry storage limit. Archive or delete unused artifacts before adding more.",
+    );
   }
 
   const now = Date.now();

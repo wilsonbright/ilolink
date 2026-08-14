@@ -3,6 +3,7 @@ import {
   storeVersionWith,
   createDocumentWith,
   writeSlugRecordWith,
+  pruneSupersededVersionsWith,
   type PublishBindings,
 } from "@/lib/publish/store-core";
 
@@ -151,5 +152,67 @@ describe("store-core (binding-parameterized)", () => {
       expires_at: null,
     });
     expect(kv.get("slug:abc123")).toContain("doc1");
+  });
+});
+
+// The file-bomb fix (security audit 2026-08-14, Blocker 1): every version-
+// creating path must drop the versions it supersedes, so an update loop cannot
+// pile up permanent R2 objects. A doc serves only from its current version, so
+// this is invisible to users.
+describe("pruneSupersededVersionsWith", () => {
+  // A fake that answers the prune's SELECT with stale rows, records which R2
+  // keys get deleted, and remembers the DELETE it runs.
+  function fakePrune(staleRows: { id: string; raw_r2_key: string; rendered_r2_key: string }[]) {
+    const deletedKeys: string[] = [];
+    const ran: { text: string; params: unknown[] }[] = [];
+    const DB = {
+      prepare(text: string) {
+        let params: unknown[] = [];
+        return {
+          bind(...p: unknown[]) {
+            params = p;
+            return this;
+          },
+          all: async () => ({ results: staleRows }),
+          run: async () => {
+            ran.push({ text, params });
+            return { success: true };
+          },
+          first: async () => null,
+        };
+      },
+    } as unknown as D1Database;
+    const DOCS = {
+      delete: async (key: string) => {
+        deletedKeys.push(key);
+      },
+    } as unknown as R2Bucket;
+    const KV = {} as unknown as KVNamespace;
+    return { bindings: { DB, DOCS, KV } as PublishBindings, deletedKeys, ran };
+  }
+
+  it("deletes both R2 bodies of every superseded version, then the rows", async () => {
+    const { bindings, deletedKeys, ran } = fakePrune([
+      { id: "v_old1", raw_r2_key: "docs/d/v_old1/raw", rendered_r2_key: "docs/d/v_old1/rendered" },
+      { id: "v_old2", raw_r2_key: "docs/d/v_old2/raw", rendered_r2_key: "docs/d/v_old2/rendered" },
+    ]);
+    await pruneSupersededVersionsWith(bindings, "d", "v_new");
+    expect(deletedKeys).toEqual([
+      "docs/d/v_old1/raw",
+      "docs/d/v_old1/rendered",
+      "docs/d/v_old2/raw",
+      "docs/d/v_old2/rendered",
+    ]);
+    // The DELETE keeps the current version (id != keep).
+    const del = ran.find((r) => /DELETE FROM document_versions/.test(r.text));
+    expect(del).toBeDefined();
+    expect(del!.params).toEqual(["d", "v_new"]);
+  });
+
+  it("does nothing when there are no superseded versions (fresh doc)", async () => {
+    const { bindings, deletedKeys, ran } = fakePrune([]);
+    await pruneSupersededVersionsWith(bindings, "d", "v_only");
+    expect(deletedKeys).toEqual([]);
+    expect(ran.some((r) => /DELETE/.test(r.text))).toBe(false);
   });
 });

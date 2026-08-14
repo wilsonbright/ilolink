@@ -14,6 +14,16 @@
 // favicon file) and app/api/og/route.tsx (Satori renders from literals) —
 // change the geometry in all three or none.
 //
+// And in a fourth place no compiler can reach: app/favicon.ico,
+// app/apple-icon.png and app/opengraph-image.png are RASTERS with the mark
+// baked in. That is how the Modernist redesign (9b2a090) shipped half-done —
+// it swapped blue for red in every source file and left all three binaries
+// showing the old blue pill for two days, on the site, in Slack unfurls and
+// on the Product Hunt listing. Nothing failed: the SEO test asserts those
+// files exist and are 1200x630, which a stale image satisfies perfectly.
+// Regenerate them from docs/brand/ (`npm run brand`) whenever this path or
+// the accent changes, and LOOK at the output — that is the only check there is.
+//
 // The viewBox is CROPPED to the artwork (3 3 26 26) rather than the full 32×32
 // grid the path is drawn on, so `size` means the size of the mark itself. With
 // the padded box, an 18px request rendered a 14.6px mark floating in 3.4px of

@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="_board.css" />
+<style>
+  /* Master app icon. Rendered ONCE at 512 and downsampled to 180 (apple-icon)
+     and 48/32/16 (the .ico frames).
+
+     512 is 16x the mark's 32-unit grid, so every edge in the path lands on a
+     whole pixel at the master size and each downsample is an exact integer
+     ratio (16:1 to 32px, 32:1 to 16px) — no half-pixel smear. Rendering each
+     size natively instead would put the 2-unit notch on a fractional pixel at
+     every size but 32.
+
+     Keeps app/icon.svg's PADDED 32-unit viewBox rather than the cropped
+     "3 3 26 26" one IloMark uses: a favicon wants breathing room inside its
+     own square, and the browser-tab SVG and the .ico must agree or the two
+     read as different logos at the same size in the same tab strip.
+
+     Opaque canvas ground, not transparent: iOS composites an apple-touch-icon
+     over BLACK, so a transparent mark ships as red-on-black on a home screen. */
+  html, body { width: 512px; height: 512px; }
+  .cell {
+    width: 512px; height: 512px;
+    background: var(--canvas);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cell svg { color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="cell">
+    <svg width="512" height="512" viewBox="0 0 32 32"><path fill="currentColor" fill-rule="evenodd" d="M3 3H22V22H3ZM8 8H17V17H8ZM8 17H17V22H8ZM10 10H29V29H10ZM15 15H24V24H15ZM15 10H24V15H15Z"/></svg>
+  </div>
+</body>
+</html>

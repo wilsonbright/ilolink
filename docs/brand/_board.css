@@ -1,0 +1,30 @@
+/* Modernist tokens restated for a static board.
+
+   These MUST match app/globals.css light mode. A board is rendered by a bare
+   headless browser with no Tailwind and no @theme, so it cannot read the real
+   tokens — the same reason app/api/og/route.tsx restates them as hex. */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;800&display=swap");
+
+:root {
+  --canvas: #f3f2f2;
+  --ink: #201e1d;
+  --ink-faint: #767271;
+  /* 40% ink over canvas, precomputed — globals.css states this as a
+     color-mix(), which a flat board has no token to resolve against. */
+  --divider: #9e9d9d;
+  --accent: #ec3013;
+  --accent-soft: #ffe0d9;
+  --accent-strong: #ae1800;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  overflow: hidden;
+  background: var(--canvas);
+  font-family: "Archivo", sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+svg { display: block; }

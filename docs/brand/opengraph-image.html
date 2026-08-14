@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="_board.css" />
+<style>
+  /* Source for app/opengraph-image.png — the site-wide 1200x630 share card,
+     used by every marketing page that doesn't generate its own.
+
+     Structure deliberately mirrors app/api/og/route.tsx (the per-DOCUMENT
+     card) so a site share and a doc share read as one system: wordmark and
+     rule at the top, headline as the field, faint footer line. The two files
+     cannot share code — Satori renders from literals — so they are kept in
+     sync by looking at them side by side. */
+  html, body { width: 1200px; height: 630px; }
+  .card {
+    width: 1200px; height: 630px;
+    padding: 72px 80px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .top {
+    display: flex; align-items: center; gap: 14px;
+    padding-bottom: 22px;
+    border-bottom: 2px solid var(--divider);
+  }
+  .top svg { color: var(--accent); }
+  .brand { font-size: 30px; font-weight: 800; letter-spacing: -0.01em; }
+  /* 36px against the 30px wordmark: the mark uses the CROPPED viewBox, so
+     36 is 36 of actual artwork. api/og asks for a 44px PADDED box, which is
+     the same ~36px of mark once the 3-unit margin is discounted. */
+  .headline {
+    font-size: 72px; font-weight: 800; line-height: 1.06;
+    letter-spacing: -0.015em; max-width: 18ch;
+  }
+  .foot { font-size: 26px; font-weight: 400; color: var(--ink-faint); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="top">
+      <svg width="36" height="36" viewBox="3 3 26 26"><path fill="currentColor" fill-rule="evenodd" d="M3 3H22V22H3ZM8 8H17V17H8ZM8 17H17V22H8ZM10 10H29V29H10ZM15 15H24V24H15ZM15 10H24V15H15Z"/></svg>
+      <div class="brand">ilolink</div>
+    </div>
+    <div class="headline">Publish a document as a link anyone can open.</div>
+    <div class="foot">ilolink.com &middot; then see how it was read</div>
+  </div>
+</body>
+</html>

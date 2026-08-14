@@ -184,6 +184,44 @@ export async function setCurrentVersionWith(
     .run();
 }
 
+// Delete every version of a doc EXCEPT the one just made current — its R2 bodies
+// and its D1 row. A document serves ONLY from its current version (the content
+// worker reads the KV slug record; nothing in the app reads a non-current
+// version — there is no rollback/history feature), so superseded versions are
+// dead weight. Left unpruned they were the file-bomb: `update_document` in a
+// loop appended new R2 objects forever, bounded only by a per-minute rate limit
+// (security audit 2026-08-14, Blocker 1). Pruning here bounds every doc to a
+// single stored version and is self-healing — it cleans up any historical bloat
+// on the next write.
+//
+// Best-effort: a failure to prune must never fail the caller's publish/update
+// (the worst case is the old leak, not a broken write), so callers wrap this and
+// swallow. Idempotent: R2 deletes of missing keys are no-ops. Must be called
+// AFTER setCurrentVersionWith so `keepVersionId` is already the live one.
+export async function pruneSupersededVersionsWith(
+  b: PublishBindings,
+  docId: string,
+  keepVersionId: string,
+): Promise<void> {
+  const stale = await b.DB.prepare(
+    `SELECT id, raw_r2_key, rendered_r2_key FROM document_versions
+      WHERE document_id = ? AND id != ?`,
+  )
+    .bind(docId, keepVersionId)
+    .all<{ id: string; raw_r2_key: string; rendered_r2_key: string }>();
+  if (stale.results.length === 0) return;
+
+  for (const v of stale.results) {
+    if (v.raw_r2_key) await b.DOCS.delete(v.raw_r2_key);
+    if (v.rendered_r2_key) await b.DOCS.delete(v.rendered_r2_key);
+  }
+  await b.DB.prepare(
+    "DELETE FROM document_versions WHERE document_id = ? AND id != ?",
+  )
+    .bind(docId, keepVersionId)
+    .run();
+}
+
 // --- KV slug record ---
 
 export async function writeSlugRecordWith(
@@ -222,6 +260,9 @@ export async function storeVersionWith(
     "text/html; charset=utf-8",
   );
   await setCurrentVersionWith(b.DB, docId, version.id);
+  // Superseded versions are dead weight and were the file-bomb vector — drop
+  // them. Best-effort: never fail the write over cleanup.
+  await pruneSupersededVersionsWith(b, docId, version.id).catch(() => {});
   return version;
 }
 
@@ -240,5 +281,6 @@ export async function storeBinaryVersionWith(
     "text/html; charset=utf-8",
   );
   await setCurrentVersionWith(b.DB, docId, version.id);
+  await pruneSupersededVersionsWith(b, docId, version.id).catch(() => {});
   return version;
 }

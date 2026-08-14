@@ -5,6 +5,7 @@
 import {
   createVersionWith,
   setCurrentVersionWith,
+  pruneSupersededVersionsWith,
   writeSlugRecordWith,
   readSlugRecordWith,
   putBodyWith,
@@ -227,6 +228,13 @@ export async function updateDoc(
       const html = await docxToHtml(bytes).catch(() => {
         throw new PublishError("Could not read that .docx file.");
       });
+      // A .docx is zip-compressed XML, so the 15 MB check on the still-zipped
+      // upload above says nothing about the DECOMPRESSED size — a small zip can
+      // inflate to hundreds of MB (decompression bomb, audit Blocker 2). Re-check
+      // the converted HTML against the same text ceiling before it is stored.
+      if (byteLength(html) > MAX_TEXT_BYTES) {
+        throw new PublishError("That .docx expands past the 15 MB limit once converted.");
+      }
       const r = renderContent(html, "html");
       assertNotAbusive(html, r.html);
       await putBodyWith(b.DOCS, version.raw_r2_key, html, "text/html; charset=utf-8");
@@ -246,6 +254,10 @@ export async function updateDoc(
   }
 
   await setCurrentVersionWith(b.DB, docId, version.id);
+  // Drop the version we just superseded (and any older bloat): a doc serves only
+  // from its current version, so an update loop must not pile up R2 objects.
+  // This is what bounds the update_document file-bomb (audit Blocker 1).
+  await pruneSupersededVersionsWith(b, docId, version.id).catch(() => {});
   await DB_setSourceType(b.DB, docId, sourceType);
   // Point the KV slug record at the new version, PRESERVING the doc's existing
   // visibility / password_hash / expires_at (never downgrade protection).

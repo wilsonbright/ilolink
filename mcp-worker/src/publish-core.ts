@@ -269,6 +269,12 @@ export async function publishForWorkspace(
       const html = await docxToHtml(bytes).catch(() => {
         throw new PublishError("Could not read that .docx file — it may be corrupt.");
       });
+      // The 15 MB check above was on the still-zipped .docx; a small zip can
+      // inflate to hundreds of MB (decompression bomb, audit Blocker 2). Re-check
+      // the converted HTML against the text ceiling before storing.
+      if (byteLength(html) > MAX_TEXT_BYTES) {
+        throw new PublishError("That .docx expands past the 15 MB limit once converted.");
+      }
       const r = renderContent(html, "html");
       title = input.title ?? r.title ?? input.filename?.replace(/\.[^.]+$/, "") ?? "Document";
       scanHtml = r.html;

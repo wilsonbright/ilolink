@@ -3,43 +3,67 @@
 <head>
 <meta charset="utf-8" />
 <style>
-  html, body { margin: 0; padding: 0; }
+  /* Launch-day 1200×630 card for X/LinkedIn, in the Modernist DS — Archivo,
+     one red, zero radius, 2px rules, flush-left. The blue pill mark this
+     carried until 2026-08-14 predated the redesign (commit 9b2a090); the
+     geometry below is the same six-rect evenodd path as lib/ui/logo.tsx. */
+  @import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;800&display=swap");
+
+  :root {
+    --canvas: #f3f2f2;
+    --ink: #201e1d;
+    --ink-faint: #767271;
+    --divider: #c9c6c1;
+    --accent: #ec3013;
+    --accent-soft: #ffe0d9;
+    --accent-strong: #ae1800;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--canvas); }
+  svg { display: block; }
+
   .card {
     width: 1200px; height: 630px;
-    background: #fafaf8;
-    box-sizing: border-box;
+    background: var(--canvas);
     padding: 72px 80px;
     display: flex; flex-direction: column; justify-content: space-between;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: "Archivo", sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
   }
-  .top { display: flex; align-items: center; gap: 16px; }
-  .mark { width: 44px; height: 44px; border-radius: 12px; background: #3b5bdb; }
-  .brand { font-size: 30px; font-weight: 700; color: #1a1a17; letter-spacing: -0.02em; }
+  .top {
+    display: flex; align-items: center; gap: 14px;
+    padding-bottom: 22px;
+    border-bottom: 2px solid var(--divider);
+  }
+  .top svg { color: var(--accent); }
+  .brand { font-size: 30px; font-weight: 800; letter-spacing: -0.01em; }
+  .mid { display: flex; flex-direction: column; align-items: flex-start; gap: 24px; }
   .badge {
-    align-self: flex-start;
-    font-size: 20px; font-weight: 700; color: #3b5bdb;
-    background: #edf0fd; padding: 8px 18px; border-radius: 999px;
-    margin-bottom: 22px;
+    font-size: 20px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--accent-strong); background: var(--accent-soft);
+    padding: 8px 18px;
   }
   .headline {
-    font-size: 62px; font-weight: 700; color: #1a1a17;
-    line-height: 1.08; letter-spacing: -0.02em; max-width: 20ch;
+    font-size: 68px; font-weight: 800; line-height: 1.06;
+    letter-spacing: -0.015em; max-width: 17ch;
   }
-  .foot { font-size: 26px; color: #8a8a80; font-weight: 400; }
-  .mid { display: flex; flex-direction: column; }
+  .foot { font-size: 26px; font-weight: 400; color: var(--ink-faint); }
 </style>
 </head>
 <body>
   <div class="card">
     <div class="top">
-      <div class="mark"></div>
+      <svg width="30" height="30" viewBox="3 3 26 26"><path fill="currentColor" fill-rule="evenodd" d="M3 3H22V22H3ZM8 8H17V17H8ZM8 17H17V22H8ZM10 10H29V29H10ZM15 15H24V24H15ZM15 10H24V15H15Z"/></svg>
       <div class="brand">ilolink</div>
     </div>
     <div class="mid">
-      <div class="badge">New · from Claude, Grok &amp; ChatGPT</div>
+      <div class="badge">New &middot; from Claude, Grok &amp; ChatGPT</div>
       <div class="headline">Publish what your AI makes to a link.</div>
     </div>
-    <div class="foot">ilolink.com · cookieless analytics, heatmaps &amp; comments · no account</div>
+    <div class="foot">ilolink.com &middot; cookieless analytics, heatmaps &amp; comments &middot; no account</div>
   </div>
 </body>
 </html>

@@ -3,35 +3,41 @@
 <head>
 <meta charset="utf-8" />
 <style>
-  html, body { margin: 0; padding: 0; }
+  /* 240×240 feed thumbnail — the mark over the wordmark, red on canvas.
+     Until 2026-08-14 this drew a blue rounded tile wrapping a generic
+     stroked chain-link glyph; both predated the Modernist redesign. The
+     real mark (two interlocked squares, lib/ui/logo.tsx) is a filled
+     figure, so it needs no tile to sit on and no radius. */
+  @import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;800&display=swap");
+
+  :root {
+    --canvas: #f3f2f2;
+    --ink: #201e1d;
+    --accent: #ec3013;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--canvas); }
+  svg { display: block; color: var(--accent); }
+
   .card {
     width: 240px; height: 240px;
-    background: #fafaf8;
+    background: var(--canvas);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: 18px;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: "Archivo", sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
   }
-  .mark {
-    width: 96px; height: 96px;
-    border-radius: 24px;
-    background: #3b5bdb;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 24px rgba(59,91,219,0.28);
-  }
-  /* a simple chain-link glyph in white */
-  .mark svg { width: 52px; height: 52px; }
-  .word { font-size: 34px; font-weight: 700; color: #1a1a17; letter-spacing: -0.02em; }
+  .word { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
 </style>
 </head>
 <body>
   <div class="card">
-    <div class="mark">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />
-        <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
-      </svg>
-    </div>
+    <!-- Cropped viewBox (3 3 26 26): here `width` means the mark itself, not
+         a padded box it floats inside — same reasoning as IloMark. -->
+    <svg width="96" height="96" viewBox="3 3 26 26"><path fill="currentColor" fill-rule="evenodd" d="M3 3H22V22H3ZM8 8H17V17H8ZM8 17H17V22H8ZM10 10H29V29H10ZM15 15H24V24H15ZM15 10H24V15H15Z"/></svg>
     <div class="word">ilolink</div>
   </div>
 </body>

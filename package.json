@@ -14,7 +14,8 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
     "db:migrate:local": "wrangler d1 migrations apply ilolink --local",
     "db:migrate:remote": "wrangler d1 migrations apply ilolink --remote",
-    "test": "vitest run"
+    "test": "vitest run",
+    "brand": "bash docs/brand/render.sh"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.8.2",

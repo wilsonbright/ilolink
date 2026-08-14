@@ -384,6 +384,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       } catch {
         return bad("Could not read that .docx file — it may be corrupt.");
       }
+      // The 15 MB check above was on the still-zipped .docx; a small zip can
+      // inflate to hundreds of MB (decompression bomb, audit Blocker 2). Re-check
+      // the converted HTML against the text ceiling before storing.
+      if (byteLength(converted) > MAX_BODY_BYTES) {
+        return bad("That .docx expands past the 15 MB limit once converted.", 413);
+      }
       const { html, title: t } = renderAndSanitize(converted, "html");
       title = input.title ?? t ?? "Document";
       scanHtml = html;
