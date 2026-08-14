@@ -19,6 +19,7 @@ import {
 import { env } from "@/lib/cf";
 import { TokenMinter } from "./token-minter";
 import { CopyField } from "./copy-field";
+import { ManageConnections } from "./manage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,9 +127,26 @@ export default async function ConnectPage() {
         />
       </section>
 
-      <section className="border-t-2 border-divider pt-5">
+      <section className="mb-12 border-t-2 border-divider pt-5">
         <p aria-hidden className="mb-3 text-[15px] font-extrabold tabular-nums text-ink">
           03
+        </p>
+        <h2 className="mb-2 text-lg text-ink">Manage access</h2>
+        <p className="mb-6 leading-relaxed text-ink-soft">
+          Everything currently able to reach your teamspaces, signed in as{" "}
+          <span className="text-ink">{user.email}</span>. Revoke a token or
+          disconnect an assistant and it stops working immediately.
+        </p>
+        <ManageConnections
+          teamspaceNames={Object.fromEntries(
+            teamspaces.map((t) => [t.id, t.name]),
+          )}
+        />
+      </section>
+
+      <section className="border-t-2 border-divider pt-5">
+        <p aria-hidden className="mb-3 text-[15px] font-extrabold tabular-nums text-ink">
+          04
         </p>
         <p className="mb-3 text-sm leading-relaxed text-ink-faint">
           Once connected, ask your assistant to publish something, or to list

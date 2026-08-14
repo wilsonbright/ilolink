@@ -12,11 +12,12 @@
 // and analytics together. The path now returns a JSON-RPC error telling the
 // assistant to reconnect.
 
-import { OAuthProvider } from "@cloudflare/workers-oauth-provider";
+import { OAuthProvider, getOAuthApi } from "@cloudflare/workers-oauth-provider";
 import { IlolinkMCP, type Env } from "./agent";
 import { authorizeHandler } from "./authorize";
 import { isMcpPath, isCanonicalMcpPath } from "./canonical-path";
 import { resolveApiToken, touchApiToken, PAT_PREFIX } from "../../lib/mcp/api-tokens";
+import { verifyPayload } from "../../lib/crypto/hmac";
 
 export { IlolinkMCP };
 
@@ -28,7 +29,10 @@ const apiHandler = {
     mcpHandler.fetch(req, env, ctx),
 };
 
-const provider = new OAuthProvider({
+// Extracted so getOAuthApi() below can read/revoke grants from the SAME store
+// with the SAME key layout the provider writes — the KV helpers depend on these
+// options, so they must not drift from what `new OAuthProvider(...)` gets.
+const providerOptions = {
   apiRoute: "/mcp",
   apiHandler,
   defaultHandler: authorizeHandler,
@@ -45,7 +49,82 @@ const provider = new OAuthProvider({
   // flag in wrangler.jsonc; with only one of the two the provider advertises
   // client_id_metadata_document_supported: false and nothing changes.
   clientIdMetadataDocumentEnabled: true,
-});
+};
+
+const provider = new OAuthProvider(providerOptions);
+
+function handoffSecret(env: Env): string {
+  const s = (env as unknown as { MCP_HANDOFF_SECRET?: string }).MCP_HANDOFF_SECRET;
+  // Fail closed — without the shared secret we cannot trust who is asking, so
+  // the connections API is simply unavailable rather than open.
+  if (!s) throw new Error("MCP_HANDOFF_SECRET is not configured.");
+  return s;
+}
+
+// App → MCP connection management. The app (which owns the session) signs a
+// short-lived {userId} assertion with the shared handoff secret; this worker,
+// which owns OAUTH_KV, verifies it and lists/revokes the OAuth grants for that
+// user. revokeGrant is itself scoped to the userId by the library, so a forged
+// grant id cannot touch another user's connection even if the assertion were
+// bypassed. Returns JSON; server-to-server only, so no CORS.
+async function handleGrants(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const token = url.searchParams.get("t") ?? "";
+  const claims = await verifyPayload<{ userId: string }>(
+    handoffSecret(env),
+    token,
+    Date.now(),
+  );
+  if (!claims || typeof claims.userId !== "string" || !claims.userId) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  const api = getOAuthApi(providerOptions, env);
+
+  if (url.pathname === "/grants" && request.method === "GET") {
+    const res = await api.listUserGrants(claims.userId);
+    const grants = res.items.map((g) => ({
+      id: g.id,
+      clientId: g.clientId,
+      scope: g.scope,
+      createdAt: g.createdAt,
+      email: (g.metadata as { email?: string } | null)?.email ?? null,
+    }));
+    return new Response(JSON.stringify({ grants }), {
+      status: 200,
+      headers: { "content-type": "application/json", "cache-control": "no-store" },
+    });
+  }
+
+  if (url.pathname === "/grants/revoke" && request.method === "POST") {
+    let body: { grantId?: unknown };
+    try {
+      body = (await request.json()) as { grantId?: unknown };
+    } catch {
+      body = {};
+    }
+    const grantId = typeof body.grantId === "string" ? body.grantId : "";
+    if (!grantId) {
+      return new Response(JSON.stringify({ error: "grantId required" }), {
+        status: 400,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    // Scoped to the asserted user by the library — cannot revoke another's.
+    await api.revokeGrant(grantId, claims.userId);
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "content-type": "application/json", "cache-control": "no-store" },
+    });
+  }
+
+  return new Response(JSON.stringify({ error: "not found" }), {
+    status: 404,
+    headers: { "content-type": "application/json" },
+  });
+}
 
 function rpcError(message: string): Response {
   return new Response(
@@ -102,6 +181,12 @@ export default {
         client: resolved.name ?? "pat",
       };
       return mcpHandler.fetch(request, env, ctx);
+    }
+
+    // Connection management (app-signed): list/revoke this user's OAuth grants.
+    // Before the provider, which would not recognize these paths.
+    if (url.pathname === "/grants" || url.pathname === "/grants/revoke") {
+      return handleGrants(request, env);
     }
 
     // Everything else (/, /mcp, /authorize, /token, /register, /.well-known/*)

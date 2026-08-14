@@ -5,6 +5,14 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-14 — Connection management: revoke PATs, disconnect MCP assistants
+
+- **Asked:** a screen to see generated tokens (with the account they belong to) and delete them; same for MCP connections, with disconnect. (Triggered by there being no way to revoke a token in the app.)
+- **PATs:** the backend already existed (`GET`/`DELETE /api/tokens`, revoke scoped to owner) — only the UI was missing. Added a "Manage access" section on `/connect` listing each connector token (name · teamspace · created · last used) with a two-step Revoke (arm→confirm, the DangerZone idiom).
+- **MCP connections (OAuth grants):** these live in the MCP worker's `OAUTH_KV`, which the app doesn't bind, so the app can't read them directly. Built a signed app→worker handoff reusing `MCP_HANDOFF_SECRET` (the same secret+`signPayload`/`verifyPayload` the OAuth approval already uses): app `/api/connections` (GET/DELETE, session-gated) signs a 60s `{userId}` assertion and calls new MCP-worker routes `/grants` + `/grants/revoke`, which verify it and use the provider's `getOAuthApi().listUserGrants/revokeGrant`. `revokeGrant` is itself userId-scoped by the library, so a forged grant id can't touch another user's connection. Browser stays same-origin; the signed call is server-to-server. Provider options were extracted to a shared const so `getOAuthApi` reads the same KV layout the provider writes.
+- **Closed the actual exposure:** the PAT the user pasted earlier was live in the transcript. Revoked it directly in D1 by its SHA-256 hash (`pat_k9T1sIh8jmyHJMp3`, "for Test") and confirmed the live MCP endpoint now rejects it — independent of the new UI.
+- **Verified:** tsc clean app+mcp, 465/465. Deployed mcp `c880c518`, app `ce9eb2fc`. Live: leaked PAT rejected; `/grants` 401 unsigned; `/api/connections` 401 no-session; `/connect` 307→signin. **Boundary:** the management UI and the valid-token grant list/revoke path were NOT rendered/driven live — needs a signed-in session (inbox) I can't create. Component tsc-checks; the APIs it calls are healthy and their auth gates verified.
+
 ## 2026-08-14 — Blocker 1 doc-prune verified LIVE (the last unobserved fix)
 
 - **Asked:** (the user minted a PAT so the one remaining unverified fix could be driven end-to-end.)
