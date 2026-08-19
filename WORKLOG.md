@@ -5,6 +5,13 @@ date, what was asked, what was done, files touched.
 
 ---
 
+## 2026-08-19 — Post-signup first-run screen (/welcome) — PLG activation
+
+- **Asked:** a user reported that after sign-up they landed "on a teamspace or something" and were clueless about a first action; make the flow focused on PLG/conversion.
+- **Root cause:** the landing "Start free" CTAs sent new users to `/signin?next=%2Ft` → they landed on **/t (Teamspaces)**, a page about inviting coworkers and "what is a teamspace", whose primary button makes ANOTHER teamspace. For a solo new user none of the product's value (a shareable link + analytics; a registry an assistant reads) is on that screen.
+- **Fix:** new `/welcome` first-run screen with a single obvious primary action — **Publish your first document** (the fastest tangible payoff: paste → link → watch it get read), a secondary **Connect your AI assistant** (the registry wedge), and a quiet "go to your dashboard". It is strictly first-run: a user who has already published a doc or pushed to the registry (`document_count > 0 || skill_count > 0`) is redirected to `/dashboard`, so it never becomes a dead end. Repointed both signup CTAs (header + pricing) from `next=%2Ft` to `next=%2Fwelcome` (kept `new=1`).
+- **Verified:** tsc clean, 465/465, `next build` emits `ƒ /welcome`. Deployed app `7f25410f`. Live: `/welcome` unauth → 307 to `/signin?next=%2Fwelcome&new=1`; landing now carries the welcome target and zero old `/t` signup targets. **Boundary:** the authenticated first-run render (what a signed-in new user sees) was NOT viewed — needs a session (inbox) I can't create. Design reuses existing DS patterns; low risk, but unobserved.
+
 ## 2026-08-14 — Connection audit: fix the 1970 date, capture device/IP/geo, team view
 
 - **Asked:** the connect date read "Jan 21, 1970"; log device/IP/geo (and anything useful) for connections; and for a team, show all members' connections.

@@ -198,14 +198,14 @@ export default function Home() {
               Connect
             </Link>
             <NavAuth />
-            {/* Signed out this lands on sign-in and returns to /t; signed in
-                /signin redirects straight through. One href, both states — no
+            {/* Signed out this lands on sign-in and returns to /welcome; signed
+                in /signin redirects straight through. One href, both states — no
                 session lookup on a static page. `new=1` only changes the copy
-                on the far side: someone who clicks Start free has not created
-                anything yet, so "Sign in to ilolink" read as a step they had
-                somehow already missed. */}
+                on the far side. A new user used to land on /t (Teamspaces) and
+                have no idea what to do; /welcome gives one obvious first action
+                and bounces already-activated users on to their dashboard. */}
             <Link
-              href="/signin?next=%2Ft&new=1"
+              href="/signin?next=%2Fwelcome&new=1"
               className="inline-flex items-center bg-accent px-4 py-1.5 text-sm font-extrabold text-canvas transition-colors duration-150 hover:bg-accent-strong"
             >
               Start free
@@ -571,7 +571,7 @@ export default function Home() {
                       the header CTA — a first-visit entry point should not
                       promise "Start free" then open a screen headed "Sign in". */}
                   <Link
-                    href="/signin?next=%2Ft&new=1"
+                    href="/signin?next=%2Fwelcome&new=1"
                     className={`${featured ? BTN_PRIMARY : BTN_SECONDARY} w-full justify-start text-left`}
                   >
                     {plan.priceCents === 0
